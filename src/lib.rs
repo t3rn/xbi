@@ -20,7 +20,7 @@ pub mod pallet {
     use crate::{
         primitives::{
             assets::Assets, evm::Evm, orml::ORML, transfers::Transfers, wasm::WASM,
-            xbi_callback::XBICallback,
+            xbi_callback::XBICallback, xcm::XCM,
         },
         xbi_format::*,
         *,
@@ -89,6 +89,8 @@ pub mod pallet {
         type Assets: Assets<Self>;
 
         type WASM: WASM<Self>;
+
+        type Xcm: XCM<Self>;
 
         type Callback: XBICallback<Self>;
 
@@ -378,12 +380,9 @@ pub mod pallet {
                 call: xbi_call.encode().into(),
             }]);
 
-            pallet_xcm::Pallet::<T>::send_xcm(
-                xcm::prelude::Here,
-                dest.clone(),
-                xbi_format_msg.clone(),
-            )
-            .map_err(|_| Error::<T>::EnterFailedOnXcmSend)
+            // Could have beein either Trait DI : T::Xcm::send_xcm or pallet_xcm::Pallet::<T>::send_xcm(
+            T::Xcm::send_xcm(xcm::prelude::Here, dest.clone(), xbi_format_msg.clone())
+                .map_err(|_| Error::<T>::EnterFailedOnXcmSend)
         }
 
         pub fn exit(
@@ -398,7 +397,7 @@ pub mod pallet {
             //     XBIInstr::CallWasm { .. } => T::WASM::callback(checkin, checkout),
             //     XBIInstr::CallCustom { .. } => T::Custom::callback(checkin, checkout),
             //     XBIInstr::Transfer { .. } => T::Transfer::callback(checkin, checkout),
-            //     XBIInstr::TransferMulti { .. } => T::TransferMulti::callback(checkin, checkout),
+            //     XBIInstr::TransferAssets { .. } => T::TransferAssets::callback(checkin, checkout),
             //     XBIInstr::Result { .. } => return Err(Error::ExitUnhandled),
             //     XBIInstr::Notification { .. } => return Err(Error::ExitUnhandled),
             //     XBIInstr::CallNative { .. } => return Err(Error::ExitUnhandled),
@@ -463,7 +462,16 @@ pub mod pallet {
                     // 	input,
                     // )}
                 },
-                XBIInstr::Transfer {
+                XBIInstr::Transfer { dest: _, value: _ } => {
+                    // T::Transfer::call(
+                    // 	caller,
+                    // 	dest,
+                    // 	value,
+                    // 	input,
+                    // )
+                },
+                XBIInstr::TransferAssets {
+                    currency_id: _,
                     dest: _,
                     value: _,
                 } => {
@@ -474,7 +482,7 @@ pub mod pallet {
                     // 	input,
                     // )
                 },
-                XBIInstr::TransferMulti {
+                XBIInstr::TransferORML {
                     currency_id: _,
                     dest: _,
                     value: _,

@@ -1,15 +1,18 @@
 use codec::{Decode, Encode};
 use core::fmt::Debug;
-use frame_support::{RuntimeDebug};
+use frame_support::RuntimeDebug;
 use scale_info::TypeInfo;
 use sp_runtime::AccountId32;
 use sp_std::prelude::*;
 
 use xcm::latest::{Junction, MultiLocation};
 
+/// Basic Types.
+/// Could also introduce t3rn-primitives/abi but perhaps easier to align on sp_std types
 pub type Bytes = Vec<u8>;
+/// Introduce enum vs u32/u64 and cast later?
 pub type AssetId = u64;
-// pub type Balance16B = MultiAsset;
+/// Could be a MultiAsset?
 pub type Balance16B = u128;
 pub type AccountIdOf = MultiLocation;
 // pub type AccountId32 = AccountId32;
@@ -74,7 +77,6 @@ pub struct XBICheckIn<BlockNumber> {
     pub xbi: XBIFormat,
     pub notification_delivery_timeout: BlockNumber,
     pub notification_execution_timeout: BlockNumber,
-    // pub resolved_with_status: XBICheckOut,
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Default, Encode, Decode, TypeInfo)]
@@ -115,7 +117,12 @@ pub enum XBIInstr {
         dest: AccountId32,
         value: Balance16B,
     },
-    TransferMulti {
+    TransferORML {
+        currency_id: AssetId,
+        dest: AccountId32,
+        value: Balance16B,
+    },
+    TransferAssets {
         currency_id: AssetId,
         dest: AccountId32,
         value: Balance16B,

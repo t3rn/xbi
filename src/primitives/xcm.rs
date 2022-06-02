@@ -1,6 +1,5 @@
 use sp_std::marker::PhantomData;
 
-
 use xcm::latest::{prelude::*, MultiLocation};
 
 pub trait XCM<T: frame_system::Config> {

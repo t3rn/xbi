@@ -1,8 +1,6 @@
 use frame_support::dispatch::DispatchResultWithPostInfo;
 
-
-
-use sp_std::{marker::PhantomData};
+use sp_std::marker::PhantomData;
 
 pub trait XBICallback<T: frame_system::Config + crate::pallet::Config> {
     fn callback(
