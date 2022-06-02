@@ -41,6 +41,6 @@ impl<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> 
         _target: <T::Lookup as StaticLookup>::Source,
         _amount: T::Balance,
     ) -> DispatchResult {
-        Err(crate::Error::<T>::NoTransfersSupportedAtDest.into())
+        Err(crate::Error::<T>::NoTransferSupportedAtDest.into())
     }
 }

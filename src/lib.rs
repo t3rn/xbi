@@ -96,7 +96,7 @@ pub mod pallet {
         type ExpectedBlockTimeMs: Get<u32>;
 
         #[pallet::constant]
-        type CheckInterval: Get<u32>;
+        type CheckInterval: Get<Self::BlockNumber>;
 
         #[pallet::constant]
         type TimeoutChecksLimit: Get<u32>;
@@ -122,7 +122,7 @@ pub mod pallet {
         // dispatched.
         //
         // This function must return the weight consumed by `on_initialize` and `on_finalize`.
-        fn on_initialize(n: T::BlockNumber) -> Weight {
+        fn on_initialize(_n: T::BlockNumber) -> Weight {
             // Anything that needs to be done at the start of the block.
             // We don't do anything here.
             // ToDo: Do active xtx signals overview and Cancel if time elapsed
@@ -161,7 +161,7 @@ pub mod pallet {
                         <XBICheckIns<T>>::insert(xbi_id.clone(), xbi_checkin.clone());
                         <XBICheckOutsQueued<T>>::insert(
                             xbi_id,
-                            XBICheckOut::new(
+                            XBICheckOut::new::<T>(
                                 xbi_checkin.notification_delivery_timeout,
                                 vec![],
                                 XBICheckOutStatus::ErrorDeliveryTimeout,
@@ -182,7 +182,7 @@ pub mod pallet {
                         <XBICheckIns<T>>::insert(xbi_id.clone(), xbi_checkin.clone());
                         <XBICheckOutsQueued<T>>::insert(
                             xbi_id,
-                            XBICheckOut::new(
+                            XBICheckOut::new::<T>(
                                 xbi_checkin.notification_delivery_timeout,
                                 vec![],
                                 XBICheckOutStatus::ErrorExecutionTimeout,
@@ -195,15 +195,14 @@ pub mod pallet {
                 // Process CheckIn Queue
                 let mut checkin_counter: u32 = 0;
 
-                for (xbi_id, xbi_checkout) in <XBICheckInsQueued<T>>::iter() {
+                for (xbi_id, xbi_checkin) in <XBICheckInsQueued<T>>::iter() {
                     if checkin_counter > T::CheckInLimit::get() {
                         break
                     }
-
-                    match pallet::Pallet::<T>::enter(xbi_checkin) {
+                    match pallet::Pallet::<T>::enter(xbi_checkin.clone()) {
                         // Pending remote XBI execution
                         Ok(None) => {
-                            <XBICheckInsPending<T>>::insert(xbi_id, checkout);
+                            <XBICheckInsPending<T>>::insert(xbi_id, xbi_checkin);
                         },
                         // Instant check out - no pending remote XBI execution
                         Ok(Some(checkout)) => {
@@ -214,12 +213,12 @@ pub mod pallet {
                         },
                     }
                     <XBICheckInsQueued<T>>::remove(xbi_id.clone());
-
-                    checkout_counter += 1;
+                    checkin_counter += 1;
                 }
 
                 // Process Check Out Queue
                 // All XBIs ready to check out (notification, results)
+                let mut checkout_counter: u32 = 0;
                 for (xbi_id, xbi_checkout) in <XBICheckOutsQueued<T>>::iter() {
                     if checkin_counter > T::CheckOutLimit::get() {
                         break
@@ -241,8 +240,6 @@ pub mod pallet {
 
                     checkout_counter += 1;
                 }
-
-                timed_out_checkins
             }
         }
     }
@@ -295,7 +292,7 @@ pub mod pallet {
                 || <Self as Store>::XBICheckInsQueued::contains_key(xbi_id)
                 || <Self as Store>::XBICheckInsPending::contains_key(xbi_id)
             {
-                return Err(Error::<T>::XBIAlreadyCheckedIn)
+                return Err(Error::<T>::XBIAlreadyCheckedIn.into())
             }
 
             // 	Consider taking straight from Babe
@@ -333,41 +330,36 @@ pub mod pallet {
         /// Enter might be weight heavy - calls for execution into EVMs and if necessary sends the response
         /// If returns XBICheckOut means that executed instantly and the XBI order can be removed from pending checkouts
         pub fn enter(checkin: XBICheckIn<T::BlockNumber>) -> Result<Option<XBICheckOut>, Error<T>> {
-            match (checkin.xbi.metadata.src_para_id, xbi.metadata.dest_para_id) {
-                // If ordered execution locally via XBI : (T::MyParachainId::get(), T::MyParachainId::get())
-                // Or if received XBI order of execution from remote Parachain
-                (_, T::MyParachainId::get()) => {
-                    let res = Self::enter_here(checkin.xbi).map_err(|e| {
-                        Ok(Some(XBICheckOut::new(
-                            checkin.notification_delivery_timeout,
-                            e.encode(),
-                            XBICheckOutStatus::ErrorFailedExecution,
-                        )))
-                    })?;
+            let dest = checkin.xbi.metadata.dest_para_id;
+            // If ordered execution locally via XBI : (T::MyParachainId::get(), T::MyParachainId::get())
+            // Or if received XBI order of execution from remote Parachain
+            if dest == T::MyParachainId::get() {
+                match Self::enter_here(checkin.xbi) {
+                    Err(e) => Ok(Some(XBICheckOut::new::<T>(
+                        checkin.notification_delivery_timeout,
+                        e.encode(),
+                        XBICheckOutStatus::ErrorFailedExecution,
+                    ))),
                     // Instant checkout
-                    Ok(Some(XBICheckOut::new(
+                    Ok(res) => Ok(Some(XBICheckOut::new::<T>(
                         checkin.notification_delivery_timeout,
                         res.encode(),
                         XBICheckOutStatus::SuccessfullyExecuted,
-                    )))
-                },
-                // If addressing XBI result back to source Parachain that ordered XBI
-                // Or if serving as XBI Router, pass XBI message along
-                (_, dest) => {
-                    Self::enter_remote(
-                        checkin.xbi,
-                        Box::new(Self::target_2_xcm_location(dest)?.into()),
-                    )
-                    .map_err(|e| {
-                        Ok(Some(XBICheckOut::new(
-                            checkin.notification_delivery_timeout,
-                            e.encode(),
-                            XBICheckOutStatus::ErrorFailedXCMDispatch,
-                        )))
-                    })?;
-                    // XBI order sent via XCM. Await for XBI notifications.
-                    Ok(None)
-                },
+                    ))),
+                }
+            } else {
+                match Self::enter_remote(
+                    checkin.xbi,
+                    Box::new(Self::target_2_xcm_location(dest)?.into()),
+                ) {
+                    Err(e) => Ok(Some(XBICheckOut::new::<T>(
+                        checkin.notification_delivery_timeout,
+                        e.encode(),
+                        XBICheckOutStatus::ErrorFailedXCMDispatch,
+                    ))),
+                    // Instant checkout
+                    Ok(_) => Ok(None),
+                }
             }
         }
 
@@ -378,10 +370,11 @@ pub mod pallet {
             let dest = MultiLocation::try_from(*dest)
                 .map_err(|()| Error::<T>::EnterFailedOnMultiLocationTransform)?;
 
+            let require_weight_at_most = xbi.metadata.max_exec_cost.clone() as u64;
             let xbi_call = pallet::Call::check_in_xbi::<T> { xbi };
             let xbi_format_msg = Xcm(vec![Transact {
                 origin_type: OriginKind::SovereignAccount,
-                require_weight_at_most: xbi.metadata.max_exec_cost.clone() as u64,
+                require_weight_at_most,
                 call: xbi_call.encode().into(),
             }]);
 
@@ -415,7 +408,7 @@ pub mod pallet {
 
         pub fn enter_here(xbi: XBIFormat) -> DispatchResultWithPostInfo {
             match xbi.instr {
-                XBIInstr::CallNative { ref payload } => {
+                XBIInstr::CallNative { payload: _ } => {
                     // let message_call = payload.take_decoded().map_err(|_| Error::FailedToDecode)?;
                     // let actual_weight = match message_call.dispatch(dispatch_origin) {
                     // 	Ok(post_info) => post_info.actual_weight,
@@ -427,11 +420,11 @@ pub mod pallet {
                     // }
                 },
                 XBIInstr::CallEvm {
-                    ref caller,
-                    ref dest,
-                    ref value,
-                    ref input,
-                    ref gas_limit,
+                    caller: _,
+                    dest: _,
+                    value: _,
+                    input: _,
+                    gas_limit: _,
                     max_fee_per_gas: _,
                     max_priority_fee_per_gas: _,
                     nonce: _,
@@ -450,10 +443,10 @@ pub mod pallet {
                     // )
                 },
                 XBIInstr::CallWasm {
-                    ref caller,
-                    ref dest,
-                    ref value,
-                    ref input,
+                    caller: _,
+                    dest: _,
+                    value: _,
+                    input: _,
                 } => {
                     // T::WASM::call(
                     // 	caller,
@@ -471,8 +464,8 @@ pub mod pallet {
                     // )}
                 },
                 XBIInstr::Transfer {
-                    ref dest,
-                    ref value,
+                    dest: _,
+                    value: _,
                 } => {
                     // T::Transfer::call(
                     // 	caller,
@@ -483,8 +476,8 @@ pub mod pallet {
                 },
                 XBIInstr::TransferMulti {
                     currency_id: _,
-                    ref dest,
-                    ref value,
+                    dest: _,
+                    value: _,
                 } => {
                     // T::Transfer::call(
                     // 	caller,

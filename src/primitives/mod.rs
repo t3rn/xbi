@@ -5,3 +5,4 @@ pub mod transfers;
 pub mod wasm;
 pub mod xbi;
 pub mod xbi_callback;
+pub mod xcm;

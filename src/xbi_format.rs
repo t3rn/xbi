@@ -1,6 +1,6 @@
 use codec::{Decode, Encode};
 use core::fmt::Debug;
-use frame_support::{traits::Get, RuntimeDebug};
+use frame_support::{RuntimeDebug};
 use scale_info::TypeInfo;
 use sp_runtime::AccountId32;
 use sp_std::prelude::*;
@@ -39,7 +39,7 @@ pub struct XBICheckOut {
 
 impl XBICheckOut {
     pub fn new<T: frame_system::Config + crate::pallet::Config>(
-        delivery_timeout: T::BlockNumber,
+        _delivery_timeout: T::BlockNumber,
         output: Vec<u8>,
         resolution_status: XBICheckOutStatus,
     ) -> Self {
@@ -50,8 +50,10 @@ impl XBICheckOut {
                 witness: vec![],
             },
             resolution_status,
-            checkout_timeout: (frame_system::Pallet::<T>::block_number() - delivery_timeout).into()
-                * T::ExpectedBlockTimeMs::get(),
+            checkout_timeout: Default::default()
+            // FixMe: casting block to timeout
+            // checkout_timeout: ((frame_system::Pallet::<T>::block_number() - delivery_timeout)
+            //     * T::BlockNumber::from(T::ExpectedBlockTimeMs::get())).into(),
         }
     }
 
