@@ -1,15 +1,15 @@
 use frame_support::dispatch::DispatchResult;
-use sp_runtime::traits::StaticLookup;
 
-use frame_system::pallet_prelude::OriginFor;
+
+
 
 use sp_std::marker::PhantomData;
 
 pub trait ORML<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> {
     fn transfer(
-        origin: OriginFor<T>,
-        id: u32,
-        target: <T::Lookup as StaticLookup>::Source,
+        currency_id: u64,
+        from: &T::AccountId,
+        to: &T::AccountId,
         amount: T::Balance,
     ) -> DispatchResult;
 }
@@ -22,9 +22,9 @@ impl<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> 
     for ORMLMock<T>
 {
     fn transfer(
-        _origin: OriginFor<T>,
-        _id: u32,
-        _target: <T::Lookup as StaticLookup>::Source,
+        _currency_id: u64,
+        _from: &T::AccountId,
+        _to: &T::AccountId,
         _amount: T::Balance,
     ) -> DispatchResult {
         Ok(().into())
@@ -39,9 +39,9 @@ impl<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> 
     for ORMLNoop<T>
 {
     fn transfer(
-        _origin: OriginFor<T>,
-        _id: u32,
-        _target: <T::Lookup as StaticLookup>::Source,
+        _currency_id: u64,
+        _from: &T::AccountId,
+        _to: &T::AccountId,
         _amount: T::Balance,
     ) -> DispatchResult {
         Err(crate::Error::<T>::NoTransferORMLSupportedAtDest.into())

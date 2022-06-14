@@ -8,7 +8,7 @@ use sp_std::marker::PhantomData;
 pub trait Assets<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> {
     fn transfer(
         origin: OriginFor<T>,
-        id: u32,
+        id: u64,
         target: <T::Lookup as StaticLookup>::Source,
         amount: T::Balance,
     ) -> DispatchResult;
@@ -23,7 +23,7 @@ impl<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> 
 {
     fn transfer(
         _origin: OriginFor<T>,
-        _id: u32,
+        _id: u64,
         _target: <T::Lookup as StaticLookup>::Source,
         _amount: T::Balance,
     ) -> DispatchResult {
@@ -40,7 +40,7 @@ impl<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> 
 {
     fn transfer(
         _origin: OriginFor<T>,
-        _id: u32,
+        _id: u64,
         _target: <T::Lookup as StaticLookup>::Source,
         _amount: T::Balance,
     ) -> DispatchResult {

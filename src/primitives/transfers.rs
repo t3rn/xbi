@@ -1,16 +1,14 @@
-use frame_support::dispatch::DispatchResult;
-use sp_runtime::traits::StaticLookup;
-
-use frame_system::pallet_prelude::OriginFor;
+use frame_support::dispatch::DispatchError;
 
 use sp_std::marker::PhantomData;
 
 pub trait Transfers<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> {
     fn transfer(
-        origin: OriginFor<T>,
-        target: <T::Lookup as StaticLookup>::Source,
+        source: &T::AccountId,
+        dest: &T::AccountId,
         amount: T::Balance,
-    ) -> DispatchResult;
+        keep_alive: bool,
+    ) -> Result<T::Balance, DispatchError>;
 }
 
 pub struct TransfersMock<T> {
@@ -21,11 +19,12 @@ impl<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> 
     for TransfersMock<T>
 {
     fn transfer(
-        _origin: OriginFor<T>,
-        _target: <T::Lookup as StaticLookup>::Source,
-        _amount: T::Balance,
-    ) -> DispatchResult {
-        Ok(().into())
+        _source: &T::AccountId,
+        _dest: &T::AccountId,
+        amount: T::Balance,
+        _keep_alive: bool,
+    ) -> Result<T::Balance, DispatchError> {
+        Ok(amount)
     }
 }
 
@@ -37,10 +36,11 @@ impl<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> 
     for TransfersNoop<T>
 {
     fn transfer(
-        _origin: OriginFor<T>,
-        _target: <T::Lookup as StaticLookup>::Source,
+        _source: &T::AccountId,
+        _dest: &T::AccountId,
         _amount: T::Balance,
-    ) -> DispatchResult {
+        _keep_alive: bool,
+    ) -> Result<T::Balance, DispatchError> {
         Err(crate::Error::<T>::NoTransferSupportedAtDest.into())
     }
 }

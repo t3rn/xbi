@@ -32,6 +32,7 @@ pub mod pallet {
     use frame_support::pallet_prelude::*;
     use frame_system::{offchain::SendTransactionTypes, pallet_prelude::*};
     use sp_core::Hasher;
+    use sp_runtime::traits::StaticLookup;
     use sp_std::{default::Default, prelude::*};
     use xcm::latest::{prelude::*, MultiLocation, OriginKind};
 
@@ -493,40 +494,42 @@ pub mod pallet {
                     // )}
                     Err(Error::<T>::XBIInstructionNotAllowedHere.into())
                 },
-                XBIInstr::Transfer { dest: _, value: _ } => {
-                    // T::Transfer::call(
-                    // 	caller,
-                    // 	dest,
-                    // 	value,
-                    // 	input,
-                    // )
-                    Err(Error::<T>::XBIInstructionNotAllowedHere.into())
+                XBIInstr::Transfer { dest, value } => {
+                    T::Transfers::transfer(
+                        &caller,
+                        &XbiAbi::<T>::address_global_2_local(dest.encode())?,
+                        XbiAbi::<T>::value_global_2_local(value)?,
+                        true,
+                    )?;
+                    Ok(().into())
                 },
                 XBIInstr::TransferAssets {
-                    currency_id: _,
-                    dest: _,
-                    value: _,
+                    currency_id,
+                    dest,
+                    value,
                 } => {
-                    // T::Transfer::call(
-                    // 	caller,
-                    // 	dest,
-                    // 	value,
-                    // 	input,
-                    // )
-                    Err(Error::<T>::XBIInstructionNotAllowedHere.into())
+                    T::Assets::transfer(
+                        origin,
+                        currency_id,
+                        <T::Lookup as StaticLookup>::unlookup(XbiAbi::<T>::address_global_2_local(
+                            dest.encode(),
+                        )?),
+                        XbiAbi::<T>::value_global_2_local(value)?,
+                    )?;
+                    Ok(().into())
                 },
                 XBIInstr::TransferORML {
-                    currency_id: _,
-                    dest: _,
-                    value: _,
+                    currency_id,
+                    dest,
+                    value,
                 } => {
-                    // T::Transfer::call(
-                    // 	caller,
-                    // 	dest,
-                    // 	value,
-                    // 	input,
-                    // )
-                    Err(Error::<T>::XBIInstructionNotAllowedHere.into())
+                    T::ORML::transfer(
+                        currency_id,
+                        &XbiAbi::<T>::address_global_2_local(caller.encode())?,
+                        &XbiAbi::<T>::address_global_2_local(dest.encode())?,
+                        XbiAbi::<T>::value_global_2_local(value)?,
+                    )?;
+                    Ok(().into())
                 },
                 XBIInstr::Result { .. } => Err(Error::<T>::XBIInstructionNotAllowedHere.into()),
                 XBIInstr::Notification { .. } =>
