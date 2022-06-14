@@ -4,74 +4,74 @@ First implementation blueprint in `src/xbi_format.rs`
 
 ### Basic Types 
 ```rust
-/// Basic Types.
-/// Could also introduce t3rn-primitives/abi but perhaps easier to align on sp_std types
-pub type Bytes = Vec<u8>;
-/// Introduce enum vs u32/u64 and cast later?
-pub type AssetId = u64;
-/// Could be a MultiAsset?
-pub type Balance16B = u128;
-pub type AccountIdOf = MultiLocation;
+/// Global XBI Types.
+/// Could also introduce t3rn-primitives/abi but perhaps easier to rely on sp_std / global types
+pub type Data = Vec<u8>;
+pub type AssetId = u64; // Could also be xcm::MultiAsset
+pub type Value = u128; // Could also be [u64; 2] or sp_core::U128
+pub type ValueEvm = sp_core::U256; // Could also be [u64; 4]
+pub type Gas = u64; // [u64; 4]
+pub type AccountId32 = sp_runtime::AccountId32;
+pub type AccountId20 = sp_core::H160; // Could also take it from MultiLocation::Junction::AccountKey20 { network: NetworkId, key: [u8; 20] },
+
 ```
 
 ## XBI Format specification
 ```rust
-    CallNative {
-        payload: Bytes, // assumes to be encoded Call that can be dispatched
-    },
-    CallModule { // call modules like FRAME pallets by pallet_id + method_id
-        module_id: u8, 
-        method_id: u8, 
-    },
-    CallEvm {
-        caller: AccountId32,
-        dest: Junction, // Junction::AccountKey20
-        value: Balance16B,
-        input: Bytes,
-        gas_limit: Balance16B,
-        max_fee_per_gas: Option<Balance16B>,
-        max_priority_fee_per_gas: Option<Balance16B>,
-        nonce: Option<u32>,
-        access_list: Option<Bytes>,
-    },
-    CallWasm {
-        caller: AccountId32,
-        dest: AccountId32,
-        value: Balance16B,
-        input: Bytes,
-    },
-    CallCustom {
-        caller: AccountId32,
-        dest: AccountId32,
-        value: Balance16B,
-        input: Bytes,
-        additional_params: Option<Vec<Bytes>>,
-    },
-    Transfer {
-        dest: AccountId32,
-        value: Balance16B,
-    },
-    TransferORML {
-        currency_id: AssetId,
-        dest: AccountId32,
-        value: Balance16B,
-    },
-    TransferAssets {
-        currency_id: AssetId,
-        dest: AccountId32,
-        value: Balance16B,
-    },
-    Result {
-        outcome: XBICheckOutStatus,
-        output: Bytes,
-        witness: Bytes,
-    },
-    Notification {
-        kind: XBINotificationKind,
-        instruction_id: Bytes,
-        extra: Bytes,
-    },
-},
+pub enum XBIInstr {
+  CallNative {
+    payload: Data,
+  },
+  CallEvm {
+    source: AccountId20, // Could use either [u8; 20] or Junction::AccountKey20
+    dest: AccountId20,   // Could use either [u8; 20] or Junction::AccountKey20
+    value: Value,
+    input: Data,
+    gas_limit: Gas,
+    max_fee_per_gas: ValueEvm,
+    max_priority_fee_per_gas: Option<ValueEvm>,
+    nonce: Option<ValueEvm>,
+    access_list: Vec<(AccountId20, Vec<sp_core::H256>)>, // Could use Vec<([u8; 20], Vec<[u8; 32]>)>,
+  },
+  CallWasm {
+    dest: AccountId32,
+    value: Value,
+    gas_limit: Gas,
+    storage_deposit_limit: Option<Value>,
+    data: Data,
+  },
+  CallCustom {
+    caller: AccountId32,
+    dest: AccountId32,
+    value: Value,
+    input: Data,
+    additional_params: Option<Vec<Data>>,
+  },
+  Transfer {
+    dest: AccountId32,
+    value: Value,
+  },
+  TransferORML {
+    currency_id: AssetId,
+    dest: AccountId32,
+    value: Value,
+  },
+  TransferAssets {
+    currency_id: AssetId,
+    dest: AccountId32,
+    value: Value,
+  },
+  Result {
+    outcome: XBICheckOutStatus,
+    output: Data,
+    witness: Data,
+  },
+  Notification {
+    kind: XBINotificationKind,
+    instruction_id: Data,
+    extra: Data,
+  },
+}
 ```
 
 ## XBI Metadata specification
@@ -83,16 +83,18 @@ pub type AccountIdOf = MultiLocation;
     - `max_exec_cost`: `Balance` : `Maximal cost / fees for execution of delivery`
     - `max_notification_cost`: `Balance` : `Maximal cost / fees per delivering notification`
 
+
+Or directly from `src/xbi_format.rs`
 ```rust
 #[derive(Clone, Eq, PartialEq, Debug, Default, Encode, Decode, TypeInfo)]
 pub struct XBIMetadata {
-    pub id: sp_core::H256,
-    pub dest_para_id: u32,
-    pub src_para_id: u32,
-    pub sent: ActionNotificationTimeouts,
-    pub delivered: ActionNotificationTimeouts,
-    pub executed: ActionNotificationTimeouts,
-    pub max_exec_cost: Balance16B,
-    pub max_notifications_cost: Balance16B,
+  pub id: sp_core::H256,
+  pub dest_para_id: u32,
+  pub src_para_id: u32,
+  pub sent: ActionNotificationTimeouts,
+  pub delivered: ActionNotificationTimeouts,
+  pub executed: ActionNotificationTimeouts,
+  pub max_exec_cost: Value,
+  pub max_notifications_cost: Value,
 }
 ```

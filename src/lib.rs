@@ -296,6 +296,7 @@ pub mod pallet {
 
             Ok(())
         }
+
         /// Enter might be weight heavy - calls for execution into EVMs and if necessary sends the response
         /// If returns XBICheckOut means that executed instantly and the XBI order can be removed from pending checkouts
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
