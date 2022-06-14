@@ -1,8 +1,12 @@
+#![feature(inherent_associated_types)]
+#![feature(associated_type_defaults)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use xcm::latest::Xcm;
 
 pub mod xbi_format;
+
+pub mod xbi_abi;
 
 pub mod primitives;
 
@@ -26,7 +30,7 @@ pub mod pallet {
         *,
     };
     use frame_support::pallet_prelude::*;
-    use frame_system::pallet_prelude::*;
+    use frame_system::{offchain::SendTransactionTypes, pallet_prelude::*};
     use sp_core::Hasher;
     use sp_std::{default::Default, prelude::*};
     use xcm::latest::{prelude::*, MultiLocation, OriginKind};
@@ -74,7 +78,12 @@ pub mod pallet {
 
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
-    pub trait Config: frame_system::Config + pallet_xcm::Config + pallet_balances::Config {
+    pub trait Config:
+        SendTransactionTypes<Call<Self>>
+        + frame_system::Config
+        + pallet_xcm::Config
+        + pallet_balances::Config
+    {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
@@ -201,19 +210,19 @@ pub mod pallet {
                     if checkin_counter > T::CheckInLimit::get() {
                         break
                     }
-                    match pallet::Pallet::<T>::enter(xbi_checkin.clone()) {
-                        // Pending remote XBI execution
-                        Ok(None) => {
-                            <XBICheckInsPending<T>>::insert(xbi_id, xbi_checkin);
-                        },
-                        // Instant check out - no pending remote XBI execution
-                        Ok(Some(checkout)) => {
-                            <XBICheckOutsQueued<T>>::insert(xbi_id, checkout);
-                        },
-                        Err(_err) => {
-                            log::info!("Can't enter execution with current XBI - continue and must be handled better");
-                        },
-                    }
+                    match frame_system::offchain::SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(
+                        pallet::Call::enter_call::<T> {
+                            checkin: xbi_checkin.clone(),
+                            xbi_id,
+                        }.into(),
+                    ) {
+                        Ok(()) => { }
+                        Err(e) => log::error!(
+                            target: "runtime::xbi",
+                            "Can't enter execution with current XBI: {:?}",
+                            e,
+                        ),
+                     }
                     <XBICheckInsQueued<T>>::remove(xbi_id.clone());
                     checkin_counter += 1;
                 }
@@ -260,6 +269,8 @@ pub mod pallet {
         EnterFailedOnXcmSend,
         EnterFailedOnMultiLocationTransform,
         ExitUnhandled,
+        XBIABIFailedToCastBetweenTypesValue,
+        XBIABIFailedToCastBetweenTypesAddress,
         XBIInstructionNotAllowedHere,
         XBIAlreadyCheckedIn,
         XBINotificationTimeOutDelivery,
@@ -285,6 +296,58 @@ pub mod pallet {
 
             Ok(())
         }
+        /// Enter might be weight heavy - calls for execution into EVMs and if necessary sends the response
+        /// If returns XBICheckOut means that executed instantly and the XBI order can be removed from pending checkouts
+        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        pub fn enter_call(
+            origin: OriginFor<T>,
+            checkin: XBICheckIn<T::BlockNumber>,
+            xbi_id: T::Hash,
+        ) -> DispatchResult {
+            // let _who = ensure_signed(origin)?;
+
+            let dest = checkin.xbi.metadata.dest_para_id;
+            // If ordered execution locally via XBI : (T::MyParachainId::get(), T::MyParachainId::get())
+            // Or if received XBI order of execution from remote Parachain
+            if dest == T::MyParachainId::get() {
+                let instant_checkout = match Self::enter_here(origin, checkin.xbi) {
+                    Err(e) => XBICheckOut::new::<T>(
+                        checkin.notification_delivery_timeout,
+                        e.encode(),
+                        XBICheckOutStatus::ErrorFailedExecution,
+                    ),
+                    Ok(res) => XBICheckOut::new::<T>(
+                        checkin.notification_delivery_timeout,
+                        res.encode(),
+                        XBICheckOutStatus::SuccessfullyExecuted,
+                    ),
+                };
+                <XBICheckOutsQueued<T>>::insert(xbi_id, instant_checkout);
+            } else {
+                match Self::enter_remote(
+                    checkin.xbi.clone(),
+                    Box::new(Self::target_2_xcm_location(dest)?.into()),
+                ) {
+                    // Instant checkout with error
+                    Err(e) => {
+                        <XBICheckOutsQueued<T>>::insert(
+                            xbi_id,
+                            XBICheckOut::new::<T>(
+                                checkin.notification_delivery_timeout,
+                                e.encode(),
+                                XBICheckOutStatus::ErrorFailedXCMDispatch,
+                            ),
+                        );
+                    },
+                    // Insert pending
+                    Ok(_) => {
+                        <XBICheckInsPending<T>>::insert(xbi_id, checkin);
+                    },
+                }
+            }
+
+            Ok(().into())
+        }
 
         #[pallet::weight(50_000 + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
         pub fn check_in_xbi(_origin: OriginFor<T>, xbi: XBIFormat) -> DispatchResult {
@@ -301,7 +364,6 @@ pub mod pallet {
             // 	type ExpectedBlockTime = ExpectedBlockTime;
             //  pub const ExpectedBlockTime: Moment = MILLISECS_PER_BLOCK;
             // Set all of the notification timers at entry after recalculating relative time to local expected block time.
-
             let curr_block = frame_system::Pallet::<T>::block_number();
 
             let delivery_timout_at_block = curr_block
@@ -327,42 +389,6 @@ pub mod pallet {
             // Parachain(ParachainInfo::parachain_id().into()).into()
             MultiLocation::try_from(Parachain(target_id.into()).into())
                 .map_err(|_| Error::<T>::EnterFailedOnMultiLocationTransform)
-        }
-
-        /// Enter might be weight heavy - calls for execution into EVMs and if necessary sends the response
-        /// If returns XBICheckOut means that executed instantly and the XBI order can be removed from pending checkouts
-        pub fn enter(checkin: XBICheckIn<T::BlockNumber>) -> Result<Option<XBICheckOut>, Error<T>> {
-            let dest = checkin.xbi.metadata.dest_para_id;
-            // If ordered execution locally via XBI : (T::MyParachainId::get(), T::MyParachainId::get())
-            // Or if received XBI order of execution from remote Parachain
-            if dest == T::MyParachainId::get() {
-                match Self::enter_here(checkin.xbi) {
-                    Err(e) => Ok(Some(XBICheckOut::new::<T>(
-                        checkin.notification_delivery_timeout,
-                        e.encode(),
-                        XBICheckOutStatus::ErrorFailedExecution,
-                    ))),
-                    // Instant checkout
-                    Ok(res) => Ok(Some(XBICheckOut::new::<T>(
-                        checkin.notification_delivery_timeout,
-                        res.encode(),
-                        XBICheckOutStatus::SuccessfullyExecuted,
-                    ))),
-                }
-            } else {
-                match Self::enter_remote(
-                    checkin.xbi,
-                    Box::new(Self::target_2_xcm_location(dest)?.into()),
-                ) {
-                    Err(e) => Ok(Some(XBICheckOut::new::<T>(
-                        checkin.notification_delivery_timeout,
-                        e.encode(),
-                        XBICheckOutStatus::ErrorFailedXCMDispatch,
-                    ))),
-                    // Instant checkout
-                    Ok(_) => Ok(None),
-                }
-            }
         }
 
         fn enter_remote(
@@ -405,7 +431,8 @@ pub mod pallet {
             // }
         }
 
-        pub fn enter_here(xbi: XBIFormat) -> DispatchResultWithPostInfo {
+        pub fn enter_here(origin: OriginFor<T>, xbi: XBIFormat) -> DispatchResultWithPostInfo {
+            let caller = ensure_signed(origin.clone())?;
             match xbi.instr {
                 XBIInstr::CallNative { payload: _ } => {
                     // let message_call = payload.take_decoded().map_err(|_| Error::FailedToDecode)?;
@@ -417,43 +444,45 @@ pub mod pallet {
                     // 		error_and_info.post_info.actual_weight
                     // 	},
                     // }
+                    Err(Error::<T>::XBIInstructionNotAllowedHere.into())
                 },
                 XBIInstr::CallEvm {
-                    caller: _,
-                    dest: _,
-                    value: _,
-                    input: _,
-                    gas_limit: _,
-                    max_fee_per_gas: _,
-                    max_priority_fee_per_gas: _,
-                    nonce: _,
-                    access_list: _,
-                } => {
-                    // T::Evm::call(
-                    // 	caller,
-                    // 	dest,
-                    // 	value,
-                    // 	input,
-                    // 	gas_limit,
-                    // 	max_fee_per_gas,
-                    // 	max_priority_fee_per_gas,
-                    // 	nonce,
-                    // 	access_list,
-                    // )
-                },
+                    source,
+                    dest,
+                    value,
+                    input,
+                    gas_limit,
+                    max_fee_per_gas,
+                    max_priority_fee_per_gas,
+                    nonce,
+                    access_list,
+                } => T::Evm::call(
+                    origin,
+                    source,
+                    dest,
+                    input,
+                    sp_core::U256::from(value),
+                    gas_limit,
+                    max_fee_per_gas,
+                    max_priority_fee_per_gas,
+                    nonce,
+                    access_list,
+                ),
                 XBIInstr::CallWasm {
-                    caller: _,
-                    dest: _,
-                    value: _,
-                    input: _,
-                } => {
-                    // T::WASM::call(
-                    // 	caller,
-                    // 	dest,
-                    // 	value,
-                    // 	input,
-                    // )
-                },
+                    dest,
+                    value,
+                    gas_limit,
+                    storage_deposit_limit,
+                    data,
+                } => T::WASM::bare_call(
+                    caller,
+                    XbiAbi::<T>::address_global_2_local(dest.encode())?,
+                    XbiAbi::<T>::value_global_2_local(value)?,
+                    gas_limit,
+                    XbiAbi::<T>::maybe_value_global_2_maybe_local(storage_deposit_limit)?,
+                    data,
+                    false,
+                ),
                 XBIInstr::CallCustom { .. } => {
                     // T::Custom::call(
                     // 	caller,
@@ -461,6 +490,7 @@ pub mod pallet {
                     // 	value,
                     // 	input,
                     // )}
+                    Err(Error::<T>::XBIInstructionNotAllowedHere.into())
                 },
                 XBIInstr::Transfer { dest: _, value: _ } => {
                     // T::Transfer::call(
@@ -469,6 +499,7 @@ pub mod pallet {
                     // 	value,
                     // 	input,
                     // )
+                    Err(Error::<T>::XBIInstructionNotAllowedHere.into())
                 },
                 XBIInstr::TransferAssets {
                     currency_id: _,
@@ -481,6 +512,7 @@ pub mod pallet {
                     // 	value,
                     // 	input,
                     // )
+                    Err(Error::<T>::XBIInstructionNotAllowedHere.into())
                 },
                 XBIInstr::TransferORML {
                     currency_id: _,
@@ -493,12 +525,12 @@ pub mod pallet {
                     // 	value,
                     // 	input,
                     // )
+                    Err(Error::<T>::XBIInstructionNotAllowedHere.into())
                 },
-                XBIInstr::Result { .. } => {},
-                XBIInstr::Notification { .. } => {},
+                XBIInstr::Result { .. } => Err(Error::<T>::XBIInstructionNotAllowedHere.into()),
+                XBIInstr::Notification { .. } =>
+                    Err(Error::<T>::XBIInstructionNotAllowedHere.into()),
             }
-
-            Ok(().into())
         }
     }
 }

@@ -5,18 +5,7 @@ use scale_info::TypeInfo;
 use sp_runtime::AccountId32;
 use sp_std::prelude::*;
 
-use xcm::latest::{Junction, MultiLocation};
-
-/// Basic Types.
-/// Could also introduce t3rn-primitives/abi but perhaps easier to align on sp_std types
-pub type Bytes = Vec<u8>;
-/// Introduce enum vs u32/u64 and cast later?
-pub type AssetId = u64;
-/// Could be a MultiAsset?
-pub type Balance16B = u128;
-pub type AccountIdOf = MultiLocation;
-// pub type AccountId32 = AccountId32;
-// pub type AccountKey20 = AccountKey20;
+pub use crate::xbi_abi::*;
 
 #[derive(Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum XBICheckOutStatus {
@@ -54,7 +43,7 @@ impl XBICheckOut {
             },
             resolution_status,
             checkout_timeout: Default::default()
-            // FixMe: casting block to timeout
+            // FixMe: make below work - casting block no to timeout
             // checkout_timeout: ((frame_system::Pallet::<T>::block_number() - delivery_timeout)
             //     * T::BlockNumber::from(T::ExpectedBlockTimeMs::get())).into(),
         }
@@ -84,58 +73,60 @@ pub struct XBIFormat {
     pub instr: XBIInstr,
     pub metadata: XBIMetadata,
 }
+
 #[derive(Clone, Eq, PartialEq, Debug, Encode, Decode, TypeInfo)]
 pub enum XBIInstr {
     CallNative {
-        payload: Bytes,
+        payload: Data,
     },
     CallEvm {
-        caller: AccountId32,
-        dest: Junction, // Junction::AccountKey20
-        value: Balance16B,
-        input: Bytes,
-        gas_limit: Balance16B,
-        max_fee_per_gas: Option<Balance16B>,
-        max_priority_fee_per_gas: Option<Balance16B>,
-        nonce: Option<u32>,
-        access_list: Option<Bytes>,
+        source: AccountId20, // Could use either [u8; 20] or Junction::AccountKey20
+        dest: AccountId20,   // Could use either [u8; 20] or Junction::AccountKey20
+        value: Value,
+        input: Data,
+        gas_limit: Gas,
+        max_fee_per_gas: ValueEvm,
+        max_priority_fee_per_gas: Option<ValueEvm>,
+        nonce: Option<ValueEvm>,
+        access_list: Vec<(AccountId20, Vec<sp_core::H256>)>, // Could use Vec<([u8; 20], Vec<[u8; 32]>)>,
     },
     CallWasm {
-        caller: AccountId32,
         dest: AccountId32,
-        value: Balance16B,
-        input: Bytes,
+        value: Value,
+        gas_limit: Gas,
+        storage_deposit_limit: Option<Value>,
+        data: Data,
     },
     CallCustom {
         caller: AccountId32,
         dest: AccountId32,
-        value: Balance16B,
-        input: Bytes,
-        additional_params: Option<Vec<Bytes>>,
+        value: Value,
+        input: Data,
+        additional_params: Option<Vec<Data>>,
     },
     Transfer {
         dest: AccountId32,
-        value: Balance16B,
+        value: Value,
     },
     TransferORML {
         currency_id: AssetId,
         dest: AccountId32,
-        value: Balance16B,
+        value: Value,
     },
     TransferAssets {
         currency_id: AssetId,
         dest: AccountId32,
-        value: Balance16B,
+        value: Value,
     },
     Result {
         outcome: XBICheckOutStatus,
-        output: Bytes,
-        witness: Bytes,
+        output: Data,
+        witness: Data,
     },
     Notification {
         kind: XBINotificationKind,
-        instruction_id: Bytes,
-        extra: Bytes,
+        instruction_id: Data,
+        extra: Data,
     },
 }
 
@@ -167,8 +158,8 @@ pub struct XBIMetadata {
     pub sent: ActionNotificationTimeouts,
     pub delivered: ActionNotificationTimeouts,
     pub executed: ActionNotificationTimeouts,
-    pub max_exec_cost: Balance16B,
-    pub max_notifications_cost: Balance16B,
+    pub max_exec_cost: Value,
+    pub max_notifications_cost: Value,
 }
 
 /// max_exec_cost satisfies all of the execution fee requirements while going through XCM execution:
@@ -182,21 +173,3 @@ impl XBIMetadata {
             .map_err(|_e| crate::Error::<T>::EnterFailedOnMultiLocationTransform)
     }
 }
-// //   - `Sent (action timeout, notification timeout)`
-// //   - `Delivered (action timeout, notification timeout)`
-// //   - `Executed (action timeout, notification timeout)`
-// //   - `Destination / Bridge security guarantees (e.g. in confirmation no for PoW, finality proofs)`
-// //   - `max_exec_cost`: `Balance` : `Maximal cost / fees for execution of delivery`
-// //   - `max_notification_cost`: `Balance` : `Maximal cost / fees per delivering notification`
-//
-// pub enum XBIMetadata {
-// 	Sent { action: Timeout, notification: Timeout },
-// 	Delivered { action: Timeout, notification: Timeout },
-// 	Executed { action: Timeout, notification: Timeout },
-// 	// //   - `Sent (action timeout, notification timeout)`
-// 	// //   - `Delivered (action timeout, notification timeout)`
-// 	// //   - `Executed (action timeout, notification timeout)`
-// 	// //   - `Destination / Bridge security guarantees (e.g. in confirmation no for PoW, finality proofs)`
-// 	// //   - `max_exec_cost`: `Balance` : `Maximal cost / fees for execution of delivery`
-// 	// //   - `max_notification_cost`: `Balance` : `Maximal cost / fees per delivering notification`
-// }

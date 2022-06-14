@@ -1,21 +1,16 @@
-use frame_support::dispatch::DispatchResultWithPostInfo;
-use frame_system::pallet_prelude::OriginFor;
+use frame_support::{dispatch::DispatchResultWithPostInfo, weights::Weight};
 
-use sp_core::{H160, H256, U256};
 use sp_std::{marker::PhantomData, vec::Vec};
 
-pub trait WASM<T: frame_system::Config + crate::pallet::Config> {
-    fn call(
-        origin: OriginFor<T>,
-        source: H160,
-        target: H160,
-        input: Vec<u8>,
-        value: U256,
-        gas_limit: u64,
-        max_fee_per_gas: U256,
-        max_priority_fee_per_gas: Option<U256>,
-        nonce: Option<U256>,
-        access_list: Vec<(H160, Vec<H256>)>,
+pub trait WASM<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> {
+    fn bare_call(
+        origin: T::AccountId,
+        dest: T::AccountId,
+        value: T::Balance,
+        gas_limit: Weight,
+        storage_deposit_limit: Option<T::Balance>,
+        data: Vec<u8>,
+        debug: bool,
     ) -> DispatchResultWithPostInfo;
 }
 
@@ -23,18 +18,17 @@ pub struct WASMMock<T> {
     _phantom: PhantomData<T>,
 }
 
-impl<T: frame_system::Config + crate::pallet::Config> WASM<T> for WASMMock<T> {
-    fn call(
-        _origin: OriginFor<T>,
-        _source: H160,
-        _target: H160,
-        _input: Vec<u8>,
-        _value: U256,
-        _gas_limit: u64,
-        _max_fee_per_gas: U256,
-        _max_priority_fee_per_gas: Option<U256>,
-        _nonce: Option<U256>,
-        _access_list: Vec<(H160, Vec<H256>)>,
+impl<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> WASM<T>
+    for WASMMock<T>
+{
+    fn bare_call(
+        _origin: T::AccountId,
+        _dest: T::AccountId,
+        _value: T::Balance,
+        _gas_limit: Weight,
+        _storage_deposit_limit: Option<T::Balance>,
+        _data: Vec<u8>,
+        _debug: bool,
     ) -> DispatchResultWithPostInfo {
         Ok(().into())
     }
@@ -44,18 +38,17 @@ pub struct WASMNoop<T> {
     _phantom: PhantomData<T>,
 }
 
-impl<T: frame_system::Config + crate::pallet::Config> WASM<T> for WASMNoop<T> {
-    fn call(
-        _origin: OriginFor<T>,
-        _source: H160,
-        _target: H160,
-        _input: Vec<u8>,
-        _value: U256,
-        _gas_limit: u64,
-        _max_fee_per_gas: U256,
-        _max_priority_fee_per_gas: Option<U256>,
-        _nonce: Option<U256>,
-        _access_list: Vec<(H160, Vec<H256>)>,
+impl<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> WASM<T>
+    for WASMNoop<T>
+{
+    fn bare_call(
+        _origin: T::AccountId,
+        _dest: T::AccountId,
+        _value: T::Balance,
+        _gas_limit: Weight,
+        _storage_deposit_limit: Option<T::Balance>,
+        _data: Vec<u8>,
+        _debug: bool,
     ) -> DispatchResultWithPostInfo {
         Err(crate::Error::<T>::NoWASMSupportedAtDest.into())
     }

@@ -71,6 +71,7 @@ pub type AccountIdOf = MultiLocation;
         instruction_id: Bytes,
         extra: Bytes,
     },
+},
 ```
 
 ## XBI Metadata specification
