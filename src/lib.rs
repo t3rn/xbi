@@ -8,6 +8,8 @@ pub mod xbi_format;
 
 pub mod xbi_abi;
 
+pub mod xbi_codec;
+
 pub mod primitives;
 
 pub use pallet::*;
@@ -16,8 +18,8 @@ pub use xcm::latest;
 
 // #[cfg(test)]
 // mod mock;
-// #[cfg(test)]
-// mod tests;
+#[cfg(test)]
+mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -151,108 +153,10 @@ pub mod pallet {
         // A runtime code run after every block and have access to extended set of APIs.
         //
         // For instance you can generate extrinsics for the upcoming produced block.
-        fn offchain_worker(n: T::BlockNumber) {
+        fn offchain_worker(_n: T::BlockNumber) {
             // We don't do anything here.
             // but we could dispatch extrinsic (transaction/unsigned/inherent) using
             // sp_io::submit_extrinsic
-
-            // Start with discovering timeout check ins
-            if n % T::CheckInterval::get() == T::BlockNumber::from(0u8) {
-                // Process checkins
-                let mut timeout_counter: u32 = 0;
-                // Go over all unfinished Pending and Sent XBI Orders to find those that timed out
-                for (xbi_id, xbi_checkin) in <XBICheckInsQueued<T>>::iter() {
-                    if T::BlockNumber::from(xbi_checkin.notification_delivery_timeout.clone())
-                        > frame_system::Pallet::<T>::block_number()
-                    {
-                        if timeout_counter > T::TimeoutChecksLimit::get() {
-                            break
-                        }
-                        // XBI Result didn't arrive in expected time.
-                        <XBICheckInsQueued<T>>::remove(xbi_id.clone());
-                        <XBICheckIns<T>>::insert(xbi_id.clone(), xbi_checkin.clone());
-                        <XBICheckOutsQueued<T>>::insert(
-                            xbi_id,
-                            XBICheckOut::new::<T>(
-                                xbi_checkin.notification_delivery_timeout,
-                                vec![],
-                                XBICheckOutStatus::ErrorDeliveryTimeout,
-                            ),
-                        );
-                        timeout_counter += 1;
-                    }
-                }
-                for (xbi_id, xbi_checkin) in <XBICheckInsPending<T>>::iter() {
-                    if T::BlockNumber::from(xbi_checkin.notification_execution_timeout.clone())
-                        > frame_system::Pallet::<T>::block_number()
-                    {
-                        if timeout_counter > T::TimeoutChecksLimit::get() {
-                            break
-                        }
-                        // XBI Result didn't arrive in expected time.
-                        <XBICheckInsPending<T>>::remove(xbi_id.clone());
-                        <XBICheckIns<T>>::insert(xbi_id.clone(), xbi_checkin.clone());
-                        <XBICheckOutsQueued<T>>::insert(
-                            xbi_id,
-                            XBICheckOut::new::<T>(
-                                xbi_checkin.notification_delivery_timeout,
-                                vec![],
-                                XBICheckOutStatus::ErrorExecutionTimeout,
-                            ),
-                        );
-                        timeout_counter += 1;
-                    }
-                }
-
-                // Process CheckIn Queue
-                let mut checkin_counter: u32 = 0;
-
-                for (xbi_id, xbi_checkin) in <XBICheckInsQueued<T>>::iter() {
-                    if checkin_counter > T::CheckInLimit::get() {
-                        break
-                    }
-                    match frame_system::offchain::SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(
-                        pallet::Call::enter_call::<T> {
-                            checkin: xbi_checkin.clone(),
-                            xbi_id,
-                        }.into(),
-                    ) {
-                        Ok(()) => { }
-                        Err(e) => log::error!(
-                            target: "runtime::xbi",
-                            "Can't enter execution with current XBI: {:?}",
-                            e,
-                        ),
-                     }
-                    <XBICheckInsQueued<T>>::remove(xbi_id.clone());
-                    checkin_counter += 1;
-                }
-
-                // Process Check Out Queue
-                // All XBIs ready to check out (notification, results)
-                let mut checkout_counter: u32 = 0;
-                for (xbi_id, xbi_checkout) in <XBICheckOutsQueued<T>>::iter() {
-                    if checkin_counter > T::CheckOutLimit::get() {
-                        break
-                    }
-
-                    match pallet::Pallet::<T>::exit(
-                        <XBICheckIns<T>>::get(xbi_id)
-                            .expect("Assume XBICheckOutsQueued is populated after XBICheckIns"),
-                        xbi_checkout.clone(),
-                    ) {
-                        // Pending remote XBI execution
-                        Err(_err) => {
-                            log::info!("Can't exit execution with current XBI - continue and must be handled better");
-                        },
-                        _ => {},
-                    }
-                    <XBICheckOutsQueued<T>>::remove(xbi_id.clone());
-                    <XBICheckOuts<T>>::insert(xbi_id.clone(), xbi_checkout);
-
-                    checkout_counter += 1;
-                }
-            }
         }
     }
 
@@ -262,6 +166,21 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         AbiInstructionExecuted,
+    }
+
+    /// Errors that can occur while checking the authorship inherent.
+    #[derive(Encode, sp_runtime::RuntimeDebug)]
+    #[cfg_attr(feature = "std", derive(Decode))]
+    pub enum InherentError {
+        XbiCleanup(),
+    }
+
+    impl sp_inherents::IsFatalError for InherentError {
+        fn is_fatal_error(&self) -> bool {
+            match self {
+                InherentError::XbiCleanup() => true,
+            }
+        }
     }
 
     // Errors inform users that something went wrong.
@@ -296,6 +215,108 @@ pub mod pallet {
             let _who = ensure_signed(origin)?;
 
             Ok(())
+        }
+
+        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        pub fn cleanup(origin: OriginFor<T>) -> DispatchResult {
+            ensure_none(origin)?;
+
+            // Process checkins
+            let mut timeout_counter: u32 = 0;
+            // Go over all unfinished Pending and Sent XBI Orders to find those that timed out
+            for (xbi_id, xbi_checkin) in <XBICheckInsQueued<T>>::iter() {
+                if T::BlockNumber::from(xbi_checkin.notification_delivery_timeout.clone())
+                    > frame_system::Pallet::<T>::block_number()
+                {
+                    if timeout_counter > T::TimeoutChecksLimit::get() {
+                        break
+                    }
+                    // XBI Result didn't arrive in expected time.
+                    <XBICheckInsQueued<T>>::remove(xbi_id.clone());
+                    <XBICheckIns<T>>::insert(xbi_id.clone(), xbi_checkin.clone());
+                    <XBICheckOutsQueued<T>>::insert(
+                        xbi_id,
+                        XBICheckOut::new::<T>(
+                            xbi_checkin.notification_delivery_timeout,
+                            vec![],
+                            XBICheckOutStatus::ErrorDeliveryTimeout,
+                        ),
+                    );
+                    timeout_counter += 1;
+                }
+            }
+            for (xbi_id, xbi_checkin) in <XBICheckInsPending<T>>::iter() {
+                if T::BlockNumber::from(xbi_checkin.notification_execution_timeout.clone())
+                    > frame_system::Pallet::<T>::block_number()
+                {
+                    if timeout_counter > T::TimeoutChecksLimit::get() {
+                        break
+                    }
+                    // XBI Result didn't arrive in expected time.
+                    <XBICheckInsPending<T>>::remove(xbi_id.clone());
+                    <XBICheckIns<T>>::insert(xbi_id.clone(), xbi_checkin.clone());
+                    <XBICheckOutsQueued<T>>::insert(
+                        xbi_id,
+                        XBICheckOut::new::<T>(
+                            xbi_checkin.notification_delivery_timeout,
+                            vec![],
+                            XBICheckOutStatus::ErrorExecutionTimeout,
+                        ),
+                    );
+                    timeout_counter += 1;
+                }
+            }
+
+            // Process CheckIn Queue
+            let mut checkin_counter: u32 = 0;
+
+            for (xbi_id, xbi_checkin) in <XBICheckInsQueued<T>>::iter() {
+                if checkin_counter > T::CheckInLimit::get() {
+                    break
+                }
+                match frame_system::offchain::SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(
+                    pallet::Call::enter_call::<T> {
+                        checkin: xbi_checkin.clone(),
+                        xbi_id,
+                    }.into(),
+                ) {
+                    Ok(()) => { }
+                    Err(e) => log::error!(
+                            target: "runtime::xbi",
+                            "Can't enter execution with current XBI: {:?}",
+                            e,
+                        ),
+                }
+                <XBICheckInsQueued<T>>::remove(xbi_id.clone());
+                checkin_counter += 1;
+            }
+
+            // Process Check Out Queue
+            // All XBIs ready to check out (notification, results)
+            let mut checkout_counter: u32 = 0;
+            for (xbi_id, xbi_checkout) in <XBICheckOutsQueued<T>>::iter() {
+                if checkin_counter > T::CheckOutLimit::get() {
+                    break
+                }
+
+                match pallet::Pallet::<T>::exit(
+                    <XBICheckIns<T>>::get(xbi_id)
+                        .expect("Assume XBICheckOutsQueued is populated after XBICheckIns"),
+                    xbi_checkout.clone(),
+                ) {
+                    // Pending remote XBI execution
+                    Err(_err) => {
+                        log::info!("Can't exit execution with current XBI - continue and must be handled better");
+                    },
+                    _ => {},
+                }
+                <XBICheckOutsQueued<T>>::remove(xbi_id.clone());
+                <XBICheckOuts<T>>::insert(xbi_id.clone(), xbi_checkout);
+
+                checkout_counter += 1;
+            }
+
+            Ok(().into())
         }
 
         /// Enter might be weight heavy - calls for execution into EVMs and if necessary sends the response
@@ -383,6 +404,27 @@ pub mod pallet {
             );
 
             Ok(().into())
+        }
+    }
+
+    #[pallet::inherent]
+    impl<T: Config> ProvideInherent for Pallet<T> {
+        type Call = Call<T>;
+        type Error = InherentError;
+
+        const INHERENT_IDENTIFIER: InherentIdentifier = *b"xbiclean";
+
+        fn create_inherent(_data: &InherentData) -> Option<Self::Call> {
+            if frame_system::Pallet::<T>::block_number() % T::CheckInterval::get()
+                == T::BlockNumber::from(0u8)
+            {
+                return Some(Call::cleanup {})
+            }
+            None
+        }
+
+        fn is_inherent(call: &Self::Call) -> bool {
+            matches!(call, Call::cleanup { .. })
         }
     }
 
@@ -532,6 +574,7 @@ pub mod pallet {
                     Ok(().into())
                 },
                 XBIInstr::Result { .. } => Err(Error::<T>::XBIInstructionNotAllowedHere.into()),
+                XBIInstr::Unknown { .. } => Err(Error::<T>::XBIInstructionNotAllowedHere.into()),
                 XBIInstr::Notification { .. } =>
                     Err(Error::<T>::XBIInstructionNotAllowedHere.into()),
             }

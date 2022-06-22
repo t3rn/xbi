@@ -1,8 +1,5 @@
 use frame_support::dispatch::DispatchResult;
 
-
-
-
 use sp_std::marker::PhantomData;
 
 pub trait ORML<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> {

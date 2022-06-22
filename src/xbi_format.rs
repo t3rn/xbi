@@ -1,11 +1,11 @@
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, Input, Output};
 use core::fmt::Debug;
 use frame_support::RuntimeDebug;
 use scale_info::TypeInfo;
 use sp_runtime::AccountId32;
 use sp_std::prelude::*;
 
-pub use crate::xbi_abi::*;
+pub use crate::{xbi_abi::*, xbi_codec::*};
 
 #[derive(Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum XBICheckOutStatus {
@@ -74,11 +74,24 @@ pub struct XBIFormat {
     pub metadata: XBIMetadata,
 }
 
-#[derive(Clone, Eq, PartialEq, Debug, Encode, Decode, TypeInfo)]
+//pub fn call_xbi(instruction:  ) {
+// pub fn call_xbi(instruction: Vec<u8>) {
+//     XBIInstr::decode(&mut &*instruction);
+//
+// }
+
+#[derive(Clone, Eq, PartialEq, Debug, TypeInfo)]
 pub enum XBIInstr {
+    // 0
+    Unknown {
+        identifier: u8,
+        params: Vec<u8>,
+    },
+    // 1
     CallNative {
         payload: Data,
     },
+    // 2
     CallEvm {
         source: AccountId20, // Could use either [u8; 20] or Junction::AccountKey20
         dest: AccountId20,   // Could use either [u8; 20] or Junction::AccountKey20
@@ -90,6 +103,7 @@ pub enum XBIInstr {
         nonce: Option<ValueEvm>,
         access_list: Vec<(AccountId20, Vec<sp_core::H256>)>, // Could use Vec<([u8; 20], Vec<[u8; 32]>)>,
     },
+    // 3
     CallWasm {
         dest: AccountId32,
         value: Value,
@@ -97,12 +111,13 @@ pub enum XBIInstr {
         storage_deposit_limit: Option<Value>,
         data: Data,
     },
+    // 4
     CallCustom {
         caller: AccountId32,
         dest: AccountId32,
         value: Value,
         input: Data,
-        additional_params: Option<Vec<Data>>,
+        additional_params: Data,
     },
     Transfer {
         dest: AccountId32,
@@ -123,6 +138,7 @@ pub enum XBIInstr {
         output: Data,
         witness: Data,
     },
+    // 9
     Notification {
         kind: XBINotificationKind,
         instruction_id: Data,
