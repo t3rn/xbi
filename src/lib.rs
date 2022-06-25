@@ -374,6 +374,61 @@ pub mod pallet {
 
         #[pallet::weight(50_000 + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
         pub fn check_in_xbi(_origin: OriginFor<T>, xbi: XBIFormat) -> DispatchResult {
+            Self::do_check_in_xbi(xbi).map_err(|e| e.into())
+        }
+    }
+
+    #[pallet::inherent]
+    impl<T: Config> ProvideInherent for Pallet<T> {
+        type Call = Call<T>;
+        type Error = InherentError;
+
+        const INHERENT_IDENTIFIER: InherentIdentifier = *b"xbiclean";
+
+        fn create_inherent(_data: &InherentData) -> Option<Self::Call> {
+            if frame_system::Pallet::<T>::block_number() % T::CheckInterval::get()
+                == T::BlockNumber::from(0u8)
+            {
+                return Some(Call::cleanup {})
+            }
+            None
+        }
+
+        fn is_inherent(call: &Self::Call) -> bool {
+            matches!(call, Call::cleanup { .. })
+        }
+    }
+
+    impl<T: Config> Pallet<T> {
+        pub fn target_2_xcm_location(
+            target_id: u32,
+        ) -> Result<xcm::latest::MultiLocation, Error<T>> {
+            // Or xcm::VersionedMultiLocation::try_from(...)
+            MultiLocation::try_from(Parachain(target_id.into()).into())
+                .map_err(|_| Error::<T>::EnterFailedOnMultiLocationTransform)
+        }
+
+        pub fn enter_remote(
+            xbi: XBIFormat,
+            dest: Box<xcm::VersionedMultiLocation>,
+        ) -> Result<(), Error<T>> {
+            let dest = MultiLocation::try_from(*dest)
+                .map_err(|()| Error::<T>::EnterFailedOnMultiLocationTransform)?;
+
+            let require_weight_at_most = xbi.metadata.max_exec_cost.clone() as u64;
+            let xbi_call = pallet::Call::check_in_xbi::<T> { xbi };
+            let xbi_format_msg = Xcm(vec![Transact {
+                origin_type: OriginKind::SovereignAccount,
+                require_weight_at_most,
+                call: xbi_call.encode().into(),
+            }]);
+
+            // Could have beein either Trait DI : T::Xcm::send_xcm or pallet_xcm::Pallet::<T>::send_xcm(
+            T::Xcm::send_xcm(xcm::prelude::Here, dest.clone(), xbi_format_msg.clone())
+                .map_err(|_| Error::<T>::EnterFailedOnXcmSend)
+        }
+
+        pub fn do_check_in_xbi(xbi: XBIFormat) -> Result<(), Error<T>> {
             let xbi_id = T::Hashing::hash(&xbi.metadata.id.encode()[..]);
 
             if <Self as Store>::XBICheckIns::contains_key(xbi_id)
@@ -403,56 +458,7 @@ pub mod pallet {
                 },
             );
 
-            Ok(().into())
-        }
-    }
-
-    #[pallet::inherent]
-    impl<T: Config> ProvideInherent for Pallet<T> {
-        type Call = Call<T>;
-        type Error = InherentError;
-
-        const INHERENT_IDENTIFIER: InherentIdentifier = *b"xbiclean";
-
-        fn create_inherent(_data: &InherentData) -> Option<Self::Call> {
-            if frame_system::Pallet::<T>::block_number() % T::CheckInterval::get()
-                == T::BlockNumber::from(0u8)
-            {
-                return Some(Call::cleanup {})
-            }
-            None
-        }
-
-        fn is_inherent(call: &Self::Call) -> bool {
-            matches!(call, Call::cleanup { .. })
-        }
-    }
-
-    impl<T: Config> Pallet<T> {
-        fn target_2_xcm_location(target_id: u32) -> Result<xcm::latest::MultiLocation, Error<T>> {
-            // Parachain(ParachainInfo::parachain_id().into()).into()
-            MultiLocation::try_from(Parachain(target_id.into()).into())
-                .map_err(|_| Error::<T>::EnterFailedOnMultiLocationTransform)
-        }
-
-        fn enter_remote(
-            xbi: XBIFormat,
-            dest: Box<xcm::VersionedMultiLocation>,
-        ) -> Result<(), Error<T>> {
-            let dest = MultiLocation::try_from(*dest)
-                .map_err(|()| Error::<T>::EnterFailedOnMultiLocationTransform)?;
-
-            let require_weight_at_most = xbi.metadata.max_exec_cost.clone() as u64;
-            let xbi_call = pallet::Call::check_in_xbi::<T> { xbi };
-            let xbi_format_msg = Xcm(vec![Transact {
-                origin_type: OriginKind::SovereignAccount,
-                require_weight_at_most,
-                call: xbi_call.encode().into(),
-            }]);
-
-            // Could have beein either Trait DI : T::Xcm::send_xcm or pallet_xcm::Pallet::<T>::send_xcm(
-            T::Xcm::send_xcm(xcm::prelude::Here, dest.clone(), xbi_format_msg.clone())
-                .map_err(|_| Error::<T>::EnterFailedOnXcmSend)
+            Ok(())
         }
 
         pub fn exit(
