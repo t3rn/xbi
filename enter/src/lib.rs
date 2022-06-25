@@ -11,6 +11,8 @@ pub use xcm::latest;
 // #[cfg(test)]
 // mod tests;
 
+mod t3rn_sfx;
+
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
@@ -21,8 +23,7 @@ pub mod pallet {
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
 
-    use sp_std::default::Default;
-    use xcm::latest::prelude::*;
+    use sp_std::{default::Default, prelude::*};
 
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
@@ -44,6 +45,10 @@ pub mod pallet {
         CannotTransformParaId,
         CannotEnterXBI,
         XBIPluginUnavailable,
+        EnterSfxDecodingValueErr,
+        EnterSfxDecodingAddressErr,
+        EnterSfxDecodingDataErr,
+        EnterSfxNotRecognized,
     }
 
     // Pallets use events to inform users when important changes are made.
@@ -58,27 +63,29 @@ pub mod pallet {
         pub fn batch_enter_xbi(
             _origin: OriginFor<T>, // Active relayer
             xbi_batch: Vec<XBIFormat>,
-            dest_para_id: cumulus_primitives_core::ParaId,
         ) -> DispatchResultWithPostInfo {
-            Self::do_batch_enter_xbi(xbi_batch, dest_para_id)
+            Self::do_batch_enter_xbi(xbi_batch)
+        }
+
+        #[pallet::weight(100_000)]
+        pub fn enter_xbi(
+            _origin: OriginFor<T>, // Active relayer
+            xbi: XBIFormat,
+        ) -> DispatchResultWithPostInfo {
+            Self::do_enter_xbi(xbi)
         }
     }
 
     impl<T: Config> Pallet<T> {
-        pub fn do_batch_enter_xbi(
-            xbi_batch: Vec<XBIFormat>,
-            dest_para_id: cumulus_primitives_core::ParaId,
-        ) -> DispatchResultWithPostInfo {
+        pub fn do_batch_enter_xbi(xbi_batch: Vec<XBIFormat>) -> DispatchResultWithPostInfo {
             for xbi in xbi_batch {
-                let versioned_multi_loc = Box::new(
-                    xcm::VersionedMultiLocation::try_from(Parachain(dest_para_id.into()).into())
-                        .map_err(|_e| Error::<T>::CannotTransformParaId)?,
-                );
-
-                T::XBIPortal::enter(xbi, versioned_multi_loc)
-                    .map_err(|_e| Error::<T>::CannotEnterXBI)?;
+                T::XBIPortal::do_check_in_xbi(xbi).map_err(|_e| Error::<T>::CannotEnterXBI)?;
             }
+            Ok(().into())
+        }
 
+        pub fn do_enter_xbi(xbi: XBIFormat) -> DispatchResultWithPostInfo {
+            T::XBIPortal::do_check_in_xbi(xbi).map_err(|_e| Error::<T>::CannotEnterXBI)?;
             Ok(().into())
         }
     }
