@@ -1,7 +1,11 @@
 use crate::{xbi_abi::*, xbi_format::XBIInstr};
 
-use crate::xbi_format::{XBICheckOutStatus, XBINotificationKind};
+use crate::{
+    xbi_codec::XBIFormat,
+    xbi_format::{XBICheckOutStatus, XBINotificationKind},
+};
 use codec::{Decode, Encode};
+use crate::xbi_codec::{ActionNotificationTimeouts, XBIMetadata};
 
 #[test]
 fn custom_encodes_decodes_xbi_evm() {
@@ -20,6 +24,46 @@ fn custom_encodes_decodes_xbi_evm() {
     let decoded_xbi_evm: XBIInstr = Decode::decode(&mut &xbi_evm.encode()[..]).unwrap();
     assert_eq!(decoded_xbi_evm.encode(), xbi_evm.encode());
     assert_eq!(xbi_evm, decoded_xbi_evm);
+}
+
+#[test]
+fn custom_encodes_decodes_xbi_evm_and_metadata() {
+    let xbi_evm_format = XBIFormat {
+        instr: XBIInstr::CallEvm {
+            source: AccountId20::repeat_byte(3),
+            dest: AccountId20::repeat_byte(2),
+            value: 1,
+            input: vec![8, 9],
+            gas_limit: 2,
+            max_fee_per_gas: sp_core::U256([4, 5, 6, 7]),
+            max_priority_fee_per_gas: None,
+            nonce: Some(sp_core::U256([3, 4, 6, 7])),
+            access_list: vec![],
+        },
+        metadata: XBIMetadata {
+            id: sp_core::H256::repeat_byte(2),
+            dest_para_id: 3u32,
+            src_para_id: 4u32,
+            sent: ActionNotificationTimeouts {
+                action: 1u32,
+                notification: 2u32
+            },
+            delivered: ActionNotificationTimeouts {
+                action: 3u32,
+                notification: 4u32
+            },
+            executed: ActionNotificationTimeouts {
+                action: 4u32,
+                notification: 5u32
+            },
+            max_exec_cost: 6u128,
+            max_notifications_cost: 8u128
+        },
+    };
+
+    let decoded_xbi_evm: XBIFormat = Decode::decode(&mut &xbi_evm_format.encode()[..]).unwrap();
+    assert_eq!(decoded_xbi_evm.encode(), xbi_evm_format.encode());
+    assert_eq!(xbi_evm_format, decoded_xbi_evm);
 }
 
 #[test]
@@ -94,6 +138,7 @@ fn custom_encodes_decodes_xbi_call_custom() {
         ]),
         value: 1,
         input: vec![8, 9],
+        limit: 1,
         additional_params: vec![10u8, 11u8],
     };
 
@@ -116,6 +161,7 @@ fn custom_encodes_decodes_empty_xbi_call_custom() {
         ]),
         value: 1,
         input: vec![],
+        limit: 1,
         additional_params: vec![],
     };
 
@@ -123,7 +169,7 @@ fn custom_encodes_decodes_empty_xbi_call_custom() {
         Decode::decode(&mut &xbi_call_custom.encode()[..]).unwrap();
     assert_eq!(decoded_xbi_call_custom.encode(), xbi_call_custom.encode());
     assert_eq!(xbi_call_custom, decoded_xbi_call_custom);
-    assert_eq!(xbi_call_custom.encode().len(), 85);
+    assert_eq!(xbi_call_custom.encode().len(), 93);
 }
 
 #[test]

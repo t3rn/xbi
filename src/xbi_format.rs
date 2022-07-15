@@ -117,6 +117,7 @@ pub enum XBIInstr {
         dest: AccountId32,
         value: Value,
         input: Data,
+        limit: Gas,
         additional_params: Data,
     },
     Transfer {

@@ -119,7 +119,7 @@ impl Decode for XBIInstr {
                 };
 
                 // // Minimum length of XBI::CallWasm with empty / none values
-                if len? < 84 as usize {
+                if len? < 92 as usize {
                     return Err("Wrong XBI Order length".into())
                 }
 
@@ -134,6 +134,9 @@ impl Decode for XBIInstr {
                 let mut data = vec![0u8; data_len as usize];
                 input.read(&mut data[..])?;
 
+                let mut limit: [u8; 8] = Default::default();
+                input.read(&mut limit[..])?;
+
                 let additional_params_len = input.read_byte()?;
                 let mut additional_params = vec![0u8; additional_params_len as usize];
                 input.read(&mut additional_params[..])?;
@@ -143,6 +146,7 @@ impl Decode for XBIInstr {
                     dest: Decode::decode(&mut &dest[..])?,
                     value: Decode::decode(&mut &value[..])?,
                     input: Decode::decode(&mut &data[..])?,
+                    limit: Decode::decode(&mut &limit[..])?,
                     additional_params: Decode::decode(&mut &additional_params[..])?,
                 })
             },
@@ -320,6 +324,7 @@ impl Encode for XBIInstr {
                 dest,
                 value,
                 input,
+                limit,
                 additional_params,
             } => {
                 dest_bytes.push_byte(4);
@@ -328,6 +333,7 @@ impl Encode for XBIInstr {
                 value.encode_to(dest_bytes);
                 dest_bytes.push_byte(input.encode().len() as u8);
                 input.encode_to(dest_bytes);
+                limit.encode_to(dest_bytes);
                 dest_bytes.push_byte(additional_params.encode().len() as u8);
                 additional_params.encode_to(dest_bytes);
             },

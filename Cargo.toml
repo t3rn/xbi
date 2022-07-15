@@ -31,6 +31,11 @@ log = { version = "0.4.14", default-features = false }
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19" , default-features = false, optional = true }
 scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }
 
+[dev-dependencies]
+pallet-evm = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.19" }
+#pallet-base-fee = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.19" }
+#pallet-ethereum = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.19" }
+
 [features]
 default = ["std"]
 runtime-benchmarks = [
@@ -53,5 +58,4 @@ std = [
     "log/std",
 #    "pallet-assets/std",
     "orml-traits/std",
-    "pallet-balances/std",
 ]

@@ -1,5 +1,7 @@
-use crate::xbi_format::XBIInstr;
 use codec::{Decode, Encode};
+use sp_std::prelude::*;
+
+use crate::xbi_format::XBIInstr;
 
 /// Global XBI Types.
 /// Could also introduce t3rn-primitives/abi but perhaps easier to rely on sp_std / global types
