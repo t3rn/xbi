@@ -1,93 +1,111 @@
-use codec::{Decode, Encode};
-use sp_std::prelude::*;
+use frame_system::pallet_prelude::OriginFor;
 
-use crate::xbi_format::XBIInstr;
+use sp_core::{H160, H256, U256};
+use sp_std::vec::Vec;
 
-/// Global XBI Types.
-/// Could also introduce t3rn-primitives/abi but perhaps easier to rely on sp_std / global types
-pub type Data = Vec<u8>;
-pub type AssetId = u64; // Could also be xcm::MultiAsset
-pub type Value = u128; // Could also be [u64; 2] or sp_core::U128
-pub type ValueEvm = sp_core::U256; // Could also be [u64; 4]
-pub type Gas = u64; // [u64; 4]
-pub type AccountId32 = sp_runtime::AccountId32;
-pub type AccountId20 = sp_core::H160; // Could also take it from MultiLocation::Junction::AccountKey20 { network: NetworkId, key: [u8; 20] },
+use crate::{xbi_abi::*, xbi_format::*};
 
-pub struct XbiAbi<T> {
-    pub _phantom: sp_std::marker::PhantomData<T>,
+pub trait Scabi<T: frame_system::Config> {
+    fn args_evm_2_xbi_call_evm(
+        origin: OriginFor<T>,
+        source: H160,
+        target: H160,
+        input: Vec<u8>,
+        value: U256,
+        gas_limit: u64,
+        max_fee_per_gas: U256,
+        max_priority_fee_per_gas: Option<U256>,
+        nonce: Option<U256>,
+        access_list: Vec<(H160, Vec<H256>)>,
+    ) -> Result<XBIInstr, crate::Error<T>>;
+
+    fn args_wasm_2_xbi_call_wasm();
+
+    fn args_evm_2_xbi_call_wasm(
+        origin: OriginFor<T>,
+        source: H160,
+        target: H160,
+        input: Vec<u8>,
+        value: U256,
+        gas_limit: u64,
+        max_fee_per_gas: U256,
+        max_priority_fee_per_gas: Option<U256>,
+        nonce: Option<U256>,
+        access_list: Vec<(H160, Vec<H256>)>,
+    ) -> Result<XBIInstr, crate::Error<T>>;
+
+    fn args_wasm_2_xbi_evm_wasm();
+
+    fn xbi_call_wasm_result_2_wasm_result();
+
+    fn xbi_call_evm_result_2_evm_result();
+
+    fn xbi_call_evm_result_2_wasm_result();
+
+    fn xbi_call_wasm_result_2_evm_result();
 }
 
-impl<T: crate::Config + frame_system::Config + pallet_balances::Config> XbiAbi<T> {
-    pub fn value_global_2_local_unsafe(val: Value) -> T::Balance {
-        Decode::decode(&mut &val.encode()[..]).unwrap()
+impl<T: crate::Config + frame_system::Config + pallet_balances::Config> Scabi<T> for XbiAbi<T> {
+    /// Use in EVM precompiles / contract to auto-convert the self.call/delegate_call into args to WASM
+    fn args_evm_2_xbi_call_wasm(
+        _origin: OriginFor<T>,
+        _source: H160,
+        _target: H160,
+        _input: Vec<u8>,
+        _value: U256,
+        _gas_limit: u64,
+        _max_fee_per_gas: U256,
+        _max_priority_fee_per_gas: Option<U256>,
+        _nonce: Option<U256>,
+        _access_list: Vec<(H160, Vec<H256>)>,
+    ) -> Result<XBIInstr, crate::Error<T>> {
+        unimplemented!();
+        // Sth of a form below: (is it safe to auto-cast value, gas limits, and cut / add null bytes to addresses?)
+        // XbiArgsWasm {
+        //     dest: args_evm.dest.into(),
+        //     value: args_evm.value as Value,
+        //     gas_limit: args_evm.gas_limit,
+        //     storage_deposit_limit: None,
+        //     data: args_evm.input
+        // }
     }
 
-    pub fn address_global_2_local(account_bytes: Data) -> Result<T::AccountId, crate::Error<T>> {
-        Decode::decode(&mut &account_bytes[..])
-            .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesAddress)
+    fn args_evm_2_xbi_call_evm(
+        _origin: OriginFor<T>,
+        _source: H160,
+        _target: H160,
+        _input: Vec<u8>,
+        _value: U256,
+        _gas_limit: u64,
+        _max_fee_per_gas: U256,
+        _max_priority_fee_per_gas: Option<U256>,
+        _nonce: Option<U256>,
+        _access_list: Vec<(H160, Vec<H256>)>,
+    ) -> Result<XBIInstr, crate::Error<T>> {
+        todo!()
     }
 
-    pub fn account_local_2_global_20(account: T::AccountId) -> Result<AccountId20, crate::Error<T>> {
-        Decode::decode(&mut &account.encode()[..])
-            .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
+    fn args_wasm_2_xbi_call_wasm() {
+        todo!()
     }
 
-    pub fn account_local_2_global_32(account: T::AccountId) -> Result<AccountId32, crate::Error<T>> {
-        Decode::decode(&mut &account.encode()[..])
-            .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
+    fn args_wasm_2_xbi_evm_wasm() {
+        todo!()
     }
 
-    pub fn account_global_2_local_32(account_32: AccountId32) -> Result<T::AccountId, crate::Error<T>> {
-        Decode::decode(&mut &account_32.encode()[..])
-            .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
+    fn xbi_call_wasm_result_2_wasm_result() {
+        todo!()
     }
 
-    pub fn account_global_2_local_20(account_20: AccountId20) -> Result<T::AccountId, crate::Error<T>> {
-        Decode::decode(&mut &account_20.encode()[..])
-            .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
+    fn xbi_call_evm_result_2_evm_result() {
+        todo!()
     }
 
-    pub fn value_global_2_local(val: Value) -> Result<T::Balance, crate::Error<T>> {
-        Decode::decode(&mut &val.encode()[..])
-            .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
+    fn xbi_call_evm_result_2_wasm_result() {
+        todo!()
     }
 
-    pub fn value_global_2_local_evm(val: ValueEvm) -> Result<T::Balance, crate::Error<T>> {
-        Decode::decode(&mut &val.encode()[..])
-            .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
+    fn xbi_call_wasm_result_2_evm_result() {
+        todo!()
     }
-
-    pub fn maybe_value_global_2_maybe_local(
-        opt_val: Option<Value>,
-    ) -> Result<Option<T::Balance>, crate::Error<T>> {
-        match opt_val {
-            None => Ok(None),
-            Some(val) => Decode::decode(&mut &val.encode()[..])
-                .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue),
-        }
-    }
-
-    pub fn xbi_result_2_evm_output(_xbi_result: XBIInstr) {}
-
-    pub fn xbi_result_2_wasm_output(_xbi_result: XBIInstr) {}
-}
-
-pub struct XbiArgsEvm {
-    pub source: AccountId20,
-    pub dest: AccountId20,
-    pub value: Value,
-    pub input: Data,
-    pub gas_limit: Gas,
-    pub max_fee_per_gas: ValueEvm,
-    pub max_priority_fee_per_gas: Option<ValueEvm>,
-    pub nonce: Option<ValueEvm>,
-    pub access_list: Vec<(AccountId20, Vec<ValueEvm>)>,
-}
-
-pub struct XbiArgsWasm {
-    pub dest: AccountId32,
-    pub value: Value,
-    pub gas_limit: Gas,
-    pub storage_deposit_limit: Option<Value>,
-    pub data: Data,
 }
