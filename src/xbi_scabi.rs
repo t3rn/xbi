@@ -1,7 +1,7 @@
 use codec::{Decode, Encode};
 use sp_std::prelude::*;
 
-
+use crate::xbi_format::XBIInstr;
 
 /// Global XBI Types.
 /// Could also introduce t3rn-primitives/abi but perhaps easier to rely on sp_std / global types
@@ -27,30 +27,22 @@ impl<T: crate::Config + frame_system::Config + pallet_balances::Config> XbiAbi<T
             .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesAddress)
     }
 
-    pub fn account_local_2_global_20(
-        account: T::AccountId,
-    ) -> Result<AccountId20, crate::Error<T>> {
+    pub fn account_local_2_global_20(account: T::AccountId) -> Result<AccountId20, crate::Error<T>> {
         Decode::decode(&mut &account.encode()[..])
             .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
     }
 
-    pub fn account_local_2_global_32(
-        account: T::AccountId,
-    ) -> Result<AccountId32, crate::Error<T>> {
+    pub fn account_local_2_global_32(account: T::AccountId) -> Result<AccountId32, crate::Error<T>> {
         Decode::decode(&mut &account.encode()[..])
             .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
     }
 
-    pub fn account_global_2_local_32(
-        account_32: AccountId32,
-    ) -> Result<T::AccountId, crate::Error<T>> {
+    pub fn account_global_2_local_32(account_32: AccountId32) -> Result<T::AccountId, crate::Error<T>> {
         Decode::decode(&mut &account_32.encode()[..])
             .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
     }
 
-    pub fn account_global_2_local_20(
-        account_20: AccountId20,
-    ) -> Result<T::AccountId, crate::Error<T>> {
+    pub fn account_global_2_local_20(account_20: AccountId20) -> Result<T::AccountId, crate::Error<T>> {
         Decode::decode(&mut &account_20.encode()[..])
             .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
     }
@@ -74,6 +66,10 @@ impl<T: crate::Config + frame_system::Config + pallet_balances::Config> XbiAbi<T
                 .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue),
         }
     }
+
+    pub fn xbi_result_2_evm_output(_xbi_result: XBIInstr) {}
+
+    pub fn xbi_result_2_wasm_output(_xbi_result: XBIInstr) {}
 }
 
 pub struct XbiArgsEvm {

@@ -1,11 +1,10 @@
 use crate::{xbi_abi::*, xbi_format::XBIInstr};
 
 use crate::{
-    xbi_codec::XBIFormat,
+    xbi_codec::{ActionNotificationTimeouts, XBIFormat, XBIMetadata},
     xbi_format::{XBICheckOutStatus, XBINotificationKind},
 };
 use codec::{Decode, Encode};
-use crate::xbi_codec::{ActionNotificationTimeouts, XBIMetadata};
 
 #[test]
 fn custom_encodes_decodes_xbi_evm() {
@@ -46,18 +45,19 @@ fn custom_encodes_decodes_xbi_evm_and_metadata() {
             src_para_id: 4u32,
             sent: ActionNotificationTimeouts {
                 action: 1u32,
-                notification: 2u32
+                notification: 2u32,
             },
             delivered: ActionNotificationTimeouts {
                 action: 3u32,
-                notification: 4u32
+                notification: 4u32,
             },
             executed: ActionNotificationTimeouts {
                 action: 4u32,
-                notification: 5u32
+                notification: 5u32,
             },
             max_exec_cost: 6u128,
-            max_notifications_cost: 8u128
+            max_notifications_cost: 8u128,
+            maybe_known_origin: None,
         },
     };
 

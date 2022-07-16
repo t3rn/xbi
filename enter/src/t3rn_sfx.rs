@@ -5,7 +5,7 @@ use pallet_xbi_portal::xbi_codec::{XBIInstr, XBIMetadata};
 use pallet_xbi_portal::xbi_format::XBIFormat;
 use t3rn_primitives::{side_effect::SideEffect, transfers::EscrowedBalanceOf, EscrowTrait};
 
-pub fn from_t3rn_sfx_2_xbi<T: frame_system::Config, E: EscrowTrait<T>>(
+pub fn t3rn_sfx_2_xbi<T: frame_system::Config, E: EscrowTrait<T>>(
     side_effect: SideEffect<
         <T as frame_system::Config>::AccountId,
         <T as frame_system::Config>::BlockNumber,

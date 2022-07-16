@@ -161,10 +161,19 @@ pub enum XBINotificationKind {
     Delivered,
     Executed,
 }
-#[derive(Clone, Eq, PartialEq, Debug, Default, Encode, Decode, TypeInfo)]
+#[derive(Clone, Eq, PartialEq, Debug, Encode, Decode, TypeInfo)]
 pub struct ActionNotificationTimeouts {
     pub action: Timeout,
     pub notification: Timeout,
+}
+
+impl Default for ActionNotificationTimeouts {
+    fn default() -> Self {
+        ActionNotificationTimeouts {
+            action: 96000,       // 96 sec
+            notification: 24000, // 24 sec
+        }
+    }
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Default, Encode, Decode, TypeInfo)]
@@ -177,6 +186,7 @@ pub struct XBIMetadata {
     pub executed: ActionNotificationTimeouts,
     pub max_exec_cost: Value,
     pub max_notifications_cost: Value,
+    pub maybe_known_origin: Option<AccountId32>,
 }
 
 /// max_exec_cost satisfies all of the execution fee requirements while going through XCM execution:
@@ -188,5 +198,50 @@ impl XBIMetadata {
     ) -> Result<Balance, crate::Error<T>> {
         Decode::decode(&mut &self.max_notifications_cost.encode()[..])
             .map_err(|_e| crate::Error::<T>::EnterFailedOnMultiLocationTransform)
+    }
+
+    pub fn new(
+        id: sp_core::H256,
+        dest_para_id: u32,
+        src_para_id: u32,
+        sent: ActionNotificationTimeouts,
+        delivered: ActionNotificationTimeouts,
+        executed: ActionNotificationTimeouts,
+        max_exec_cost: Value,
+        max_notifications_cost: Value,
+        maybe_known_origin: Option<AccountId32>,
+    ) -> Self {
+        XBIMetadata {
+            id,
+            dest_para_id,
+            src_para_id,
+            sent,
+            delivered,
+            executed,
+            max_exec_cost,
+            max_notifications_cost,
+            maybe_known_origin,
+        }
+    }
+
+    pub fn new_with_default_timeouts(
+        id: sp_core::H256,
+        dest_para_id: u32,
+        src_para_id: u32,
+        max_exec_cost: Value,
+        max_notifications_cost: Value,
+        maybe_known_origin: Option<AccountId32>,
+    ) -> Self {
+        XBIMetadata {
+            id,
+            dest_para_id,
+            src_para_id,
+            sent: ActionNotificationTimeouts::default(),
+            delivered: ActionNotificationTimeouts::default(),
+            executed: ActionNotificationTimeouts::default(),
+            max_exec_cost,
+            max_notifications_cost,
+            maybe_known_origin,
+        }
     }
 }
