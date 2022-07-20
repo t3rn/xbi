@@ -497,7 +497,7 @@ pub mod pallet {
                 },
                 XBIInstr::CallEvm {
                     source,
-                    dest,
+                    target,
                     value,
                     input,
                     gas_limit,
@@ -508,7 +508,7 @@ pub mod pallet {
                 } => T::Evm::call(
                     origin,
                     source,
-                    dest,
+                    target,
                     input,
                     sp_core::U256::from(value),
                     gas_limit,

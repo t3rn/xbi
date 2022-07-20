@@ -64,7 +64,7 @@ impl Decode for XBIInstr {
 
                 Ok(XBIInstr::CallEvm {
                     source: AccountId20::from(source),
-                    dest: AccountId20::from(dest),
+                    target: AccountId20::from(dest),
                     value: Decode::decode(&mut &value[..])?,
                     input: Decode::decode(&mut &data[..])?,
                     gas_limit: Decode::decode(&mut &gas[..])?,
@@ -279,7 +279,7 @@ impl Encode for XBIInstr {
             },
             XBIInstr::CallEvm {
                 source,
-                dest,
+                target,
                 value,
                 input,
                 gas_limit,
@@ -290,7 +290,7 @@ impl Encode for XBIInstr {
             } => {
                 dest_bytes.push_byte(2);
                 source.encode_to(dest_bytes);
-                dest.encode_to(dest_bytes);
+                target.encode_to(dest_bytes);
                 value.encode_to(dest_bytes);
                 gas_limit.encode_to(dest_bytes);
                 max_fee_per_gas.encode_to(dest_bytes);

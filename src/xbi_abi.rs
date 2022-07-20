@@ -1,8 +1,6 @@
 use codec::{Decode, Encode};
 use sp_std::prelude::*;
 
-
-
 /// Global XBI Types.
 /// Could also introduce t3rn-primitives/abi but perhaps easier to rely on sp_std / global types
 pub type Data = Vec<u8>;
@@ -48,6 +46,30 @@ impl<T: crate::Config + frame_system::Config + pallet_balances::Config> XbiAbi<T
             .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
     }
 
+    pub fn account_20_2_account_32(
+        account_20: AccountId20,
+        extra_bytes: &[u8; 12],
+    ) -> Result<AccountId32, crate::Error<T>> {
+        let mut dest_bytes: Vec<u8> = vec![];
+        dest_bytes.append(&mut account_20.encode());
+        dest_bytes.append(&mut extra_bytes.encode());
+
+        Decode::decode(&mut &dest_bytes.encode()[..])
+            .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
+    }
+
+    pub fn account_32_2_account_20(
+        account_32: AccountId32,
+    ) -> Result<AccountId20, crate::Error<T>> {
+        let mut dest_bytes: Vec<u8> = vec![];
+        let account_32_encoded = account_32.encode();
+        for i in 0..20 {
+            dest_bytes.push(account_32_encoded[i]);
+        }
+        Decode::decode(&mut &dest_bytes.encode()[..])
+            .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
+    }
+
     pub fn account_global_2_local_20(
         account_20: AccountId20,
     ) -> Result<T::AccountId, crate::Error<T>> {
@@ -55,7 +77,27 @@ impl<T: crate::Config + frame_system::Config + pallet_balances::Config> XbiAbi<T
             .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
     }
 
+    pub fn value_evm_2_value(val: ValueEvm) -> Result<Value, crate::Error<T>> {
+        Decode::decode(&mut &val.encode()[..])
+            .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
+    }
+
+    pub fn value_2_value_evm(val: Value) -> Result<ValueEvm, crate::Error<T>> {
+        Decode::decode(&mut &val.encode()[..])
+            .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
+    }
+
     pub fn value_global_2_local(val: Value) -> Result<T::Balance, crate::Error<T>> {
+        Decode::decode(&mut &val.encode()[..])
+            .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
+    }
+
+    pub fn value_local_2_global(val: T::Balance) -> Result<Value, crate::Error<T>> {
+        Decode::decode(&mut &val.encode()[..])
+            .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
+    }
+
+    pub fn value_local_2_global_evm(val: T::Balance) -> Result<ValueEvm, crate::Error<T>> {
         Decode::decode(&mut &val.encode()[..])
             .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue)
     }
@@ -70,6 +112,46 @@ impl<T: crate::Config + frame_system::Config + pallet_balances::Config> XbiAbi<T
     ) -> Result<Option<T::Balance>, crate::Error<T>> {
         match opt_val {
             None => Ok(None),
+            Some(val) => Decode::decode(&mut &val.encode()[..])
+                .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue),
+        }
+    }
+
+    pub fn maybe_value_local_2_maybe_global(
+        opt_val: Option<T::Balance>,
+    ) -> Result<Option<Value>, crate::Error<T>> {
+        match opt_val {
+            None => Ok(None),
+            Some(val) => Decode::decode(&mut &val.encode()[..])
+                .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue),
+        }
+    }
+
+    pub fn maybe_value_local_2_maybe_global_evm(
+        opt_val: Option<T::Balance>,
+    ) -> Result<Option<ValueEvm>, crate::Error<T>> {
+        match opt_val {
+            None => Ok(None),
+            Some(val) => Decode::decode(&mut &val.encode()[..])
+                .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue),
+        }
+    }
+
+    pub fn maybe_value_local_2_global_evm(
+        opt_val: Option<T::Balance>,
+    ) -> Result<ValueEvm, crate::Error<T>> {
+        match opt_val {
+            None => Err(crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue),
+            Some(val) => Decode::decode(&mut &val.encode()[..])
+                .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue),
+        }
+    }
+
+    pub fn maybe_value_local_2_global(
+        opt_val: Option<T::Balance>,
+    ) -> Result<Value, crate::Error<T>> {
+        match opt_val {
+            None => Err(crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue),
             Some(val) => Decode::decode(&mut &val.encode()[..])
                 .map_err(|_e| crate::Error::<T>::XBIABIFailedToCastBetweenTypesValue),
         }

@@ -10,8 +10,8 @@ use codec::{Decode, Encode};
 fn custom_encodes_decodes_xbi_evm() {
     let xbi_evm = XBIInstr::CallEvm {
         source: AccountId20::repeat_byte(3),
-        dest: AccountId20::repeat_byte(2),
-        value: 1,
+        target: AccountId20::repeat_byte(2),
+        value: sp_core::U256([1, 0, 0, 0]),
         input: vec![8, 9],
         gas_limit: 2,
         max_fee_per_gas: sp_core::U256([4, 5, 6, 7]),
@@ -30,8 +30,8 @@ fn custom_encodes_decodes_xbi_evm_and_metadata() {
     let xbi_evm_format = XBIFormat {
         instr: XBIInstr::CallEvm {
             source: AccountId20::repeat_byte(3),
-            dest: AccountId20::repeat_byte(2),
-            value: 1,
+            target: AccountId20::repeat_byte(2),
+            value: sp_core::U256([1, 0, 0, 0]),
             input: vec![8, 9],
             gas_limit: 2,
             max_fee_per_gas: sp_core::U256([4, 5, 6, 7]),
@@ -58,6 +58,7 @@ fn custom_encodes_decodes_xbi_evm_and_metadata() {
             max_exec_cost: 6u128,
             max_notifications_cost: 8u128,
             maybe_known_origin: None,
+            actual_aggregated_cost: None,
         },
     };
 
@@ -70,8 +71,8 @@ fn custom_encodes_decodes_xbi_evm_and_metadata() {
 fn custom_encodes_decodes_empty_xbi_evm() {
     let xbi_evm = XBIInstr::CallEvm {
         source: AccountId20::repeat_byte(3),
-        dest: AccountId20::repeat_byte(2),
-        value: 1,
+        target: AccountId20::repeat_byte(2),
+        value: sp_core::U256([1, 0, 0, 0]),
         input: vec![],
         gas_limit: 2,
         max_fee_per_gas: sp_core::U256([4, 5, 6, 7]),

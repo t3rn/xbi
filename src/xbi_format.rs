@@ -42,10 +42,9 @@ impl XBICheckOut {
                 witness: vec![],
             },
             resolution_status,
-            checkout_timeout: Default::default()
-            // FixMe: make below work - casting block no to timeout
-            // checkout_timeout: ((frame_system::Pallet::<T>::block_number() - delivery_timeout)
-            //     * T::BlockNumber::from(T::ExpectedBlockTimeMs::get())).into(),
+            checkout_timeout: Default::default(), // FixMe: make below work - casting block no to timeout
+                                                  // checkout_timeout: ((frame_system::Pallet::<T>::block_number() - delivery_timeout)
+                                                  //     * T::BlockNumber::from(T::ExpectedBlockTimeMs::get())).into(),
         }
     }
 
@@ -74,12 +73,6 @@ pub struct XBIFormat {
     pub metadata: XBIMetadata,
 }
 
-//pub fn call_xbi(instruction:  ) {
-// pub fn call_xbi(instruction: Vec<u8>) {
-//     XBIInstr::decode(&mut &*instruction);
-//
-// }
-
 #[derive(Clone, Eq, PartialEq, Debug, TypeInfo)]
 pub enum XBIInstr {
     // 0
@@ -94,8 +87,8 @@ pub enum XBIInstr {
     // 2
     CallEvm {
         source: AccountId20, // Could use either [u8; 20] or Junction::AccountKey20
-        dest: AccountId20,   // Could use either [u8; 20] or Junction::AccountKey20
-        value: Value,
+        target: AccountId20, // Could use either [u8; 20] or Junction::AccountKey20
+        value: ValueEvm,
         input: Data,
         gas_limit: Gas,
         max_fee_per_gas: ValueEvm,
@@ -186,6 +179,7 @@ pub struct XBIMetadata {
     pub executed: ActionNotificationTimeouts,
     pub max_exec_cost: Value,
     pub max_notifications_cost: Value,
+    pub actual_aggregated_cost: Option<Value>,
     pub maybe_known_origin: Option<AccountId32>,
 }
 
@@ -221,6 +215,7 @@ impl XBIMetadata {
             max_exec_cost,
             max_notifications_cost,
             maybe_known_origin,
+            actual_aggregated_cost: None,
         }
     }
 
@@ -242,6 +237,7 @@ impl XBIMetadata {
             max_exec_cost,
             max_notifications_cost,
             maybe_known_origin,
+            actual_aggregated_cost: None,
         }
     }
 }
