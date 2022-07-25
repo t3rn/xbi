@@ -11,8 +11,6 @@ pub use xcm::latest;
 // #[cfg(test)]
 // mod tests;
 
-pub mod t3rn_sfx;
-
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
@@ -23,7 +21,8 @@ pub mod pallet {
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
 
-    use sp_std::{default::Default, prelude::*};
+    use sp_std::default::Default;
+    use xcm::latest::prelude::*;
 
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
@@ -45,11 +44,6 @@ pub mod pallet {
         CannotTransformParaId,
         CannotEnterXBI,
         XBIPluginUnavailable,
-        EnterSfxDecodingValueErr,
-        EnterSfxDecodingAddressErr,
-        EnterSfxDecodingDataErr,
-        EnterSfxNotRecognized,
-        ExitOnlyXBIResultResolvesToSFXConfirmation,
     }
 
     // Pallets use events to inform users when important changes are made.
@@ -64,29 +58,68 @@ pub mod pallet {
         pub fn batch_enter_xbi(
             _origin: OriginFor<T>, // Active relayer
             xbi_batch: Vec<XBIFormat>,
+            dest_para_id: cumulus_primitives_core::ParaId,
         ) -> DispatchResultWithPostInfo {
-            Self::do_batch_enter_xbi(xbi_batch)
-        }
-
-        #[pallet::weight(100_000)]
-        pub fn enter_xbi(
-            _origin: OriginFor<T>, // Active relayer
-            xbi: XBIFormat,
-        ) -> DispatchResultWithPostInfo {
-            Self::do_enter_xbi(xbi)
+            Self::do_batch_enter_xbi(xbi_batch, dest_para_id)
         }
     }
 
     impl<T: Config> Pallet<T> {
-        pub fn do_batch_enter_xbi(xbi_batch: Vec<XBIFormat>) -> DispatchResultWithPostInfo {
+        pub fn do_batch_enter_xbi(
+            xbi_batch: Vec<XBIFormat>,
+            dest_para_id: cumulus_primitives_core::ParaId,
+        ) -> DispatchResultWithPostInfo {
             for xbi in xbi_batch {
+                let _versioned_multi_loc = Box::new(
+                    xcm::VersionedMultiLocation::try_from(Parachain(dest_para_id.into()).into())
+                        .map_err(|_e| Error::<T>::CannotTransformParaId)?,
+                );
+
                 T::XBIPortal::do_check_in_xbi(xbi).map_err(|_e| Error::<T>::CannotEnterXBI)?;
             }
+
             Ok(().into())
         }
 
-        pub fn do_enter_xbi(xbi: XBIFormat) -> DispatchResultWithPostInfo {
-            T::XBIPortal::do_check_in_xbi(xbi).map_err(|_e| Error::<T>::CannotEnterXBI)?;
+        pub fn on_xbi_callback(
+            xbi_checkin: pallet_xbi_portal::xbi_codec::XBICheckIn<T::BlockNumber>,
+            xbi_checkout: pallet_xbi_portal::xbi_codec::XBICheckOut,
+        ) -> DispatchResultWithPostInfo {
+            let id = xbi_checkin.xbi.metadata.id.clone();
+
+
+
+            Ok(().into())
+        }
+
+
+        pub fn resolve_sfx_2_xbi(
+            xbi_checkin: pallet_xbi_portal::xbi_codec::XBICheckIn<T::BlockNumber>,
+            xbi_checkout: pallet_xbi_portal::xbi_codec::XBICheckOut,
+        ) -> DispatchResultWithPostInfo {
+            let id = xbi_checkin.xbi.metadata.id.clone();
+
+
+            Ok(().into())
+        }
+
+        pub fn resolve_xbi_2_sfx(
+            xbi_checkin: pallet_xbi_portal::xbi_codec::XBICheckIn<T::BlockNumber>,
+            xbi_checkout: pallet_xbi_portal::xbi_codec::XBICheckOut,
+        ) -> DispatchResultWithPostInfo {
+            let id = xbi_checkin.xbi.metadata.id.clone();
+
+            Ok(().into())
+        }
+
+        pub fn t3rn_sfx_resolver(
+            xbi_checkin: pallet_xbi_portal::xbi_codec::XBICheckIn<T::BlockNumber>,
+            xbi_checkout: pallet_xbi_portal::xbi_codec::XBICheckOut,
+        ) -> DispatchResultWithPostInfo {
+
+            let id = xbi_checkin.xbi.metadata.id.clone();
+
+
             Ok(().into())
         }
     }

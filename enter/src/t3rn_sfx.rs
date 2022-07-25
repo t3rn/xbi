@@ -1,12 +1,16 @@
 use crate::Error;
 use codec::Decode;
-use pallet_xbi_portal::xbi_codec::{XBIInstr, XBIMetadata};
+use pallet_xbi_portal::xbi_codec::{XBICheckOutStatus, XBIInstr, XBIMetadata};
 
 use pallet_xbi_portal::xbi_format::XBIFormat;
-use t3rn_primitives::{side_effect::SideEffect, transfers::EscrowedBalanceOf, EscrowTrait};
+use t3rn_primitives::{
+    side_effect::{ConfirmationOutcome, ConfirmedSideEffect, SideEffect},
+    transfers::EscrowedBalanceOf,
+    Bytes, EscrowTrait,
+};
 
-pub fn t3rn_sfx_2_xbi<T: frame_system::Config, E: EscrowTrait<T>>(
-    side_effect: SideEffect<
+pub fn sfx_2_xbi<T: frame_system::Config, E: EscrowTrait<T>>(
+    side_effect: &SideEffect<
         <T as frame_system::Config>::AccountId,
         <T as frame_system::Config>::BlockNumber,
         EscrowedBalanceOf<T, E>,
@@ -132,5 +136,46 @@ pub fn t3rn_sfx_2_xbi<T: frame_system::Config, E: EscrowTrait<T>>(
             metadata,
         }),
         &_ => Err(Error::<T>::EnterSfxNotRecognized),
+    }
+}
+
+pub fn xbi_result_2_sfx_confirmation<T: frame_system::Config, E: EscrowTrait<T>>(
+    xbi: XBIFormat,
+    encoded_effect: Bytes,
+    executioner: T::AccountId,
+) -> Result<
+    ConfirmedSideEffect<
+        <T as frame_system::Config>::AccountId,
+        <T as frame_system::Config>::BlockNumber,
+        EscrowedBalanceOf<T, E>,
+    >,
+    Error<T>,
+> {
+    match &xbi.instr {
+        XBIInstr::Result {
+            outcome,
+            output,
+            witness,
+        } => {
+            let err = match outcome {
+                XBICheckOutStatus::SuccessfullyExecuted => Some(ConfirmationOutcome::Success),
+                XBICheckOutStatus::ErrorFailedExecution =>
+                    Some(ConfirmationOutcome::XBIFailedExecution),
+                XBICheckOutStatus::ErrorFailedXCMDispatch =>
+                    Some(ConfirmationOutcome::XBIFailedDelivery),
+                XBICheckOutStatus::ErrorDeliveryTimeout => Some(ConfirmationOutcome::TimedOut),
+                XBICheckOutStatus::ErrorExecutionTimeout => Some(ConfirmationOutcome::TimedOut),
+            };
+            Ok(ConfirmedSideEffect {
+                err,
+                output: Some(output.clone()),
+                encoded_effect,
+                inclusion_proof: Some(witness.clone()),
+                executioner,
+                received_at: <frame_system::Pallet<T>>::block_number(),
+                cost: None,
+            })
+        },
+        _ => Err(Error::<T>::ExitOnlyXBIResultResolvesToSFXConfirmation),
     }
 }

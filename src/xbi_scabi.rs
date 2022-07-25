@@ -1,6 +1,6 @@
-use frame_support::weights::Weight;
+use codec::Encode;
+use frame_support::{dispatch::PostDispatchInfo, weights::Weight};
 use frame_system::pallet_prelude::OriginFor;
-
 use sp_core::{H160, H256, U256};
 use sp_std::vec::Vec;
 
@@ -53,21 +53,16 @@ pub trait Scabi<T: frame_system::Config + pallet_balances::Config> {
         debug: bool,
     ) -> Result<XBIInstr, crate::Error<T>>;
 
-    fn xbi_call_wasm_result_2_wasm_result(
-        xbi_checkout: XBICheckOut,
-    ) -> Result<Vec<u8>, crate::Error<T>>;
+    fn post_dispatch_info_2_xbi_checkout(
+        post_dispatch_info: PostDispatchInfo,
+        notification_delivery_timeout: T::BlockNumber,
+        resolution_status: XBICheckOutStatus,
+        actual_delivery_cost: Value,
+    ) -> Result<XBICheckOut, Error<T>>;
 
-    fn xbi_call_evm_result_2_evm_result(
+    fn xbi_checkout_2_post_dispatch_info(
         xbi_checkout: XBICheckOut,
-    ) -> Result<Vec<u8>, crate::Error<T>>;
-
-    fn xbi_call_evm_result_2_wasm_result(
-        xbi_checkout: XBICheckOut,
-    ) -> Result<Vec<u8>, crate::Error<T>>;
-
-    fn xbi_call_wasm_result_2_evm_result(
-        xbi_checkout: XBICheckOut,
-    ) -> Result<Vec<u8>, crate::Error<T>>;
+    ) -> Result<PostDispatchInfo, Error<T>>;
 }
 
 impl<T: crate::Config + frame_system::Config + pallet_balances::Config> Scabi<T> for XbiAbi<T> {
@@ -159,19 +154,33 @@ impl<T: crate::Config + frame_system::Config + pallet_balances::Config> Scabi<T>
         })
     }
 
-    fn xbi_call_wasm_result_2_wasm_result(_xbi_checkout: XBICheckOut) -> Result<Vec<u8>, Error<T>> {
-        todo!()
+    fn post_dispatch_info_2_xbi_checkout(
+        post_dispatch_info: PostDispatchInfo,
+        notification_delivery_timeout: T::BlockNumber,
+        resolution_status: XBICheckOutStatus,
+        actual_delivery_cost: Value,
+    ) -> Result<XBICheckOut, Error<T>> {
+        let actual_execution_cost =
+            if let Some(some_actual_weight) = post_dispatch_info.actual_weight {
+                some_actual_weight.into()
+            } else {
+                0
+            };
+
+        let actual_aggregated_cost = actual_delivery_cost + actual_execution_cost;
+        Ok(XBICheckOut::new::<T>(
+            notification_delivery_timeout,
+            post_dispatch_info.encode(),
+            resolution_status,
+            actual_execution_cost,
+            actual_delivery_cost,
+            actual_aggregated_cost,
+        ))
     }
 
-    fn xbi_call_evm_result_2_evm_result(_xbi_checkout: XBICheckOut) -> Result<Vec<u8>, Error<T>> {
-        todo!()
-    }
-
-    fn xbi_call_evm_result_2_wasm_result(_xbi_checkout: XBICheckOut) -> Result<Vec<u8>, Error<T>> {
-        todo!()
-    }
-
-    fn xbi_call_wasm_result_2_evm_result(_xbi_checkout: XBICheckOut) -> Result<Vec<u8>, Error<T>> {
+    fn xbi_checkout_2_post_dispatch_info(
+        _xbi_checkout: XBICheckOut,
+    ) -> Result<PostDispatchInfo, Error<T>> {
         todo!()
     }
 }

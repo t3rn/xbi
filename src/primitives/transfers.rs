@@ -1,5 +1,4 @@
-use frame_support::dispatch::DispatchError;
-
+use frame_support::dispatch::{DispatchErrorWithPostInfo, PostDispatchInfo};
 use sp_std::marker::PhantomData;
 
 pub trait Transfers<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> {
@@ -8,7 +7,7 @@ pub trait Transfers<T: frame_system::Config + crate::pallet::Config + pallet_bal
         dest: &T::AccountId,
         amount: T::Balance,
         keep_alive: bool,
-    ) -> Result<T::Balance, DispatchError>;
+    ) -> Result<PostDispatchInfo, DispatchErrorWithPostInfo>;
 }
 
 pub struct TransfersMock<T> {
@@ -21,10 +20,13 @@ impl<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> 
     fn transfer(
         _source: &T::AccountId,
         _dest: &T::AccountId,
-        amount: T::Balance,
+        _amount: T::Balance,
         _keep_alive: bool,
-    ) -> Result<T::Balance, DispatchError> {
-        Ok(amount)
+    ) -> Result<PostDispatchInfo, DispatchErrorWithPostInfo> {
+        Ok(PostDispatchInfo {
+            actual_weight: None,
+            pays_fee: Default::default(),
+        })
     }
 }
 
@@ -40,7 +42,7 @@ impl<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> 
         _dest: &T::AccountId,
         _amount: T::Balance,
         _keep_alive: bool,
-    ) -> Result<T::Balance, DispatchError> {
+    ) -> Result<PostDispatchInfo, DispatchErrorWithPostInfo> {
         Err(crate::Error::<T>::NoTransferSupportedAtDest.into())
     }
 }

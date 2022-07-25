@@ -27,10 +27,37 @@ pub struct XBICheckOut {
     pub xbi: XBIInstr, // XBIInstr::Result
     pub resolution_status: XBICheckOutStatus,
     pub checkout_timeout: Timeout,
+    pub actual_execution_cost: Value,
+    pub actual_delivery_cost: Value,
+    pub actual_aggregated_cost: Value,
 }
 
 impl XBICheckOut {
     pub fn new<T: frame_system::Config + crate::pallet::Config>(
+        _delivery_timeout: T::BlockNumber,
+        output: Vec<u8>,
+        resolution_status: XBICheckOutStatus,
+        actual_execution_cost: Value,
+        actual_delivery_cost: Value,
+        actual_aggregated_cost: Value,
+    ) -> Self {
+        XBICheckOut {
+            xbi: XBIInstr::Result {
+                outcome: resolution_status.clone(),
+                output,
+                witness: vec![],
+            },
+            resolution_status,
+            checkout_timeout: Default::default(), // FixMe: make below work - casting block no to timeout
+            // checkout_timeout: ((frame_system::Pallet::<T>::block_number() - delivery_timeout)
+            //     * T::BlockNumber::from(T::ExpectedBlockTimeMs::get())).into(),
+            actual_execution_cost,
+            actual_delivery_cost,
+            actual_aggregated_cost,
+        }
+    }
+
+    pub fn new_ignore_costs<T: frame_system::Config + crate::pallet::Config>(
         _delivery_timeout: T::BlockNumber,
         output: Vec<u8>,
         resolution_status: XBICheckOutStatus,
@@ -43,20 +70,12 @@ impl XBICheckOut {
             },
             resolution_status,
             checkout_timeout: Default::default(), // FixMe: make below work - casting block no to timeout
-                                                  // checkout_timeout: ((frame_system::Pallet::<T>::block_number() - delivery_timeout)
-                                                  //     * T::BlockNumber::from(T::ExpectedBlockTimeMs::get())).into(),
+            // checkout_timeout: ((frame_system::Pallet::<T>::block_number() - delivery_timeout)
+            //     * T::BlockNumber::from(T::ExpectedBlockTimeMs::get())).into(),
+            actual_execution_cost: 0,
+            actual_delivery_cost: 0,
+            actual_aggregated_cost: 0,
         }
-    }
-
-    /// For WASM and EVM to exchange the output result suggest conversions here from PostDispatchResults from EVM -> WASM and WASM -> EVM
-    pub fn evm_to_wasm_output<T: frame_system::Config + crate::pallet::Config>(
-    ) -> Result<Vec<u8>, crate::Error<T>> {
-        Ok(vec![])
-    }
-
-    pub fn wasm_to_evm_output<T: frame_system::Config + crate::pallet::Config>(
-    ) -> Result<Vec<u8>, crate::Error<T>> {
-        Ok(vec![])
     }
 }
 

@@ -31,6 +31,7 @@ pub mod pallet {
             xbi_callback::XBICallback, xcm::XCM,
         },
         xbi_format::*,
+        xbi_scabi::Scabi,
         *,
     };
     use frame_support::pallet_prelude::*;
@@ -235,7 +236,7 @@ pub mod pallet {
                     <XBICheckIns<T>>::insert(xbi_id.clone(), xbi_checkin.clone());
                     <XBICheckOutsQueued<T>>::insert(
                         xbi_id,
-                        XBICheckOut::new::<T>(
+                        XBICheckOut::new_ignore_costs::<T>(
                             xbi_checkin.notification_delivery_timeout,
                             vec![],
                             XBICheckOutStatus::ErrorDeliveryTimeout,
@@ -256,7 +257,7 @@ pub mod pallet {
                     <XBICheckIns<T>>::insert(xbi_id.clone(), xbi_checkin.clone());
                     <XBICheckOutsQueued<T>>::insert(
                         xbi_id,
-                        XBICheckOut::new::<T>(
+                        XBICheckOut::new_ignore_costs::<T>(
                             xbi_checkin.notification_delivery_timeout,
                             vec![],
                             XBICheckOutStatus::ErrorExecutionTimeout,
@@ -333,16 +334,21 @@ pub mod pallet {
             // Or if received XBI order of execution from remote Parachain
             if dest == T::MyParachainId::get() {
                 let instant_checkout = match Self::enter_here(origin, checkin.xbi) {
-                    Err(e) => XBICheckOut::new::<T>(
+                    Err(e) => XBICheckOut::new_ignore_costs::<T>(
                         checkin.notification_delivery_timeout,
                         e.encode(),
                         XBICheckOutStatus::ErrorFailedExecution,
                     ),
-                    Ok(res) => XBICheckOut::new::<T>(
-                        checkin.notification_delivery_timeout,
-                        res.encode(),
-                        XBICheckOutStatus::SuccessfullyExecuted,
-                    ),
+                    Ok(res) => {
+                        // todo: source for the cost of XBI Dispatch - execute in credit
+                        let actual_delivery_cost = 0;
+                        XbiAbi::<T>::post_dispatch_info_2_xbi_checkout(
+                            res,
+                            checkin.notification_delivery_timeout,
+                            XBICheckOutStatus::SuccessfullyExecuted,
+                            actual_delivery_cost, //
+                        )?
+                    },
                 };
                 <XBICheckOutsQueued<T>>::insert(xbi_id, instant_checkout);
             } else {
@@ -354,7 +360,7 @@ pub mod pallet {
                     Err(e) => {
                         <XBICheckOutsQueued<T>>::insert(
                             xbi_id,
-                            XBICheckOut::new::<T>(
+                            XBICheckOut::new_ignore_costs::<T>(
                                 checkin.notification_delivery_timeout,
                                 e.encode(),
                                 XBICheckOutStatus::ErrorFailedXCMDispatch,
