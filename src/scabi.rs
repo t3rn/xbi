@@ -181,11 +181,3 @@ fn traverses_from_evm_args_eg_from_precompile_to_call_wasm() {
         }
     )
 }
-
-//
-// #[test]
-// fn traverses_from_wasm_args_eg_from_chain_extension_to_call_evm() {
-//     let input_val: u128 = 88;
-//     let output_256 = Sabi::value_128_2_value_256(input_val);
-//     assert_eq!(output_256, U256::from(input_val));
-// }
