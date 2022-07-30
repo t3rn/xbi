@@ -123,8 +123,13 @@ impl<T: crate::Config + frame_system::Config + pallet_balances::Config> Scabi<T>
         _access_list: Vec<(H160, Vec<H256>)>,
     ) -> Result<XBIInstr, crate::Error<T>> {
         Ok(XBIInstr::CallWasm {
-            dest: XbiAbi::account_20_2_account_32(target, &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])?,
-            value: XbiAbi::value_evm_2_value(value)?,
+            dest: crate::sabi::Sabi::account_20_2_account_32(
+                target,
+                &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            )
+            .map_err(|_| crate::Error::XBIABIFailedToCastBetweenTypesAddress)?,
+            value: crate::sabi::Sabi::value_256_2_value_128(value)
+                .map_err(|_| crate::Error::XBIABIFailedToCastBetweenTypesValue)?,
             gas_limit,
             storage_deposit_limit: None,
             data: input,

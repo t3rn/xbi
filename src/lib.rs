@@ -8,6 +8,10 @@ pub mod xbi_format;
 
 pub mod xbi_abi;
 
+pub mod sabi;
+
+pub mod scabi;
+
 pub mod xbi_scabi;
 
 pub mod xbi_codec;
