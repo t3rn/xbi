@@ -3,7 +3,6 @@ use codec::{Decode, Encode};
 use sp_core::U256;
 use sp_std::prelude::*;
 
-
 use frame_support::RuntimeDebug;
 use scale_info::TypeInfo;
 
@@ -87,7 +86,7 @@ impl Sabi {
     pub fn value_256_2_value_64(val: U256) -> Result<u64, SabiError> {
         let val_64 = val.as_u64();
         if val_64 >= u64::MAX {
-            return Err(SabiError::SABIFailedToCastBetweenTypesValue)
+            return Err(SabiError::SABIFailedToCastBetweenTypesValue);
         }
         Ok(val_64)
     }
@@ -95,7 +94,7 @@ impl Sabi {
     pub fn value_256_2_value_128(val: U256) -> Result<u128, SabiError> {
         let val_128 = val.as_u128();
         if val_128 >= u128::MAX {
-            return Err(SabiError::SABIFailedToCastBetweenTypesValue)
+            return Err(SabiError::SABIFailedToCastBetweenTypesValue);
         }
         Ok(val_128)
     }
@@ -107,17 +106,10 @@ impl Sabi {
     pub fn value_128_2_value_64(val: u128) -> Result<u64, SabiError> {
         let val_64 = val as u64;
         if val_64 >= u64::MAX {
-            return Err(SabiError::SABIFailedToCastBetweenTypesValue)
+            return Err(SabiError::SABIFailedToCastBetweenTypesValue);
         }
         Ok(val_64)
     }
-}
-
-#[test]
-fn sabi_decodes_u128_to_target_values_correctly() {
-    let input_val: u128 = 88;
-    let output_256 = Sabi::value_128_2_value_256(input_val);
-    assert_eq!(output_256, U256::from(input_val));
 }
 
 // todo: maybe auto-conversion using Boxed types?
@@ -215,3 +207,15 @@ fn sabi_decodes_u128_to_target_values_correctly() {
 //         }
 //     }
 // }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sabi_decodes_u128_to_target_values_correctly() {
+        let input_val: u128 = 88;
+        let output_256 = Sabi::value_128_2_value_256(input_val);
+        assert_eq!(output_256, U256::from(input_val));
+    }
+}
