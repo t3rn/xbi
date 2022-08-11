@@ -1,15 +1,14 @@
 use crate::Error;
-use codec::Decode;
+use codec::{Decode};
 use pallet_xbi_portal::xbi_codec::{XBICheckOutStatus, XBIInstr, XBIMetadata};
 
-use pallet_xbi_portal::xbi_format::XBIFormat;
-use pallet_xbi_portal::sabi::*;
+
+use pallet_xbi_portal::{sabi::*, xbi_format::XBIFormat};
 use t3rn_primitives::{
     side_effect::{ConfirmationOutcome, ConfirmedSideEffect, SideEffect},
     transfers::EscrowedBalanceOf,
     Bytes, EscrowTrait,
 };
-
 
 pub fn sfx_2_xbi<T: frame_system::Config, E: EscrowTrait<T>>(
     side_effect: &SideEffect<
@@ -78,16 +77,18 @@ pub fn sfx_2_xbi<T: frame_system::Config, E: EscrowTrait<T>>(
                 input: Decode::decode(&mut &side_effect.encoded_args[3][..])
                     .map_err(|_| Error::<T>::EnterSfxDecodingDataErr)?,
                 // Get dest as argument_4 of SFX::CallEvm of Type::Uint(64)
-                gas_limit: Sabi::value_bytes_2_value_64(&side_effect.encoded_args[2])
+                gas_limit: Sabi::value_bytes_2_value_64(&side_effect.encoded_args[4])
                     .map_err(|_| Error::<T>::EnterSfxDecodingValueErr)?,
                 // Get dest as argument_5 of SFX::CallEvm of Type::Value
-                max_fee_per_gas: Sabi::value_bytes_2_value_256(&side_effect.encoded_args[2])
+                max_fee_per_gas: Sabi::value_bytes_2_value_256(&side_effect.encoded_args[5])
                     .map_err(|_| Error::<T>::EnterSfxDecodingValueErr)?,
                 // Get dest as argument_6 of SFX::CallEvm of Type::Option(Box::from(Type::Value))
-                max_priority_fee_per_gas: Decode::decode(&mut &side_effect.encoded_args[6][..])
-                    .map_err(|_| Error::<T>::EnterSfxDecodingValueErr)?,
+                max_priority_fee_per_gas: Sabi::maybe_value_bytes_2_maybe_value_256(
+                    &side_effect.encoded_args[6],
+                )
+                .map_err(|_| Error::<T>::EnterSfxDecodingValueErr)?,
                 // Get dest as argument_7 of SFX::CallEvm of Type::Option(Box::from(Type::Value))
-                nonce: Decode::decode(&mut &side_effect.encoded_args[7][..])
+                nonce: Sabi::maybe_value_bytes_2_maybe_value_256(&side_effect.encoded_args[7])
                     .map_err(|_| Error::<T>::EnterSfxDecodingValueErr)?,
                 // Get dest as argument_8 of SFX::CallEvm of Type::DynamicBytes
                 access_list: Decode::decode(&mut &side_effect.encoded_args[8][..])
@@ -107,8 +108,10 @@ pub fn sfx_2_xbi<T: frame_system::Config, E: EscrowTrait<T>>(
                 gas_limit: Sabi::value_bytes_2_value_64(&side_effect.encoded_args[2])
                     .map_err(|_| Error::<T>::EnterSfxDecodingValueErr)?,
                 // Get dest as argument_3 of SFX::CallEvm of Type::Option(Box::from(Type::Value))
-                storage_deposit_limit: Decode::decode(&mut &side_effect.encoded_args[3][..])
-                    .map_err(|_| Error::<T>::EnterSfxDecodingValueErr)?,
+                storage_deposit_limit: Sabi::maybe_value_bytes_2_maybe_value_128(
+                    &side_effect.encoded_args[3],
+                )
+                .map_err(|_| Error::<T>::EnterSfxDecodingValueErr)?,
                 // Get dest as argument_4 of SFX::CallEvm of Type::DynamicBytes
                 data: side_effect.encoded_args[4].clone(),
             },
@@ -124,13 +127,13 @@ pub fn sfx_2_xbi<T: frame_system::Config, E: EscrowTrait<T>>(
                 dest: Decode::decode(&mut &side_effect.encoded_args[1][..])
                     .map_err(|_| Error::<T>::EnterSfxDecodingAddressErr)?,
                 // Get dest as argument_2 of SFX::CallWasm of Type::Value
-                value: Decode::decode(&mut &side_effect.encoded_args[2][..])
+                value: Sabi::value_bytes_2_value_128(&side_effect.encoded_args[2])
                     .map_err(|_| Error::<T>::EnterSfxDecodingValueErr)?,
                 // Get dest as argument_3 of SFX::CallEvm of Type::DynamicBytes
                 input: Decode::decode(&mut &side_effect.encoded_args[3][..])
                     .map_err(|_| Error::<T>::EnterSfxDecodingDataErr)?,
                 // Get dest as argument_4 of SFX::CallWasm of Type::Value
-                limit: Decode::decode(&mut &side_effect.encoded_args[4][..])
+                limit: Sabi::value_bytes_2_value_64(&side_effect.encoded_args[4])
                     .map_err(|_| Error::<T>::EnterSfxDecodingValueErr)?,
                 // Get dest as argument_5 of SFX::CallEvm of Type::DynamicBytes
                 additional_params: Decode::decode(&mut &side_effect.encoded_args[5][..])
@@ -162,10 +165,10 @@ pub fn xbi_result_2_sfx_confirmation<T: frame_system::Config, E: EscrowTrait<T>>
         } => {
             let err = match outcome {
                 XBICheckOutStatus::SuccessfullyExecuted => Some(ConfirmationOutcome::Success),
-                XBICheckOutStatus::ErrorFailedExecution =>
-                    Some(ConfirmationOutcome::XBIFailedExecution),
-                XBICheckOutStatus::ErrorFailedXCMDispatch =>
-                    Some(ConfirmationOutcome::XBIFailedDelivery),
+                XBICheckOutStatus::ErrorFailedExecution => Some(ConfirmationOutcome::TimedOut),
+                // Some(ConfirmationOutcome::XBIFailedExecution),
+                XBICheckOutStatus::ErrorFailedXCMDispatch => Some(ConfirmationOutcome::TimedOut),
+                // Some(ConfirmationOutcome::XBIFailedDelivery),
                 XBICheckOutStatus::ErrorDeliveryTimeout => Some(ConfirmationOutcome::TimedOut),
                 XBICheckOutStatus::ErrorExecutionTimeout => Some(ConfirmationOutcome::TimedOut),
             };
