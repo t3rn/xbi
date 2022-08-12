@@ -229,15 +229,15 @@ pub mod pallet {
             let mut timeout_counter: u32 = 0;
             // Go over all unfinished Pending and Sent XBI Orders to find those that timed out
             for (xbi_id, xbi_checkin) in <XBICheckInsQueued<T>>::iter() {
-                if T::BlockNumber::from(xbi_checkin.notification_delivery_timeout.clone())
+                if xbi_checkin.notification_delivery_timeout
                     > frame_system::Pallet::<T>::block_number()
                 {
                     if timeout_counter > T::TimeoutChecksLimit::get() {
                         break
                     }
                     // XBI Result didn't arrive in expected time.
-                    <XBICheckInsQueued<T>>::remove(xbi_id.clone());
-                    <XBICheckIns<T>>::insert(xbi_id.clone(), xbi_checkin.clone());
+                    <XBICheckInsQueued<T>>::remove(xbi_id);
+                    <XBICheckIns<T>>::insert(xbi_id, xbi_checkin.clone());
                     <XBICheckOutsQueued<T>>::insert(
                         xbi_id,
                         XBICheckOut::new_ignore_costs::<T>(
@@ -250,15 +250,15 @@ pub mod pallet {
                 }
             }
             for (xbi_id, xbi_checkin) in <XBICheckInsPending<T>>::iter() {
-                if T::BlockNumber::from(xbi_checkin.notification_execution_timeout.clone())
+                if xbi_checkin.notification_execution_timeout
                     > frame_system::Pallet::<T>::block_number()
                 {
                     if timeout_counter > T::TimeoutChecksLimit::get() {
                         break
                     }
                     // XBI Result didn't arrive in expected time.
-                    <XBICheckInsPending<T>>::remove(xbi_id.clone());
-                    <XBICheckIns<T>>::insert(xbi_id.clone(), xbi_checkin.clone());
+                    <XBICheckInsPending<T>>::remove(xbi_id);
+                    <XBICheckIns<T>>::insert(xbi_id, xbi_checkin.clone());
                     <XBICheckOutsQueued<T>>::insert(
                         xbi_id,
                         XBICheckOut::new_ignore_costs::<T>(
@@ -272,12 +272,9 @@ pub mod pallet {
             }
 
             // Process CheckIn Queue
-            let mut checkin_counter: u32 = 0;
-
-            for (xbi_id, xbi_checkin) in <XBICheckInsQueued<T>>::iter() {
-                if checkin_counter > T::CheckInLimit::get() {
-                    break
-                }
+            for (_checkin_counter, (xbi_id, xbi_checkin)) in
+                (0_u32..T::CheckInLimit::get()).zip(<XBICheckInsQueued<T>>::iter())
+            {
                 match frame_system::offchain::SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(
                     pallet::Call::enter_call::<T> {
                         checkin: xbi_checkin.clone(),
@@ -291,36 +288,27 @@ pub mod pallet {
                             e,
                         ),
                 }
-                <XBICheckInsQueued<T>>::remove(xbi_id.clone());
-                checkin_counter += 1;
+                <XBICheckInsQueued<T>>::remove(xbi_id);
             }
 
             // Process Check Out Queue
             // All XBIs ready to check out (notification, results)
-            let mut checkout_counter: u32 = 0;
-            for (xbi_id, xbi_checkout) in <XBICheckOutsQueued<T>>::iter() {
-                if checkin_counter > T::CheckOutLimit::get() {
-                    break
-                }
-
-                match pallet::Pallet::<T>::exit(
+            for (_checkout_counter, (xbi_id, xbi_checkout)) in
+                (0_u32..T::CheckOutLimit::get()).zip(<XBICheckOutsQueued<T>>::iter())
+            {
+                if let Err(_err) = pallet::Pallet::<T>::exit(
                     <XBICheckIns<T>>::get(xbi_id)
                         .expect("Assume XBICheckOutsQueued is populated after XBICheckIns"),
                     xbi_checkout.clone(),
                 ) {
-                    // Pending remote XBI execution
-                    Err(_err) => {
-                        log::info!("Can't exit execution with current XBI - continue and must be handled better");
-                    },
-                    _ => {},
+                    log::info!("Can't exit execution with current XBI - continue and must be handled better");
                 }
-                <XBICheckOutsQueued<T>>::remove(xbi_id.clone());
-                <XBICheckOuts<T>>::insert(xbi_id.clone(), xbi_checkout);
 
-                checkout_counter += 1;
+                <XBICheckOutsQueued<T>>::remove(xbi_id);
+                <XBICheckOuts<T>>::insert(xbi_id, xbi_checkout);
             }
 
-            Ok(().into())
+            Ok(())
         }
 
         /// Enter might be weight heavy - calls for execution into EVMs and if necessary sends the response
@@ -378,7 +366,7 @@ pub mod pallet {
                 }
             }
 
-            Ok(().into())
+            Ok(())
         }
 
         #[pallet::weight(50_000 + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
@@ -413,7 +401,7 @@ pub mod pallet {
             target_id: u32,
         ) -> Result<xcm::latest::MultiLocation, Error<T>> {
             // Or xcm::VersionedMultiLocation::try_from(...)
-            MultiLocation::try_from(Parachain(target_id.into()).into())
+            MultiLocation::try_from(Parachain(target_id))
                 .map_err(|_| Error::<T>::EnterFailedOnMultiLocationTransform)
         }
 
@@ -424,7 +412,7 @@ pub mod pallet {
             let dest = MultiLocation::try_from(*dest)
                 .map_err(|()| Error::<T>::EnterFailedOnMultiLocationTransform)?;
 
-            let require_weight_at_most = xbi.metadata.max_exec_cost.clone() as u64;
+            let require_weight_at_most = xbi.metadata.max_exec_cost as u64;
             let xbi_call = pallet::Call::check_in_xbi::<T> { xbi };
             let xbi_format_msg = Xcm(vec![Transact {
                 origin_type: OriginKind::SovereignAccount,
@@ -433,7 +421,7 @@ pub mod pallet {
             }]);
 
             // Could have beein either Trait DI : T::Xcm::send_xcm or pallet_xcm::Pallet::<T>::send_xcm(
-            T::Xcm::send_xcm(xcm::prelude::Here, dest.clone(), xbi_format_msg.clone())
+            T::Xcm::send_xcm(xcm::prelude::Here, dest, xbi_format_msg)
                 .map_err(|_| Error::<T>::EnterFailedOnXcmSend)
         }
 
@@ -444,7 +432,7 @@ pub mod pallet {
                 || <Self as Store>::XBICheckInsQueued::contains_key(xbi_id)
                 || <Self as Store>::XBICheckInsPending::contains_key(xbi_id)
             {
-                return Err(Error::<T>::XBIAlreadyCheckedIn.into())
+                return Err(Error::<T>::XBIAlreadyCheckedIn)
             }
 
             // 	Consider taking straight from Babe
@@ -462,8 +450,8 @@ pub mod pallet {
                 xbi_id,
                 XBICheckIn {
                     xbi,
-                    notification_delivery_timeout: delivery_timout_at_block.into(),
-                    notification_execution_timeout: execution_timout_at_block.into(),
+                    notification_delivery_timeout: delivery_timout_at_block,
+                    notification_execution_timeout: execution_timout_at_block,
                 },
             );
 
@@ -520,7 +508,7 @@ pub mod pallet {
                     source,
                     target,
                     input,
-                    sp_core::U256::from(value),
+                    value,
                     gas_limit,
                     max_fee_per_gas,
                     max_priority_fee_per_gas,

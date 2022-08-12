@@ -52,8 +52,9 @@ impl Sabi {
     pub fn account_32_2_account_20(account_32: AccountId32) -> Result<AccountId20, SabiError> {
         let mut dest_bytes: Vec<u8> = vec![];
         let account_32_encoded = account_32.encode();
-        for i in 0..20 {
-            dest_bytes.push(account_32_encoded[i]);
+
+        for &byte_of_account in account_32_encoded.iter().take(20) {
+            dest_bytes.push(byte_of_account);
         }
         Decode::decode(&mut &dest_bytes.as_slice()[..])
             .map_err(|_e| SabiError::SABIFailedToCastBetweenTypesValue)
@@ -151,10 +152,10 @@ impl Sabi {
 
     pub fn value_256_2_value_128(val: U256) -> Result<u128, SabiError> {
         let val_128 = val.as_u128();
-        if val_128 >= u128::MAX {
-            return Err(SabiError::SABIFailedToCastBetweenTypesValue)
+        if val_128 < u128::MAX {
+            return Ok(val_128)
         }
-        Ok(val_128)
+        Err(SabiError::SABIFailedToCastBetweenTypesValue)
     }
 
     pub fn value_bytes_2_value_128(val_bytes: &Vec<u8>) -> Result<u128, SabiError> {
@@ -227,18 +228,18 @@ impl Sabi {
 
     pub fn value_128_2_value_64(val: u128) -> Result<u64, SabiError> {
         let val_64 = val as u64;
-        if val_64 >= u64::MAX {
-            return Err(SabiError::SABIFailedToCastBetweenTypesValue)
+        if val_64 < u64::MAX {
+            return Ok(val_64)
         }
-        Ok(val_64)
+        Err(SabiError::SABIFailedToCastBetweenTypesValue)
     }
 
     pub fn value_256_2_value_64(val: U256) -> Result<u64, SabiError> {
         let val_64 = val.as_u64();
-        if val_64 >= u64::MAX {
-            return Err(SabiError::SABIFailedToCastBetweenTypesValue)
+        if val_64 < u64::MAX {
+            return Ok(val_64)
         }
-        Ok(val_64)
+        Err(SabiError::SABIFailedToCastBetweenTypesValue)
     }
 
     pub fn value_bytes_2_value_64(val_bytes: &Vec<u8>) -> Result<u64, SabiError> {
@@ -270,26 +271,26 @@ impl Sabi {
     /// Output Value32
     pub fn value_64_2_value_32(val: u64) -> Result<u32, SabiError> {
         let val_32 = val as u32;
-        if val_32 >= u32::MAX {
-            return Err(SabiError::SABIFailedToCastBetweenTypesValue)
+        if val_32 < u32::MAX {
+            return Ok(val_32)
         }
-        Ok(val_32)
+        Err(SabiError::SABIFailedToCastBetweenTypesValue)
     }
 
     pub fn value_128_2_value_32(val: u128) -> Result<u32, SabiError> {
         let val_32 = val as u32;
-        if val_32 >= u32::MAX {
-            return Err(SabiError::SABIFailedToCastBetweenTypesValue)
+        if val_32 < u32::MAX {
+            return Ok(val_32)
         }
-        Ok(val_32)
+        Err(SabiError::SABIFailedToCastBetweenTypesValue)
     }
 
     pub fn value_256_2_value_32(val: U256) -> Result<u32, SabiError> {
         let val_32 = val.as_u32();
-        if val_32 >= u32::MAX {
-            return Err(SabiError::SABIFailedToCastBetweenTypesValue)
+        if val_32 < u32::MAX {
+            return Ok(val_32)
         }
-        Ok(val_32)
+        Err(SabiError::SABIFailedToCastBetweenTypesValue)
     }
 
     pub fn value_bytes_2_value_32(val_bytes: &Vec<u8>) -> Result<u32, SabiError> {

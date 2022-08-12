@@ -1,5 +1,4 @@
 use codec::{Decode, Encode, Input, Output};
-use sp_std::prelude::*;
 
 pub use crate::{xbi_abi::*, xbi_format::*};
 
@@ -24,7 +23,7 @@ impl Decode for XBIInstr {
                 };
 
                 // Minimum length of XBI::CallEvm with empty / none values
-                if len? < 104 as usize {
+                if len? < 104_usize {
                     return Err("Wrong XBI Order length".into())
                 }
 
@@ -81,7 +80,7 @@ impl Decode for XBIInstr {
                 };
 
                 // Minimum length of XBI::CallWasm with empty / none values
-                if len? < 60 as usize {
+                if len? < 60_usize {
                     return Err("Wrong XBI Order length".into())
                 }
 
@@ -119,7 +118,7 @@ impl Decode for XBIInstr {
                 };
 
                 // // Minimum length of XBI::CallWasm with empty / none values
-                if len? < 92 as usize {
+                if len? < 92_usize {
                     return Err("Wrong XBI Order length".into())
                 }
 
@@ -157,7 +156,7 @@ impl Decode for XBIInstr {
                 };
 
                 // Minimum length of XBI::CallWasm with empty / none values
-                if len? < 48 as usize {
+                if len? < 48_usize {
                     return Err("Wrong XBI Order length".into())
                 }
 
@@ -178,7 +177,7 @@ impl Decode for XBIInstr {
                 };
 
                 // Minimum length of XBI::CallWasm with empty / none values
-                if len? < 56 as usize {
+                if len? < 56_usize {
                     return Err("Wrong XBI Order length".into())
                 }
 
@@ -202,7 +201,7 @@ impl Decode for XBIInstr {
                 };
 
                 // Minimum length of XBI::CallWasm with empty / none values
-                if len? < 56 as usize {
+                if len? < 56_usize {
                     return Err("Wrong XBI Order length".into())
                 }
 
@@ -268,9 +267,9 @@ impl Decode for XBIInstr {
  */
 impl Encode for XBIInstr {
     fn encode_to<T: Output + ?Sized>(&self, dest_bytes: &mut T) {
-        match &*self {
+        match self {
             XBIInstr::Unknown { identifier, params } => {
-                dest_bytes.push_byte(identifier.clone());
+                dest_bytes.push_byte(*identifier);
                 params.encode_to(dest_bytes);
             },
             XBIInstr::CallNative { payload } => {
