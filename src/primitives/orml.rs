@@ -24,7 +24,7 @@ impl<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> 
         _to: &T::AccountId,
         _amount: T::Balance,
     ) -> DispatchResult {
-        Ok(().into())
+        Ok(())
     }
 }
 

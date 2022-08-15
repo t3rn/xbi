@@ -3,7 +3,6 @@ use codec::{Decode, Encode};
 use sp_core::U256;
 use sp_std::prelude::*;
 
-
 use frame_support::RuntimeDebug;
 use scale_info::TypeInfo;
 
@@ -15,6 +14,7 @@ pub type Gas = u64; // [u64; 4]
 pub type AccountId32 = sp_runtime::AccountId32;
 pub type AccountId20 = sp_core::H160; // Could also take it from MultiLocation::Junction::AccountKey20 { network: NetworkId, key: [u8; 20] },
 
+pub type Value32 = u32;
 pub type Value64 = u64;
 pub type Value128 = u128;
 pub type Value256 = U256;
@@ -26,6 +26,7 @@ pub enum SabiError {
 }
 
 pub enum ValueLen {
+    U32,
     U64,
     U128,
     U256,
@@ -35,6 +36,7 @@ pub enum ValueLen {
 pub struct Sabi {}
 
 impl Sabi {
+    /// Output Accounts
     pub fn account_20_2_account_32(
         account_20: AccountId20,
         extra_bytes: &[u8; 12],
@@ -50,13 +52,15 @@ impl Sabi {
     pub fn account_32_2_account_20(account_32: AccountId32) -> Result<AccountId20, SabiError> {
         let mut dest_bytes: Vec<u8> = vec![];
         let account_32_encoded = account_32.encode();
-        for i in 0..20 {
-            dest_bytes.push(account_32_encoded[i]);
+
+        for &byte_of_account in account_32_encoded.iter().take(20) {
+            dest_bytes.push(byte_of_account);
         }
         Decode::decode(&mut &dest_bytes.as_slice()[..])
             .map_err(|_e| SabiError::SABIFailedToCastBetweenTypesValue)
     }
 
+    /// Output Value256
     pub fn value_32_2_value_256(val: u32) -> U256 {
         U256::from(val)
     }
@@ -76,6 +80,68 @@ impl Sabi {
         }
     }
 
+    pub fn value_bytes_2_value_256(val_bytes: &Vec<u8>) -> Result<Value256, SabiError> {
+        match val_bytes.len() {
+            4 => {
+                let val_u32: Value32 = Decode::decode(&mut &val_bytes[..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                Ok(Self::value_32_2_value_256(val_u32))
+            },
+            8 => {
+                let val_u64: Value64 = Decode::decode(&mut &val_bytes[..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                Ok(Self::value_64_2_value_256(val_u64))
+            },
+            16 => {
+                let val_u128: Value128 = Decode::decode(&mut &val_bytes[..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                Ok(Self::value_128_2_value_256(val_u128))
+            },
+            32 => {
+                let val_u256: Value256 = Decode::decode(&mut &val_bytes[..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                Ok(val_u256)
+            },
+            _ => Err(SabiError::SABIFailedToCastBetweenTypesValue),
+        }
+    }
+
+    pub fn maybe_value_bytes_2_maybe_value_256(
+        val_bytes: &Vec<u8>,
+    ) -> Result<Option<Value256>, SabiError> {
+        match val_bytes.len() {
+            1 => Ok(None),
+            5 => {
+                let val_u32: Value32 = Decode::decode(&mut &val_bytes[1..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+
+                let val_u256 = Self::value_32_2_value_256(val_u32);
+                Ok(Some(val_u256))
+            },
+            9 => {
+                let val_u64: Value64 = Decode::decode(&mut &val_bytes[1..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+
+                let val_u256 = Self::value_64_2_value_256(val_u64);
+                Ok(Some(val_u256))
+            },
+            17 => {
+                let val_u128: Value128 = Decode::decode(&mut &val_bytes[1..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+
+                let val_u256 = Self::value_128_2_value_256(val_u128);
+                Ok(Some(val_u256))
+            },
+            33 => {
+                let val_u256: Value256 = Decode::decode(&mut &val_bytes[1..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                Ok(Some(val_u256))
+            },
+            _ => Err(SabiError::SABIFailedToCastBetweenTypesValue),
+        }
+    }
+
+    /// Output Value128
     pub fn value_32_2_value_128(val: u32) -> u128 {
         val as u128
     }
@@ -84,32 +150,207 @@ impl Sabi {
         val as u128
     }
 
-    pub fn value_256_2_value_64(val: U256) -> Result<u64, SabiError> {
-        let val_64 = val.as_u64();
-        if val_64 >= u64::MAX {
-            return Err(SabiError::SABIFailedToCastBetweenTypesValue)
-        }
-        Ok(val_64)
-    }
-
     pub fn value_256_2_value_128(val: U256) -> Result<u128, SabiError> {
         let val_128 = val.as_u128();
-        if val_128 >= u128::MAX {
-            return Err(SabiError::SABIFailedToCastBetweenTypesValue)
+        if val_128 < u128::MAX {
+            return Ok(val_128)
         }
-        Ok(val_128)
+        Err(SabiError::SABIFailedToCastBetweenTypesValue)
     }
 
+    pub fn value_bytes_2_value_128(val_bytes: &Vec<u8>) -> Result<u128, SabiError> {
+        match val_bytes.len() {
+            4 => {
+                let val_u32: Value32 = Decode::decode(&mut &val_bytes[..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                Ok(Self::value_32_2_value_128(val_u32))
+            },
+            8 => {
+                let val_u64: Value64 = Decode::decode(&mut &val_bytes[..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                Ok(Self::value_64_2_value_128(val_u64))
+            },
+            16 => {
+                let val_u128: Value128 = Decode::decode(&mut &val_bytes[..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                Ok(val_u128)
+            },
+            32 => {
+                let val_u256: Value256 = Decode::decode(&mut &val_bytes[..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                Self::value_256_2_value_128(val_u256)
+            },
+            _ => Err(SabiError::SABIFailedToCastBetweenTypesValue),
+        }
+    }
+
+    pub fn maybe_value_bytes_2_maybe_value_128(
+        val_bytes: &Vec<u8>,
+    ) -> Result<Option<Value128>, SabiError> {
+        match val_bytes.len() {
+            1 => Ok(None),
+            5 => {
+                let val_u32: Value32 = Decode::decode(&mut &val_bytes[1..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+
+                let val_u128 = Self::value_32_2_value_128(val_u32);
+                Ok(Some(val_u128))
+            },
+            9 => {
+                let val_u64: Value64 = Decode::decode(&mut &val_bytes[1..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+
+                let val_u128 = Self::value_64_2_value_128(val_u64);
+
+                Ok(Some(val_u128))
+            },
+            17 => {
+                let val_u128: Value128 = Decode::decode(&mut &val_bytes[1..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+
+                Ok(Some(val_u128))
+            },
+            33 => {
+                let val_u256: Value256 = Decode::decode(&mut &val_bytes[1..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+
+                let val_u128 = Self::value_256_2_value_128(val_u256)?;
+                Ok(Some(val_u128))
+            },
+            _ => Err(SabiError::SABIFailedToCastBetweenTypesValue),
+        }
+    }
+
+    /// Output Value64
     pub fn value_32_2_value_64(val: u32) -> u64 {
         val as u64
     }
 
     pub fn value_128_2_value_64(val: u128) -> Result<u64, SabiError> {
         let val_64 = val as u64;
-        if val_64 >= u64::MAX {
-            return Err(SabiError::SABIFailedToCastBetweenTypesValue)
+        if val_64 < u64::MAX {
+            return Ok(val_64)
         }
-        Ok(val_64)
+        Err(SabiError::SABIFailedToCastBetweenTypesValue)
+    }
+
+    pub fn value_256_2_value_64(val: U256) -> Result<u64, SabiError> {
+        let val_64 = val.as_u64();
+        if val_64 < u64::MAX {
+            return Ok(val_64)
+        }
+        Err(SabiError::SABIFailedToCastBetweenTypesValue)
+    }
+
+    pub fn value_bytes_2_value_64(val_bytes: &Vec<u8>) -> Result<u64, SabiError> {
+        match val_bytes.len() {
+            4 => {
+                let val_u32: Value32 = Decode::decode(&mut &val_bytes[..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                Ok(Self::value_32_2_value_64(val_u32))
+            },
+            8 => {
+                let val_u64: Value64 = Decode::decode(&mut &val_bytes[..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                Ok(val_u64)
+            },
+            16 => {
+                let val_u128: Value128 = Decode::decode(&mut &val_bytes[..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                Self::value_128_2_value_64(val_u128)
+            },
+            32 => {
+                let val_u256: Value256 = Decode::decode(&mut &val_bytes[..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                Self::value_256_2_value_64(val_u256)
+            },
+            _ => Err(SabiError::SABIFailedToCastBetweenTypesValue),
+        }
+    }
+
+    /// Output Value32
+    pub fn value_64_2_value_32(val: u64) -> Result<u32, SabiError> {
+        let val_32 = val as u32;
+        if val_32 < u32::MAX {
+            return Ok(val_32)
+        }
+        Err(SabiError::SABIFailedToCastBetweenTypesValue)
+    }
+
+    pub fn value_128_2_value_32(val: u128) -> Result<u32, SabiError> {
+        let val_32 = val as u32;
+        if val_32 < u32::MAX {
+            return Ok(val_32)
+        }
+        Err(SabiError::SABIFailedToCastBetweenTypesValue)
+    }
+
+    pub fn value_256_2_value_32(val: U256) -> Result<u32, SabiError> {
+        let val_32 = val.as_u32();
+        if val_32 < u32::MAX {
+            return Ok(val_32)
+        }
+        Err(SabiError::SABIFailedToCastBetweenTypesValue)
+    }
+
+    pub fn value_bytes_2_value_32(val_bytes: &Vec<u8>) -> Result<u32, SabiError> {
+        match val_bytes.len() {
+            4 => {
+                let val_u32: Value32 = Decode::decode(&mut &val_bytes[..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                Ok(val_u32)
+            },
+            8 => {
+                let val_u64: Value64 = Decode::decode(&mut &val_bytes[..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                Self::value_64_2_value_32(val_u64)
+            },
+            16 => {
+                let val_u128: Value128 = Decode::decode(&mut &val_bytes[..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                Self::value_128_2_value_32(val_u128)
+            },
+            32 => {
+                let val_u256: Value256 = Decode::decode(&mut &val_bytes[..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                Self::value_256_2_value_32(val_u256)
+            },
+            _ => Err(SabiError::SABIFailedToCastBetweenTypesValue),
+        }
+    }
+
+    pub fn maybe_value_bytes_2_maybe_value_32(
+        val_bytes: &Vec<u8>,
+    ) -> Result<Option<u32>, SabiError> {
+        match val_bytes.len() {
+            1 => Ok(None),
+            5 => {
+                let val_u32: Value32 = Decode::decode(&mut &val_bytes[1..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                Ok(Some(val_u32))
+            },
+            9 => {
+                let val_u64: Value64 = Decode::decode(&mut &val_bytes[1..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+
+                let val_u32 = Self::value_64_2_value_32(val_u64)?;
+                Ok(Some(val_u32))
+            },
+            17 => {
+                let val_u128: Value128 = Decode::decode(&mut &val_bytes[1..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+
+                let val_u32 = Self::value_128_2_value_32(val_u128)?;
+                Ok(Some(val_u32))
+            },
+            33 => {
+                let val_u256: Value256 = Decode::decode(&mut &val_bytes[1..])
+                    .map_err(|_| SabiError::SABIFailedToCastBetweenTypesValue)?;
+                let val_u32 = Self::value_256_2_value_32(val_u256)?;
+                Ok(Some(val_u32))
+            },
+            _ => Err(SabiError::SABIFailedToCastBetweenTypesValue),
+        }
     }
 }
 

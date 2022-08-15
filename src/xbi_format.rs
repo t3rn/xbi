@@ -1,4 +1,4 @@
-use codec::{Decode, Encode, Input, Output};
+use codec::{Decode, Encode};
 use core::fmt::Debug;
 use frame_support::RuntimeDebug;
 use scale_info::TypeInfo;
@@ -193,6 +193,7 @@ pub struct XBIMetadata {
     pub id: sp_core::H256,
     pub dest_para_id: u32,
     pub src_para_id: u32,
+    // pub src_received_block_no: u32,
     pub sent: ActionNotificationTimeouts,
     pub delivered: ActionNotificationTimeouts,
     pub executed: ActionNotificationTimeouts,
