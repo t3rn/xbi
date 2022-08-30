@@ -1,0 +1,20 @@
+[package]
+name = "substrate-abi"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { default-features = false, version = "1.0", optional = true }
+log = { version = "0.4.14", default-features = false }
+
+codec = { package = "parity-scale-codec", version = "3", default-features = false }
+scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }
+
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+
+
+[features]
+default = ["std"]
+std = ["sp-std/std", "sp-core/std", "sp-runtime/std"]

@@ -1,12 +1,13 @@
-use crate::sabi::{Data, Gas, Sabi, SabiError, Value128};
-use crate::scabi::evm::CallEvm;
+use crate::evm::CallEvm;
 use codec::{Decode, Encode};
-use frame_support::RuntimeDebug;
 use scale_info::TypeInfo;
 use sp_core::crypto::AccountId32;
+use sp_runtime::traits::Convert;
+use sp_runtime::traits::TryMorph;
 use sp_std::prelude::*;
+use substrate_abi::{error::Error as SabiError, Data, Gas, SubstrateAbiConverter, Value128};
 
-#[derive(Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Eq, PartialEq, Encode, Decode, Debug, TypeInfo)]
 pub struct CallWasm {
     pub origin_source: AccountId32,
     pub dest: AccountId32,
@@ -41,19 +42,20 @@ impl TryFrom<CallEvm> for CallWasm {
 
     fn try_from(call: CallEvm) -> Result<Self, Self::Error> {
         let origin_source =
-            Sabi::account_20_2_account_32(call.source, &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])?;
-
+            SubstrateAbiConverter::try_morph((call.source, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
+                .unwrap()?;
         let dest =
-            Sabi::account_20_2_account_32(call.target, &[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])?;
+            SubstrateAbiConverter::try_morph((call.target, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
+                .unwrap()?;
 
-        let value = Sabi::value_256_2_value_128(call.value)?;
+        let value: u128 = SubstrateAbiConverter::convert(call.value);
         let gas_limit = call.gas_limit;
         // fixme: access to storage_deposit_limit from one of the evm args
         let storage_deposit_limit = None;
         let data = call.input;
         Ok(CallWasm {
-            origin_source,
-            dest,
+            origin_source: origin_source,
+            dest: dest,
             value,
             gas_limit,
             storage_deposit_limit,

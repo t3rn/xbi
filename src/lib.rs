@@ -4,19 +4,11 @@
 
 use xcm::latest::Xcm;
 
-pub mod xbi_format;
-
-pub mod xbi_abi;
-
-pub mod sabi;
-
-pub mod scabi;
-
-pub mod xbi_scabi;
-
-pub mod xbi_codec;
-
 pub mod primitives;
+pub mod xbi_abi;
+pub mod xbi_codec;
+pub mod xbi_format;
+pub mod xbi_scabi;
 
 pub use pallet::*;
 
@@ -233,7 +225,7 @@ pub mod pallet {
                     > frame_system::Pallet::<T>::block_number()
                 {
                     if timeout_counter > T::TimeoutChecksLimit::get() {
-                        break
+                        break;
                     }
                     // XBI Result didn't arrive in expected time.
                     <XBICheckInsQueued<T>>::remove(xbi_id);
@@ -254,7 +246,7 @@ pub mod pallet {
                     > frame_system::Pallet::<T>::block_number()
                 {
                     if timeout_counter > T::TimeoutChecksLimit::get() {
-                        break
+                        break;
                     }
                     // XBI Result didn't arrive in expected time.
                     <XBICheckInsPending<T>>::remove(xbi_id);
@@ -340,7 +332,7 @@ pub mod pallet {
                             XBICheckOutStatus::SuccessfullyExecuted,
                             actual_delivery_cost, //
                         )?
-                    },
+                    }
                 };
                 <XBICheckOutsQueued<T>>::insert(xbi_id, instant_checkout);
             } else {
@@ -358,11 +350,11 @@ pub mod pallet {
                                 XBICheckOutStatus::ErrorFailedXCMDispatch,
                             ),
                         );
-                    },
+                    }
                     // Insert pending
                     Ok(_) => {
                         <XBICheckInsPending<T>>::insert(xbi_id, checkin);
-                    },
+                    }
                 }
             }
 
@@ -386,7 +378,7 @@ pub mod pallet {
             if frame_system::Pallet::<T>::block_number() % T::CheckInterval::get()
                 == T::BlockNumber::from(0u8)
             {
-                return Some(Call::cleanup {})
+                return Some(Call::cleanup {});
             }
             None
         }
@@ -492,7 +484,7 @@ pub mod pallet {
                     // 	},
                     // }
                     Err(Error::<T>::XBIInstructionNotAllowedHere.into())
-                },
+                }
                 XBIInstr::CallEvm {
                     source,
                     target,
@@ -538,7 +530,7 @@ pub mod pallet {
                     // 	input,
                     // )}
                     Err(Error::<T>::XBIInstructionNotAllowedHere.into())
-                },
+                }
                 XBIInstr::Transfer { dest, value } => {
                     T::Transfers::transfer(
                         &caller,
@@ -547,7 +539,7 @@ pub mod pallet {
                         true,
                     )?;
                     Ok(().into())
-                },
+                }
                 XBIInstr::TransferAssets {
                     currency_id,
                     dest,
@@ -562,7 +554,7 @@ pub mod pallet {
                         XbiAbi::<T>::value_global_2_local(value)?,
                     )?;
                     Ok(().into())
-                },
+                }
                 XBIInstr::TransferORML {
                     currency_id,
                     dest,
@@ -575,11 +567,12 @@ pub mod pallet {
                         XbiAbi::<T>::value_global_2_local(value)?,
                     )?;
                     Ok(().into())
-                },
+                }
                 XBIInstr::Result { .. } => Err(Error::<T>::XBIInstructionNotAllowedHere.into()),
                 XBIInstr::Unknown { .. } => Err(Error::<T>::XBIInstructionNotAllowedHere.into()),
-                XBIInstr::Notification { .. } =>
-                    Err(Error::<T>::XBIInstructionNotAllowedHere.into()),
+                XBIInstr::Notification { .. } => {
+                    Err(Error::<T>::XBIInstructionNotAllowedHere.into())
+                }
             }
         }
     }
