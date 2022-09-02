@@ -85,7 +85,7 @@ fn custom_encodes_decodes_empty_xbi_evm() {
     let decoded_xbi_evm: XBIInstr = Decode::decode(&mut &xbi_evm.encode()[..]).unwrap();
     assert_eq!(decoded_xbi_evm.encode(), xbi_evm.encode());
     assert_eq!(xbi_evm, decoded_xbi_evm);
-    assert_eq!(xbi_evm.encode().len(), 105);
+    assert_eq!(xbi_evm.encode().len(), 121);
 }
 
 #[test]
@@ -208,7 +208,7 @@ fn custom_encodes_decodes_xbi_transfer_assets() {
         xbi_transfer_assets.encode()
     );
     assert_eq!(xbi_transfer_assets, decoded_xbi_transfer_assets);
-    assert_eq!(xbi_transfer_assets.encode().len(), 57);
+    assert_eq!(xbi_transfer_assets.encode().len(), 53);
 }
 
 #[test]

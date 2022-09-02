@@ -29,7 +29,7 @@ impl Decode for XBIInstr {
 
                 let mut source: [u8; 20] = Default::default();
                 let mut dest: [u8; 20] = Default::default();
-                let mut value: [u8; 16] = Default::default();
+                let mut value: [u8; 32] = Default::default();
                 let mut gas: [u8; 8] = Default::default();
                 let mut max_fee_per_gas: [u8; 32] = Default::default();
                 input.read(&mut source[..])?;
@@ -177,11 +177,11 @@ impl Decode for XBIInstr {
                 };
 
                 // Minimum length of XBI::CallWasm with empty / none values
-                if len? < 56_usize {
+                if len? < 52_usize {
                     return Err("Wrong XBI Order length".into());
                 }
 
-                let mut currency_id: [u8; 8] = Default::default();
+                let mut currency_id: [u8; 4] = Default::default();
                 let mut dest: [u8; 32] = Default::default();
                 let mut value: [u8; 16] = Default::default();
                 input.read(&mut currency_id[..])?;
