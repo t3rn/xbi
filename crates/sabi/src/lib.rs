@@ -132,6 +132,7 @@ where
     SubstrateAbiConverter: Convert<u64, O>,
     SubstrateAbiConverter: Convert<u128, O>,
     SubstrateAbiConverter: Convert<U256, O>,
+    SubstrateAbiConverter: Convert<U256, O>,
 {
     type Outcome = Result<Option<O>, Error>;
 
@@ -162,6 +163,12 @@ where
             }
             _ => Ok(Err(Error::FailedToCastBetweenTypesValue)),
         }
+    }
+}
+
+impl<T> Convert<T, T> for SubstrateAbiConverter {
+    fn convert(a: T) -> T {
+        a
     }
 }
 
@@ -342,7 +349,16 @@ mod tests {
     #[test]
     fn sabi_decodes_u128_to_target_values_correctly() {
         let input_val: u128 = 88;
-        let output_256 = SubstrateAbiConverter::convert(input_val).0;
+        let output_256: U256 = SubstrateAbiConverter::convert(input_val);
         assert_eq!(output_256, U256::from(input_val));
+    }
+
+    #[test]
+    fn try_morph_bytes_to_u32() {
+        let x = 50_u32.encode();
+        let morphism = SubstrateAbiConverter::try_morph(ValueMorphism::<_, U256>::new(&mut &x[..]))
+            .unwrap()
+            .unwrap();
+        assert_eq!(morphism, U256::from(50_u32));
     }
 }
