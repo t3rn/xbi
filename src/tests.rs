@@ -59,6 +59,7 @@ fn custom_encodes_decodes_xbi_evm_and_metadata() {
             max_notifications_cost: 8u128,
             maybe_known_origin: None,
             actual_aggregated_cost: None,
+            maybe_fee_asset_id: None,
         },
     };
 
@@ -190,31 +191,9 @@ fn custom_encodes_decodes_xbi_transfer() {
 }
 
 #[test]
-fn custom_encodes_decodes_xbi_transfer_orml() {
-    let xbi_transfer_orml = XBIInstr::TransferORML {
-        currency_id: 1u64,
-        dest: AccountId32::new([
-            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-            2, 2, 2,
-        ]),
-        value: 1,
-    };
-
-    let decoded_xbi_transfer_orml: XBIInstr =
-        Decode::decode(&mut &xbi_transfer_orml.encode()[..]).unwrap();
-    assert_eq!(
-        decoded_xbi_transfer_orml.encode(),
-        xbi_transfer_orml.encode()
-    );
-    assert_eq!(xbi_transfer_orml, decoded_xbi_transfer_orml);
-
-    assert_eq!(xbi_transfer_orml.encode().len(), 57);
-}
-
-#[test]
 fn custom_encodes_decodes_xbi_transfer_assets() {
     let xbi_transfer_assets = XBIInstr::TransferAssets {
-        currency_id: 1u64,
+        currency_id: 1u32,
         dest: AccountId32::new([
             2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
             2, 2, 2,

@@ -136,11 +136,6 @@ pub enum XBIInstr {
         dest: AccountId32,
         value: Value,
     },
-    TransferORML {
-        currency_id: AssetId,
-        dest: AccountId32,
-        value: Value,
-    },
     TransferAssets {
         currency_id: AssetId,
         dest: AccountId32,
@@ -193,7 +188,6 @@ pub struct XBIMetadata {
     pub id: sp_core::H256,
     pub dest_para_id: u32,
     pub src_para_id: u32,
-    // pub src_received_block_no: u32,
     pub sent: ActionNotificationTimeouts,
     pub delivered: ActionNotificationTimeouts,
     pub executed: ActionNotificationTimeouts,
@@ -201,6 +195,7 @@ pub struct XBIMetadata {
     pub max_notifications_cost: Value,
     pub actual_aggregated_cost: Option<Value>,
     pub maybe_known_origin: Option<AccountId32>,
+    pub maybe_fee_asset_id: Option<AssetId>,
 }
 
 /// max_exec_cost satisfies all of the execution fee requirements while going through XCM execution:
@@ -224,6 +219,7 @@ impl XBIMetadata {
         max_exec_cost: Value,
         max_notifications_cost: Value,
         maybe_known_origin: Option<AccountId32>,
+        maybe_fee_asset_id: Option<AssetId>,
     ) -> Self {
         XBIMetadata {
             id,
@@ -236,6 +232,7 @@ impl XBIMetadata {
             max_notifications_cost,
             maybe_known_origin,
             actual_aggregated_cost: None,
+            maybe_fee_asset_id,
         }
     }
 
@@ -246,6 +243,7 @@ impl XBIMetadata {
         max_exec_cost: Value,
         max_notifications_cost: Value,
         maybe_known_origin: Option<AccountId32>,
+        maybe_fee_asset_id: Option<AssetId>,
     ) -> Self {
         XBIMetadata {
             id,
@@ -258,6 +256,7 @@ impl XBIMetadata {
             max_notifications_cost,
             maybe_known_origin,
             actual_aggregated_cost: None,
+            maybe_fee_asset_id,
         }
     }
 }

@@ -23,8 +23,8 @@ mod tests;
 pub mod pallet {
     use crate::{
         primitives::{
-            assets::Assets, evm::Evm, orml::ORML, transfers::Transfers, wasm::WASM,
-            xbi_callback::XBICallback, xcm::XCM,
+            assets::Assets, evm::Evm, transfers::Transfers, wasm::WASM, xbi_callback::XBICallback,
+            xcm::XCM,
         },
         xbi_format::*,
         xbi_scabi::Scabi,
@@ -91,8 +91,6 @@ pub mod pallet {
         type Transfers: Transfers<Self>;
 
         type Evm: Evm<Self>;
-
-        type ORML: ORML<Self>;
 
         type Assets: Assets<Self>;
 
@@ -197,7 +195,6 @@ pub mod pallet {
         No3VMSupportedAtDest,
         NoTransferSupportedAtDest,
         NoTransferAssetsSupportedAtDest,
-        NoTransferORMLSupportedAtDest,
         NoTransferEscrowSupportedAtDest,
         NoTransferMultiEscrowSupportedAtDest,
         NoSwapSupportedAtDest,
@@ -424,7 +421,7 @@ pub mod pallet {
                 || <Self as Store>::XBICheckInsQueued::contains_key(xbi_id)
                 || <Self as Store>::XBICheckInsPending::contains_key(xbi_id)
             {
-                return Err(Error::<T>::XBIAlreadyCheckedIn)
+                return Err(Error::<T>::XBIAlreadyCheckedIn);
             }
 
             // 	Consider taking straight from Babe
@@ -551,19 +548,6 @@ pub mod pallet {
                         <T::Lookup as StaticLookup>::unlookup(XbiAbi::<T>::address_global_2_local(
                             dest.encode(),
                         )?),
-                        XbiAbi::<T>::value_global_2_local(value)?,
-                    )?;
-                    Ok(().into())
-                }
-                XBIInstr::TransferORML {
-                    currency_id,
-                    dest,
-                    value,
-                } => {
-                    T::ORML::transfer(
-                        currency_id,
-                        &XbiAbi::<T>::address_global_2_local(caller.encode())?,
-                        &XbiAbi::<T>::address_global_2_local(dest.encode())?,
                         XbiAbi::<T>::value_global_2_local(value)?,
                     )?;
                     Ok(().into())

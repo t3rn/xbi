@@ -13,7 +13,7 @@ impl Decode for XBIInstr {
                     let mut payload = vec![0u8; remaining_len];
                     input.read(&mut payload[..])?;
                     Ok(XBIInstr::CallNative { payload })
-                },
+                }
                 None => Err("Wrong XBI Order length".into()),
             },
             2 => {
@@ -24,7 +24,7 @@ impl Decode for XBIInstr {
 
                 // Minimum length of XBI::CallEvm with empty / none values
                 if len? < 104_usize {
-                    return Err("Wrong XBI Order length".into())
+                    return Err("Wrong XBI Order length".into());
                 }
 
                 let mut source: [u8; 20] = Default::default();
@@ -72,7 +72,7 @@ impl Decode for XBIInstr {
                     nonce: Decode::decode(&mut &nonce[..])?,
                     access_list: Decode::decode(&mut &access_list[..])?,
                 })
-            },
+            }
             3 => {
                 let len: Result<usize, codec::Error> = match input.remaining_len()? {
                     Some(remaining_len) => Ok(remaining_len),
@@ -81,7 +81,7 @@ impl Decode for XBIInstr {
 
                 // Minimum length of XBI::CallWasm with empty / none values
                 if len? < 60_usize {
-                    return Err("Wrong XBI Order length".into())
+                    return Err("Wrong XBI Order length".into());
                 }
 
                 let mut dest: [u8; 32] = Default::default();
@@ -110,7 +110,7 @@ impl Decode for XBIInstr {
                     storage_deposit_limit: Decode::decode(&mut &storage_deposit_limit[..])?,
                     data: Decode::decode(&mut &data[..])?,
                 })
-            },
+            }
             4 => {
                 let len: Result<usize, codec::Error> = match input.remaining_len()? {
                     Some(remaining_len) => Ok(remaining_len),
@@ -119,7 +119,7 @@ impl Decode for XBIInstr {
 
                 // // Minimum length of XBI::CallWasm with empty / none values
                 if len? < 92_usize {
-                    return Err("Wrong XBI Order length".into())
+                    return Err("Wrong XBI Order length".into());
                 }
 
                 let mut dest: [u8; 32] = Default::default();
@@ -148,7 +148,7 @@ impl Decode for XBIInstr {
                     limit: Decode::decode(&mut &limit[..])?,
                     additional_params: Decode::decode(&mut &additional_params[..])?,
                 })
-            },
+            }
             5 => {
                 let len: Result<usize, codec::Error> = match input.remaining_len()? {
                     Some(remaining_len) => Ok(remaining_len),
@@ -157,7 +157,7 @@ impl Decode for XBIInstr {
 
                 // Minimum length of XBI::CallWasm with empty / none values
                 if len? < 48_usize {
-                    return Err("Wrong XBI Order length".into())
+                    return Err("Wrong XBI Order length".into());
                 }
 
                 let mut dest: [u8; 32] = Default::default();
@@ -169,31 +169,7 @@ impl Decode for XBIInstr {
                     dest: Decode::decode(&mut &dest[..])?,
                     value: Decode::decode(&mut &value[..])?,
                 })
-            },
-            6 => {
-                let len: Result<usize, codec::Error> = match input.remaining_len()? {
-                    Some(remaining_len) => Ok(remaining_len),
-                    None => Err("Wrong XBI Order length".into()),
-                };
-
-                // Minimum length of XBI::CallWasm with empty / none values
-                if len? < 56_usize {
-                    return Err("Wrong XBI Order length".into())
-                }
-
-                let mut currency_id: [u8; 8] = Default::default();
-                let mut dest: [u8; 32] = Default::default();
-                let mut value: [u8; 16] = Default::default();
-                input.read(&mut currency_id[..])?;
-                input.read(&mut dest[..])?;
-                input.read(&mut value[..])?;
-
-                Ok(XBIInstr::TransferORML {
-                    currency_id: Decode::decode(&mut &currency_id[..])?,
-                    dest: Decode::decode(&mut &dest[..])?,
-                    value: Decode::decode(&mut &value[..])?,
-                })
-            },
+            }
             7 => {
                 let len: Result<usize, codec::Error> = match input.remaining_len()? {
                     Some(remaining_len) => Ok(remaining_len),
@@ -202,7 +178,7 @@ impl Decode for XBIInstr {
 
                 // Minimum length of XBI::CallWasm with empty / none values
                 if len? < 56_usize {
-                    return Err("Wrong XBI Order length".into())
+                    return Err("Wrong XBI Order length".into());
                 }
 
                 let mut currency_id: [u8; 8] = Default::default();
@@ -217,7 +193,7 @@ impl Decode for XBIInstr {
                     dest: Decode::decode(&mut &dest[..])?,
                     value: Decode::decode(&mut &value[..])?,
                 })
-            },
+            }
             8 => {
                 let mut outcome: [u8; 1] = Default::default();
                 input.read(&mut outcome[..])?;
@@ -235,7 +211,7 @@ impl Decode for XBIInstr {
                     output: Decode::decode(&mut &output[..])?,
                     witness: Decode::decode(&mut &witness[..])?,
                 })
-            },
+            }
             9 => {
                 let mut kind: [u8; 1] = Default::default();
                 input.read(&mut kind[..])?;
@@ -253,7 +229,7 @@ impl Decode for XBIInstr {
                     instruction_id: Decode::decode(&mut &instruction_id[..])?,
                     extra: Decode::decode(&mut &extra[..])?,
                 })
-            },
+            }
             _ => Err("Unknown XBI Order".into()),
         }
     }
@@ -271,11 +247,11 @@ impl Encode for XBIInstr {
             XBIInstr::Unknown { identifier, params } => {
                 dest_bytes.push_byte(*identifier);
                 params.encode_to(dest_bytes);
-            },
+            }
             XBIInstr::CallNative { payload } => {
                 dest_bytes.push_byte(1);
                 payload.encode_to(dest_bytes);
-            },
+            }
             XBIInstr::CallEvm {
                 source,
                 target,
@@ -301,7 +277,7 @@ impl Encode for XBIInstr {
                 access_list.encode_to(dest_bytes);
                 dest_bytes.push_byte(input.encode().len() as u8);
                 input.encode_to(dest_bytes);
-            },
+            }
             XBIInstr::CallWasm {
                 dest,
                 value,
@@ -317,7 +293,7 @@ impl Encode for XBIInstr {
                 storage_deposit_limit.encode_to(dest_bytes);
                 dest_bytes.push_byte(data.encode().len() as u8);
                 data.encode_to(dest_bytes);
-            },
+            }
             XBIInstr::CallCustom {
                 caller,
                 dest,
@@ -335,22 +311,12 @@ impl Encode for XBIInstr {
                 limit.encode_to(dest_bytes);
                 dest_bytes.push_byte(additional_params.encode().len() as u8);
                 additional_params.encode_to(dest_bytes);
-            },
+            }
             XBIInstr::Transfer { dest, value } => {
                 dest_bytes.push_byte(5);
                 dest.encode_to(dest_bytes);
                 value.encode_to(dest_bytes);
-            },
-            XBIInstr::TransferORML {
-                currency_id,
-                dest,
-                value,
-            } => {
-                dest_bytes.push_byte(6);
-                currency_id.encode_to(dest_bytes);
-                dest.encode_to(dest_bytes);
-                value.encode_to(dest_bytes);
-            },
+            }
             XBIInstr::TransferAssets {
                 currency_id,
                 dest,
@@ -360,7 +326,7 @@ impl Encode for XBIInstr {
                 currency_id.encode_to(dest_bytes);
                 dest.encode_to(dest_bytes);
                 value.encode_to(dest_bytes);
-            },
+            }
             XBIInstr::Result {
                 outcome,
                 output,
@@ -372,7 +338,7 @@ impl Encode for XBIInstr {
                 output.encode_to(dest_bytes);
                 dest_bytes.push_byte(witness.encode().len() as u8);
                 witness.encode_to(dest_bytes);
-            },
+            }
             XBIInstr::Notification {
                 kind,
                 instruction_id,
@@ -384,7 +350,7 @@ impl Encode for XBIInstr {
                 instruction_id.encode_to(dest_bytes);
                 dest_bytes.push_byte(extra.encode().len() as u8);
                 extra.encode_to(dest_bytes);
-            },
+            }
         }
     }
 }
