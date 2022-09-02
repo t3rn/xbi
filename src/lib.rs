@@ -424,7 +424,7 @@ pub mod pallet {
                 || <Self as Store>::XBICheckInsQueued::contains_key(xbi_id)
                 || <Self as Store>::XBICheckInsPending::contains_key(xbi_id)
             {
-                return Err(Error::<T>::XBIAlreadyCheckedIn)
+                return Err(Error::<T>::XBIAlreadyCheckedIn);
             }
 
             // 	Consider taking straight from Babe
