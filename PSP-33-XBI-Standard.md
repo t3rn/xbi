@@ -5,23 +5,23 @@ Status: Published
 Created: 2022-08-08
 
 #### Summary
-XBI Format is an XCM-based high-level interface that each Parachain can optionally implement and enables others to use, while defining the error and result handling using asynchronous, promise-like solution. 
-XBI specifically focuses on setting the standards between the cross-chain smart contracts execution. 
+XBI Format is an XCM-based high-level interface that each Parachain can optionally implement and enables others to use while defining the error and result handling using an asynchronous, promise-like solution. 
+XBI focuses explicitly on setting the standards for cross-chain smart contracts execution. 
 
-XBI Format consists out of 2 parts:
+XBI Format consists of 2 parts:
 1. XBI Instruction ordered on destination Parachain to execute (over XCM Transact)
 2. XBI Metadata to specify details over interoperable execution asynchronous result receive.
 
-Entire XBI traffic goes over XCM Transact, therefore derives from its security.
+Entire XBI traffic goes over XCM Transact, therefore, derives from its security.
 
 #### Motivation
-Set high-level format XBI standard for interfaces implementing interactions between Parachains, specifically EVM and WASM based contracts.
+Set high-level format XBI standard for interfaces implementing interactions between Parachains, specifically EVM and WASM-based contracts.
 
-XBI focuses on usability, as such it will recognise the difference between WASM and EVM, the most popular smart contract byte code in the Polkadot ecosystem, as of today.
+XBI focuses on usability; as such, it will recognise the difference between WASM and EVM, the most popular smart contract byte code in the Polkadot ecosystem today.
 
-The XBI interface used by Parchains offers a contingencies against runtime upgrades, while allowing Parachains to define and expose their functionalties without the need of runtime upgrades upon introducing new XBI Instructions distinct for selected Parachains.
+The XBI interface used by Parchains offers a contingency against runtime upgrades while allowing Parachains to define and expose their functionalities without the need for runtime upgrades upon introducing new XBI Instructions distinct for selected Parachains.
 
-XBI Metadata provides coherent control over cross-chain execution, leaving dispatching origin in full control over the execution costs and results format.
+XBI Metadata provides coherent control over cross-chain execution, leaving dispatching origin in complete control over the execution costs and results format.
 
 #### Specification
 ##### Global XBI Types 
@@ -54,8 +54,8 @@ pub struct XBIMetadata {
 }
 ```
 ###### id
-Assign your own ID to the XBI enabling the search engines to scrape through the XBI Orders across the Parachains Storage. 
-Only XBI Orders with distinct ID are dispatched via XCM.
+Assign your ID to the XBI, enabling the search engines to scrape through the XBI Orders across the Parachains Storage
+Only XBI Orders with distinct IDs are dispatched via XCM.
 
 ###### dest_para_id
 Parachain ID targeted to execute XBI.
@@ -91,7 +91,7 @@ Optional Metadata field allowing to specify the dispatching Origin.
 Optional Metadata field that changes `max_exec_cost` and `max_notifications_cost` as well as `actual_aggregated_costs` of XBI::Result to different currency with defined trade mechanics on source Parachain.
 
 ##### XBI Instructions
-Dynamically defined (without the necessity of runtime upgrades to all Parachains that communicate using XBI) set of Instructions to dispatch on target using XBI Format. It is expected for Parachains to only support selected set of XBI Instructions, defaulting to `XBI::Unknown` in case given XBI Instruction isn't supported by target. This is enabled thanks to the custom XBI codec.
+Dynamically defined (without the necessity of runtime upgrades to all Parachains that communicate using XBI) set of Instructions to dispatch on target using XBI Format. It is expected for Parachains to only support a selected set of XBI Instructions, defaulting to `XBI::Unknown` in case the target doesn't support the given XBI Instruction. This is enabled thanks to the custom XBI codec.
 
 ###### 0 - Unknown
 Default to all of the unknown to target Parachain XBI Instructions
@@ -246,7 +246,7 @@ pub enum XBICheckOutStatus {
 }
 ```
 
-The future extensions to XBI foresee communication with remote to Polkadot consensus systems, therefore field `witness` is already included as part of XBI Result and defaults to empty bytes vector for all executions that target Parachain.
+The future extensions to XBI foresee communication with remote to Polkadot consensus systems. Therefore field `witness` is already included as part of XBI Result and defaults to an empty bytes vector for all executions that target Parachain.
 ```rust
     // 255
     Result {
