@@ -13,7 +13,6 @@ XBI Format consists of 2 parts:
 2. XBI Metadata to specify details over interoperable execution asynchronous result receive.
 
 Entire XBI traffic goes over XCM Transact, therefore, derives from its security.
-
 #### Motivation
 Set high-level format XBI standard for interfaces implementing interactions between Parachains, specifically EVM and WASM-based contracts.
 

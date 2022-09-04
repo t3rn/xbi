@@ -9,11 +9,21 @@ pub use crate::{xbi_abi::*, xbi_codec::*};
 
 #[derive(Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum XBICheckOutStatus {
+    // Success scenario
     SuccessfullyExecuted,
+
+    // Failed execution scenarios
     ErrorFailedExecution,
-    ErrorFailedXCMDispatch,
-    ErrorDeliveryTimeout,
-    ErrorExecutionTimeout,
+    ErrorFailedOnXCMDispatch,
+
+    // Failed with exceeded costs scenarios
+    ErrorExecutionCostsExceededAllowedMax,
+    ErrorNotificationsCostsExceededAllowedMax,
+
+    // Failed with exceeded timeout scenarios
+    ErrorSentTimeoutExceeded,
+    ErrorDeliveryTimeoutExceeded,
+    ErrorExecutionTimeoutExceeded,
 }
 
 impl Default for XBICheckOutStatus {
