@@ -232,7 +232,7 @@ pub mod pallet {
                         XBICheckOut::new_ignore_costs::<T>(
                             xbi_checkin.notification_delivery_timeout,
                             vec![],
-                            XBICheckOutStatus::ErrorDeliveryTimeout,
+                            XBICheckOutStatus::ErrorDeliveryTimeoutExceeded,
                         ),
                     );
                     timeout_counter += 1;
@@ -253,7 +253,7 @@ pub mod pallet {
                         XBICheckOut::new_ignore_costs::<T>(
                             xbi_checkin.notification_delivery_timeout,
                             vec![],
-                            XBICheckOutStatus::ErrorExecutionTimeout,
+                            XBICheckOutStatus::ErrorExecutionTimeoutExceeded,
                         ),
                     );
                     timeout_counter += 1;
@@ -344,7 +344,7 @@ pub mod pallet {
                             XBICheckOut::new_ignore_costs::<T>(
                                 checkin.notification_delivery_timeout,
                                 e.encode(),
-                                XBICheckOutStatus::ErrorFailedXCMDispatch,
+                                XBICheckOutStatus::ErrorFailedOnXCMDispatch,
                             ),
                         );
                     }
