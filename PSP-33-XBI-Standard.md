@@ -203,8 +203,8 @@ Add liquidity in two fungible currencies A and B to a DeFi pool implemented on t
 Remove liquidity of two fungible currencies A and B from a DeFi pool implemented on target Parachain based on the amount of LP-share (liquidity amount). Target Parachain implements the conversions of asset ids to fungible currencies.
 
 ```rust
-    // 8
-    AddLiquidity {
+    // 9
+    RemoveLiquidity {
         asset_a: AssetId,
         asset_b: AssetId,
         liquidity_amount: Value,
@@ -215,8 +215,8 @@ Remove liquidity of two fungible currencies A and B from a DeFi pool implemented
 Gets the price exchanging `amount` of currency A to currency B on Target Parachain that implements the trade mechanics and conversions of asset ids to fungible currencies.
 
 ```rust
-    // 8
-    AddLiquidity {
+    // 10
+    GetPrice {
         asset_a: AssetId,
         asset_b: AssetId,
         amount: Value,

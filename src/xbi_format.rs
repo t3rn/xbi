@@ -142,25 +142,49 @@ pub enum XBIInstr {
         limit: Gas,
         additional_params: Data,
     },
+    // 5
     Transfer {
         dest: AccountId32,
         value: Value,
     },
+    // 6
     TransferAssets {
         currency_id: AssetId,
         dest: AccountId32,
         value: Value,
     },
+    // 7
+    Swap {
+        asset_out: AssetId,
+        asset_in: AssetId,
+        amount: Value,
+        max_limit: Value,
+        discount: bool,
+    },
+    // 8
+    AddLiquidity {
+        asset_a: AssetId,
+        asset_b: AssetId,
+        amount_a: Value,
+        amount_b_max_limit: Value,
+    },
+    // 9
+    RemoveLiquidity {
+        asset_a: AssetId,
+        asset_b: AssetId,
+        liquidity_amount: Value,
+    },
+    // 10
+    GetPrice {
+        asset_a: AssetId,
+        asset_b: AssetId,
+        amount: Value,
+    },
+    // 255
     Result {
         outcome: XBICheckOutStatus,
         output: Data,
         witness: Data,
-    },
-    // 9
-    Notification {
-        kind: XBINotificationKind,
-        instruction_id: Data,
-        extra: Data,
     },
 }
 

@@ -2,7 +2,7 @@ use crate::{xbi_abi::*, xbi_format::XBIInstr};
 
 use crate::{
     xbi_codec::{ActionNotificationTimeouts, XBIFormat, XBIMetadata},
-    xbi_format::{XBICheckOutStatus, XBINotificationKind},
+    xbi_format::{XBICheckOutStatus},
 };
 use codec::{Decode, Encode};
 
@@ -222,18 +222,4 @@ fn custom_encodes_decodes_xbi_results() {
     let decoded_xbi_result: XBIInstr = Decode::decode(&mut &xbi_result.encode()[..]).unwrap();
     assert_eq!(decoded_xbi_result.encode(), xbi_result.encode());
     assert_eq!(xbi_result, decoded_xbi_result);
-}
-
-#[test]
-fn custom_encodes_decodes_xbi_notification() {
-    let xbi_notification = XBIInstr::Notification {
-        kind: XBINotificationKind::Sent,
-        instruction_id: vec![1, 2, 3],
-        extra: vec![4, 5, 6],
-    };
-
-    let decoded_xbi_notification: XBIInstr =
-        Decode::decode(&mut &xbi_notification.encode()[..]).unwrap();
-    assert_eq!(decoded_xbi_notification.encode(), xbi_notification.encode());
-    assert_eq!(xbi_notification, decoded_xbi_notification);
 }

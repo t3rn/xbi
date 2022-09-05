@@ -170,7 +170,7 @@ impl Decode for XBIInstr {
                     value: Decode::decode(&mut &value[..])?,
                 })
             }
-            7 => {
+            6 => {
                 let len: Result<usize, codec::Error> = match input.remaining_len()? {
                     Some(remaining_len) => Ok(remaining_len),
                     None => Err("Wrong XBI Order length".into()),
@@ -194,7 +194,116 @@ impl Decode for XBIInstr {
                     value: Decode::decode(&mut &value[..])?,
                 })
             }
+            // Swap
+            7 => {
+                let _len: Result<usize, codec::Error> = match input.remaining_len()? {
+                    Some(remaining_len) => Ok(remaining_len),
+                    None => Err("Wrong XBI Order length".into()),
+                };
+
+                // Minimum length of XBI::CallWasm with empty / none values
+                // if len? < 52_usize {
+                //     return Err("Wrong XBI Order length".into());
+                // }
+
+                let mut asset_out: [u8; 4] = Default::default();
+                let mut asset_in: [u8; 4] = Default::default();
+                let mut amount: [u8; 16] = Default::default();
+                let mut max_limit: [u8; 16] = Default::default();
+                let mut discount: [u8; 1] = Default::default();
+                input.read(&mut asset_out[..])?;
+                input.read(&mut asset_in[..])?;
+                input.read(&mut amount[..])?;
+                input.read(&mut max_limit[..])?;
+                input.read(&mut discount[..])?;
+
+                Ok(XBIInstr::Swap {
+                    asset_out: Decode::decode(&mut &asset_out[..])?,
+                    asset_in: Decode::decode(&mut &asset_in[..])?,
+                    amount: Decode::decode(&mut &amount[..])?,
+                    max_limit: Decode::decode(&mut &max_limit[..])?,
+                    discount: Decode::decode(&mut &discount[..])?,
+                })
+            }
+            // AddLiquidity
             8 => {
+                let _len: Result<usize, codec::Error> = match input.remaining_len()? {
+                    Some(remaining_len) => Ok(remaining_len),
+                    None => Err("Wrong XBI Order length".into()),
+                };
+
+                // Minimum length of XBI::CallWasm with empty / none values
+                // if len? < 52_usize {
+                //     return Err("Wrong XBI Order length".into());
+                // }
+
+                let mut asset_a: [u8; 4] = Default::default();
+                let mut asset_b: [u8; 4] = Default::default();
+                let mut amount_a: [u8; 16] = Default::default();
+                let mut amount_b_max_limit: [u8; 16] = Default::default();
+                input.read(&mut asset_a[..])?;
+                input.read(&mut asset_b[..])?;
+                input.read(&mut amount_a[..])?;
+                input.read(&mut amount_b_max_limit[..])?;
+
+                Ok(XBIInstr::AddLiquidity {
+                    asset_a: Decode::decode(&mut &asset_a[..])?,
+                    asset_b: Decode::decode(&mut &asset_b[..])?,
+                    amount_a: Decode::decode(&mut &amount_a[..])?,
+                    amount_b_max_limit: Decode::decode(&mut &amount_b_max_limit[..])?,
+                })
+            }
+            // RemoveLiquidity
+            9 => {
+                let _len: Result<usize, codec::Error> = match input.remaining_len()? {
+                    Some(remaining_len) => Ok(remaining_len),
+                    None => Err("Wrong XBI Order length".into()),
+                };
+
+                // Minimum length of XBI::CallWasm with empty / none values
+                // if len? < 52_usize {
+                //     return Err("Wrong XBI Order length".into());
+                // }
+
+                let mut asset_a: [u8; 4] = Default::default();
+                let mut asset_b: [u8; 4] = Default::default();
+                let mut liquidity_amount: [u8; 16] = Default::default();
+                input.read(&mut asset_a[..])?;
+                input.read(&mut asset_b[..])?;
+                input.read(&mut liquidity_amount[..])?;
+
+                Ok(XBIInstr::RemoveLiquidity {
+                    asset_a: Decode::decode(&mut &asset_a[..])?,
+                    asset_b: Decode::decode(&mut &asset_b[..])?,
+                    liquidity_amount: Decode::decode(&mut &liquidity_amount[..])?,
+                })
+            }
+            // GetPrice
+            10 => {
+                let _len: Result<usize, codec::Error> = match input.remaining_len()? {
+                    Some(remaining_len) => Ok(remaining_len),
+                    None => Err("Wrong XBI Order length".into()),
+                };
+
+                // Minimum length of XBI::CallWasm with empty / none values
+                // if len? < 52_usize {
+                //     return Err("Wrong XBI Order length".into());
+                // }
+
+                let mut asset_a: [u8; 4] = Default::default();
+                let mut asset_b: [u8; 4] = Default::default();
+                let mut amount: [u8; 16] = Default::default();
+                input.read(&mut asset_a[..])?;
+                input.read(&mut asset_b[..])?;
+                input.read(&mut amount[..])?;
+
+                Ok(XBIInstr::GetPrice {
+                    asset_a: Decode::decode(&mut &asset_a[..])?,
+                    asset_b: Decode::decode(&mut &asset_b[..])?,
+                    amount: Decode::decode(&mut &amount[..])?,
+                })
+            }
+            255 => {
                 let mut outcome: [u8; 1] = Default::default();
                 input.read(&mut outcome[..])?;
 
@@ -210,24 +319,6 @@ impl Decode for XBIInstr {
                     outcome: Decode::decode(&mut &outcome[..])?,
                     output: Decode::decode(&mut &output[..])?,
                     witness: Decode::decode(&mut &witness[..])?,
-                })
-            }
-            9 => {
-                let mut kind: [u8; 1] = Default::default();
-                input.read(&mut kind[..])?;
-
-                let instruction_id_len = input.read_byte()?;
-                let mut instruction_id = vec![0u8; instruction_id_len as usize];
-                input.read(&mut instruction_id[..])?;
-
-                let extra_len = input.read_byte()?;
-                let mut extra = vec![0u8; extra_len as usize];
-                input.read(&mut extra[..])?;
-
-                Ok(XBIInstr::Notification {
-                    kind: Decode::decode(&mut &kind[..])?,
-                    instruction_id: Decode::decode(&mut &instruction_id[..])?,
-                    extra: Decode::decode(&mut &extra[..])?,
                 })
             }
             _ => Err("Unknown XBI Order".into()),
@@ -322,34 +413,68 @@ impl Encode for XBIInstr {
                 dest,
                 value,
             } => {
-                dest_bytes.push_byte(7);
+                dest_bytes.push_byte(6);
                 currency_id.encode_to(dest_bytes);
                 dest.encode_to(dest_bytes);
                 value.encode_to(dest_bytes);
+            }
+            XBIInstr::Swap {
+                asset_out,
+                asset_in,
+                amount,
+                max_limit,
+                discount,
+            } => {
+                dest_bytes.push_byte(7);
+                asset_out.encode_to(dest_bytes);
+                asset_in.encode_to(dest_bytes);
+                amount.encode_to(dest_bytes);
+                max_limit.encode_to(dest_bytes);
+                discount.encode_to(dest_bytes);
+            }
+            XBIInstr::AddLiquidity {
+                asset_a,
+                asset_b,
+                amount_a,
+                amount_b_max_limit,
+            } => {
+                dest_bytes.push_byte(8);
+                asset_a.encode_to(dest_bytes);
+                asset_b.encode_to(dest_bytes);
+                amount_a.encode_to(dest_bytes);
+                amount_b_max_limit.encode_to(dest_bytes);
+            }
+            XBIInstr::RemoveLiquidity {
+                asset_a,
+                asset_b,
+                liquidity_amount,
+            } => {
+                dest_bytes.push_byte(9);
+                asset_a.encode_to(dest_bytes);
+                asset_b.encode_to(dest_bytes);
+                liquidity_amount.encode_to(dest_bytes);
+            }
+            XBIInstr::GetPrice {
+                asset_a,
+                asset_b,
+                amount,
+            } => {
+                dest_bytes.push_byte(10);
+                asset_a.encode_to(dest_bytes);
+                asset_b.encode_to(dest_bytes);
+                amount.encode_to(dest_bytes);
             }
             XBIInstr::Result {
                 outcome,
                 output,
                 witness,
             } => {
-                dest_bytes.push_byte(8);
+                dest_bytes.push_byte(255);
                 outcome.encode_to(dest_bytes);
                 dest_bytes.push_byte(output.encode().len() as u8);
                 output.encode_to(dest_bytes);
                 dest_bytes.push_byte(witness.encode().len() as u8);
                 witness.encode_to(dest_bytes);
-            }
-            XBIInstr::Notification {
-                kind,
-                instruction_id,
-                extra,
-            } => {
-                dest_bytes.push_byte(9);
-                kind.encode_to(dest_bytes);
-                dest_bytes.push_byte(instruction_id.encode().len() as u8);
-                instruction_id.encode_to(dest_bytes);
-                dest_bytes.push_byte(extra.encode().len() as u8);
-                extra.encode_to(dest_bytes);
             }
         }
     }
