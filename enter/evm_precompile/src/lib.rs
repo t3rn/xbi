@@ -21,83 +21,119 @@ extern crate alloc;
 
 use core::marker::PhantomData;
 use fp_evm::{
-    Context, ExitError, ExitSucceed, Precompile, PrecompileFailure, PrecompileOutput,
-    PrecompileResult,
+    Context, ExitError, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle,
+    PrecompileOutput, PrecompileResult,
 };
+use frame_support::dispatch::RawOrigin;
+use frame_support::dispatch::UnfilteredDispatchable;
 use frame_support::{
     codec::Decode,
     dispatch::{Dispatchable, Encode, GetDispatchInfo, PostDispatchInfo},
     weights::{DispatchClass, Pays},
 };
-use pallet_evm::{AddressMapping, GasWeightMapping};
-use pallet_xbi_portal::xbi_codec::XBIFormat;
 
-pub struct Dispatch<T> {
+use frame_support::sp_runtime::traits::{AccountIdConversion, StaticLookup};
+
+use pallet_evm::{AddressMapping, GasWeightMapping};
+use xbi_format::xbi_codec::{XBIFormat, XBIInstr};
+
+pub struct XBIPortal<T> {
     _marker: PhantomData<T>,
 }
 
-impl<T> Precompile for Dispatch<T>
+pub fn xbi_metadata_origin_2_local_account<T: frame_system::Config>(
+    xbi: XBIFormat,
+) -> Result<T::AccountId, PrecompileFailure> {
+    let from = xbi
+        .metadata
+        .maybe_known_origin
+        .ok_or(PrecompileFailure::Error {
+            exit_status: ExitError::Other("dispatch execution failed".into()),
+        })?;
+
+    Decode::decode(&mut &from.encode()[..]).map_err(|_e| PrecompileFailure::Error {
+        exit_status: ExitError::Other("dispatch execution failed".into()),
+    })
+}
+
+pub fn custom_decode_xbi<T: frame_system::Config>(
+    input: Vec<u8>,
+) -> Result<XBIFormat, PrecompileFailure> {
+    Decode::decode(&mut &input[..]).map_err(|_| PrecompileFailure::Error {
+        exit_status: ExitError::Other("decode XBI Format failed".into()),
+    })
+}
+
+impl<T> Precompile for XBIPortal<T>
 where
-    T: frame_system::Config + pallet_evm::Config + pallet_xbi_portal::Config,
+    T: frame_system::Config + pallet_evm::Config + pallet_balances::Config,
     <T as frame_system::Config>::Call:
         Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo + Decode,
     <<T as frame_system::Config>::Call as Dispatchable>::Origin: From<Option<T::AccountId>>,
 {
-    fn execute(
-        input: &[u8],
-        target_gas: Option<u64>,
-        context: &Context,
-        _is_static: bool,
-    ) -> PrecompileResult {
-        // Assume input is encoded XBIFormat message: includes both instruction and metadata
-        let xbi: XBIFormat =
-            Decode::decode(&mut &input[..]).map_err(|_| PrecompileFailure::Error {
-                exit_status: ExitError::Other("decode XBI Format failed".into()),
-            })?;
+    fn execute(handle: &mut impl PrecompileHandle) -> PrecompileResult {
+        let input = handle.input();
+        let xbi: XBIFormat = custom_decode_xbi(input.to_vec())?;
+        let from_local_account: T::AccountId = xbi_metadata_origin_2_local_account(xbi)?;
 
-        let call_xbi = pallet_xbi_portal::Call::check_in_xbi::<T> { xbi };
-
-        let call = <T as frame_system::Config>::Call::decode(&mut &call_xbi.encode()[..]).map_err(
-            |_| PrecompileFailure::Error {
-                exit_status: ExitError::Other("decode failed".into()),
-            },
-        )?;
-
-        let info = call.get_dispatch_info();
-
-        let valid_call = info.pays_fee == Pays::Yes && info.class == DispatchClass::Normal;
-        if !valid_call {
-            return Err(PrecompileFailure::Error {
-                exit_status: ExitError::Other("invalid call".into()),
-            })
-        }
-
-        if let Some(gas) = target_gas {
-            let valid_weight = info.weight <= T::GasWeightMapping::gas_to_weight(gas);
-            if !valid_weight {
+        match xbi.instr {
+            XBIInstr::CallNative { payload } => {
+                // let message_call = payload.take_decoded().map_err(|_| Error::FailedToDecode)?;
+                // let actual_weight = match message_call.dispatch(dispatch_origin) {
+                // 	Ok(post_info) => post_info.actual_weight,
+                // 	Err(error_and_info) => {
+                // 		// Not much to do with the result as it is. It's up to the parachain to ensure that the
+                // 		// message makes sense.
+                // 		error_and_info.post_info.actual_weight
+                // 	},
+                // }
                 return Err(PrecompileFailure::Error {
-                    exit_status: ExitError::OutOfGas,
-                })
+                    exit_status: ExitError::Other("dispatch execution failed".into()),
+                });
             }
+            XBIInstr::CallEvm {
+                source,
+                target,
+                value,
+                input,
+                gas_limit,
+                max_fee_per_gas,
+                max_priority_fee_per_gas,
+                nonce,
+                access_list,
+            } => {
+                // Call: Dispatchable
+                let call_evm_here = pallet_evm::Call::<T>::call {
+                    source,
+                    target,
+                    value,
+                    input,
+                    gas_limit,
+                    max_fee_per_gas,
+                    max_priority_fee_per_gas,
+                    nonce,
+                    access_list,
+                };
+                call_evm_here
+                    .dispatch_bypass_filter(RawOrigin::Signed(from_local_account).into())
+                    .map_err(|_| PrecompileFailure::Error {
+                        exit_status: ExitError::Other("dispatch execution failed".into()),
+                    })?;
+            }
+            XBIInstr::Transfer { dest, value } => {
+                let call_transfer_here = pallet_balances::Call::<T>::transfer { dest, value };
+                call_transfer_here
+                    .dispatch_bypass_filter(RawOrigin::Signed(from_local_account).into())
+                    .map_err(|_| PrecompileFailure::Error {
+                        exit_status: ExitError::Other("dispatch execution failed".into()),
+                    })?;
+            }
+            _ => todo!(),
         }
 
-        let origin = T::AddressMapping::into_account_id(context.caller);
-
-        match call.dispatch(Some(origin).into()) {
-            Ok(post_info) => {
-                let cost = T::GasWeightMapping::weight_to_gas(
-                    post_info.actual_weight.unwrap_or(info.weight),
-                );
-                Ok(PrecompileOutput {
-                    exit_status: ExitSucceed::Stopped,
-                    cost,
-                    output: Default::default(),
-                    logs: Default::default(),
-                })
-            },
-            Err(_) => Err(PrecompileFailure::Error {
-                exit_status: ExitError::Other("dispatch execution failed".into()),
-            }),
-        }
+        Ok(PrecompileOutput {
+            exit_status: ExitSucceed::Stopped,
+            output: Default::default(),
+        })
     }
 }
