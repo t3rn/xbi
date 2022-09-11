@@ -17,6 +17,9 @@ pub type Value64 = u64;
 pub type Value128 = u128;
 pub type Value256 = U256;
 
+pub type Value = Value128;
+pub type ValueEvm = Value256;
+
 pub mod error;
 
 pub enum ValueLen {
