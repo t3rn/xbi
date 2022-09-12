@@ -76,6 +76,10 @@ impl TryMorph<AccountId32> for SubstrateAbiConverter {
     }
 }
 
+pub fn associate<T: Decode, U: Encode>(value: U) -> Result<T, Error> {
+    Decode::decode(&mut &value.encode()[..]).map_err(|_| Error::FailedToAssociateTypes)
+}
+
 /// A representation of a morphism from T to O. This provides some metadata so we can have a single
 /// blanket implementation of some T to Some O where Self has some way of converting the morphism.
 pub struct ValueMorphism<T, O> {
@@ -90,10 +94,6 @@ impl<T, O> ValueMorphism<T, O> {
             output: Default::default(),
         }
     }
-}
-
-pub fn associate<T: Decode, U: Encode>(value: U) -> Result<T, Error> {
-    Decode::decode(&mut &value.encode()[..]).map_err(|_| Error::FailedToAssociateTypes)
 }
 
 impl<T, O> From<T> for ValueMorphism<T, O> {
@@ -175,6 +175,12 @@ where
             }
             _ => Ok(Err(Error::FailedToCastBetweenTypesValue)),
         }
+    }
+}
+
+impl<T> Convert<T, T> for SubstrateAbiConverter {
+    fn convert(a: T) -> T {
+        a
     }
 }
 
@@ -261,5 +267,169 @@ mod tests {
         let input_val: u128 = 88;
         let output_256: U256 = SubstrateAbiConverter::convert(input_val);
         assert_eq!(output_256, U256::from(input_val));
+    }
+
+    #[test]
+    fn convert_account_id_20_to_32() {
+        let original_account = AccountId20::repeat_byte(1u8);
+        let padding = [4_u8; 12];
+        let origin_source: AccountId32 =
+            SubstrateAbiConverter::try_morph((original_account, padding))
+                .unwrap()
+                .unwrap();
+        assert_eq!(
+            origin_source,
+            AccountId32::from([
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // original
+                4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, // padding
+            ])
+        )
+    }
+
+    #[test]
+    fn convert_account_id_32_to_20() {
+        let original_account = AccountId32::new([1u8; 32]);
+        let origin_source: AccountId20 = SubstrateAbiConverter::try_morph(original_account)
+            .unwrap()
+            .unwrap();
+        assert_eq!(origin_source, AccountId20::repeat_byte(1_u8))
+    }
+
+    #[test]
+    fn try_convert_u32_to_everything() {
+        let value = 563_u32;
+
+        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u32>::new(
+            &mut &value.encode()[..],
+        ))
+        .unwrap()
+        .unwrap();
+        assert_eq!(next, value);
+
+        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u64>::new(
+            &mut &value.encode()[..],
+        ))
+        .unwrap()
+        .unwrap();
+        assert_eq!(next, value as u64);
+
+        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u128>::new(
+            &mut &value.encode()[..],
+        ))
+        .unwrap()
+        .unwrap();
+        assert_eq!(next, value as u128);
+
+        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, U256>::new(
+            &mut &value.encode()[..],
+        ))
+        .unwrap()
+        .unwrap();
+        assert_eq!(next, U256::from(value));
+    }
+
+    #[test]
+    fn try_convert_u64_to_everything() {
+        let value = 563324_u64;
+
+        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u32>::new(
+            &mut &value.encode()[..],
+        ))
+        .unwrap()
+        .unwrap();
+        assert_eq!(next, value as u32);
+
+        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u64>::new(
+            &mut &value.encode()[..],
+        ))
+        .unwrap()
+        .unwrap();
+        assert_eq!(next, value);
+
+        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u128>::new(
+            &mut &value.encode()[..],
+        ))
+        .unwrap()
+        .unwrap();
+        assert_eq!(next, value as u128);
+
+        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, U256>::new(
+            &mut &value.encode()[..],
+        ))
+        .unwrap()
+        .unwrap();
+        assert_eq!(next, U256::from(value));
+    }
+
+    #[test]
+    fn try_convert_u128_to_everything() {
+        let value = 563321231232134_u128;
+
+        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u32>::new(
+            &mut &value.encode()[..],
+        ))
+        .unwrap()
+        .unwrap();
+        assert_eq!(next, value as u32);
+
+        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u64>::new(
+            &mut &value.encode()[..],
+        ))
+        .unwrap()
+        .unwrap();
+        assert_eq!(next, value as u64);
+
+        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u128>::new(
+            &mut &value.encode()[..],
+        ))
+        .unwrap()
+        .unwrap();
+        assert_eq!(next, value);
+
+        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, U256>::new(
+            &mut &value.encode()[..],
+        ))
+        .unwrap()
+        .unwrap();
+        assert_eq!(next, U256::from(value));
+    }
+
+    #[test]
+    fn try_convert_u256_to_everything_that_is_within_range() {
+        let value = U256::from(563321231232134_u128);
+
+        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u64>::new(
+            &mut &value.encode()[..],
+        ))
+        .unwrap()
+        .unwrap();
+        assert_eq!(next, value.low_u64());
+
+        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u128>::new(
+            &mut &value.encode()[..],
+        ))
+        .unwrap()
+        .unwrap();
+        assert_eq!(next, value.low_u128());
+
+        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, U256>::new(
+            &mut &value.encode()[..],
+        ))
+        .unwrap()
+        .unwrap();
+        assert_eq!(next, value);
+    }
+
+    #[test]
+    #[should_panic] // TODO: do we want to use `.as` for u256 casts? this would silently fail though.
+    fn try_convert_u256_panic_overflow() {
+        let value = U256::from(563321231232134_u128);
+
+        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u32>::new(
+            &mut &value.encode()[..],
+        ))
+        .unwrap()
+        .unwrap();
+        assert_eq!(next, value.low_u32());
     }
 }
