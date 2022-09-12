@@ -47,6 +47,9 @@ impl Into<&'static str> for Error {
                 substrate_abi::error::Error::FailedToCastBetweenTypesValue => {
                     concat!("SubstrateAbi", "FailedToCastBetweenTypesValue")
                 }
+                substrate_abi::error::Error::FailedToAssociateTypes => {
+                    concat!("SubstrateAbi", "FailedToAssociateTypes")
+                }
             },
         }
     }

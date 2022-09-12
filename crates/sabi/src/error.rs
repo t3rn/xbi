@@ -12,6 +12,7 @@ pub struct ModuleErrorProvider<const IDX: u8>(pub Error);
 pub enum Error {
     FailedToCastBetweenTypesAddresses,
     FailedToCastBetweenTypesValue,
+    FailedToAssociateTypes,
 }
 
 impl<const IDX: u8> Into<DispatchError> for ModuleErrorProvider<IDX> {
@@ -25,6 +26,7 @@ impl Into<[u8; 4]> for Error {
         match self {
             Error::FailedToCastBetweenTypesAddresses => [1_u8, 0_u8, 0_u8, 0_u8],
             Error::FailedToCastBetweenTypesValue => [2_u8, 0_u8, 0_u8, 0_u8],
+            Error::FailedToAssociateTypes => [3_u8, 0_u8, 0_u8, 0_u8],
         }
     }
 }
@@ -34,6 +36,7 @@ impl Into<&'static str> for Error {
         match self {
             Error::FailedToCastBetweenTypesAddresses => "FailedToCastBetweenTypesAddresses",
             Error::FailedToCastBetweenTypesValue => "FailedToCastBetweenTypesValue",
+            Error::FailedToAssociateTypes => "FailedToAssociateTypes",
         }
     }
 }
@@ -48,4 +51,19 @@ impl<const IDX: u8> Into<ModuleError> for ModuleErrorProvider<IDX> {
             message: Some(msg),
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn module_error_provides_correct_byte_sequence() {
+        let m: ModuleError = ModuleErrorProvider::<1>(Error::FailedToCastBetweenTypesValue).into();
+        assert_eq!(m.index, 1);
+        assert_eq!(m.error, [2_u8, 0_u8, 0_u8, 0_u8]);
+    }
+
+    #[test]
+    fn test_into_module_error() {}
 }
