@@ -1,0 +1,25 @@
+@startuml Synchronous send Parachain A -> Parachain B
+entity ContractA
+participant TxA
+queue Queue
+participant RxA
+participant RxB
+participant TxB
+participant EVM
+
+ContractA -> TxA: send(XbiInstr::CallEvm)
+activate TxA
+TxA -> RxB: XbiMessage
+TxA -> Queue: XbiMessage with instructions and timeouts
+activate Queue
+
+RxB -> EVM: Call
+activate EVM
+return Call result
+
+RxB -> TxB: XbiResult
+TxB --> RxA: XbiResult
+RxA --> Queue: Result for context
+return XBI result
+return result
+@enduml
