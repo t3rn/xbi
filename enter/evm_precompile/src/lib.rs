@@ -21,7 +21,7 @@ extern crate alloc;
 
 use core::marker::PhantomData;
 use fp_evm::{
-    Context, ExitError, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle,
+    ExitError, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle,
     PrecompileOutput, PrecompileResult,
 };
 use frame_support::dispatch::RawOrigin;
@@ -29,12 +29,11 @@ use frame_support::dispatch::UnfilteredDispatchable;
 use frame_support::{
     codec::Decode,
     dispatch::{Dispatchable, Encode, GetDispatchInfo, PostDispatchInfo},
-    weights::{DispatchClass, Pays},
 };
 
-use frame_support::sp_runtime::traits::{AccountIdConversion, StaticLookup};
+use frame_support::sp_runtime::traits::{StaticLookup};
 
-use pallet_evm::{AddressMapping, GasWeightMapping};
+
 use xbi_format::xbi_codec::{XBIFormat, XBIInstr};
 
 pub struct XBIPortal<T> {
@@ -73,11 +72,12 @@ where
 {
     fn execute(handle: &mut impl PrecompileHandle) -> PrecompileResult {
         let input = handle.input();
-        let xbi: XBIFormat = custom_decode_xbi(input.to_vec())?;
-        let from_local_account: T::AccountId = xbi_metadata_origin_2_local_account(xbi)?;
+        let xbi: XBIFormat = custom_decode_xbi::<T>(input.to_vec())?;
+        let from_local_account: T::AccountId =
+            xbi_metadata_origin_2_local_account::<T>(xbi.clone())?;
 
         match xbi.instr {
-            XBIInstr::CallNative { payload } => {
+            XBIInstr::CallNative { payload: _ } => {
                 // let message_call = payload.take_decoded().map_err(|_| Error::FailedToDecode)?;
                 // let actual_weight = match message_call.dispatch(dispatch_origin) {
                 // 	Ok(post_info) => post_info.actual_weight,
@@ -121,7 +121,25 @@ where
                     })?;
             }
             XBIInstr::Transfer { dest, value } => {
-                let call_transfer_here = pallet_balances::Call::<T>::transfer { dest, value };
+                let dest_local: T::AccountId =
+                    Decode::decode(&mut &dest.encode()[..]).map_err(|_e| {
+                        PrecompileFailure::Error {
+                            exit_status: ExitError::Other("dispatch execution failed".into()),
+                        }
+                    })?;
+
+                let value_local: <T as pallet_balances::Config>::Balance =
+                    Decode::decode(&mut &value.encode()[..]).map_err(|_e| {
+                        PrecompileFailure::Error {
+                            exit_status: ExitError::Other("dispatch execution failed".into()),
+                        }
+                    })?;
+
+                let call_transfer_here = pallet_balances::Call::<T>::transfer {
+                    dest: T::Lookup::unlookup(dest_local.clone()).into(),
+                    value: value_local,
+                };
+
                 call_transfer_here
                     .dispatch_bypass_filter(RawOrigin::Signed(from_local_account).into())
                     .map_err(|_| PrecompileFailure::Error {
