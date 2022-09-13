@@ -1,12 +1,11 @@
+use crate::{xbi_abi::*, xbi_format::*, Error};
 use codec::Encode;
 use frame_support::{dispatch::PostDispatchInfo, weights::Weight};
 use frame_system::pallet_prelude::OriginFor;
 use sp_core::{H160, H256, U256};
-use sp_runtime::traits::{Convert, TryMorph};
+use sp_runtime::traits::Convert;
 use sp_std::vec::Vec;
-
-use crate::{xbi_abi::*, xbi_format::*, Error};
-use substrate_abi::SubstrateAbiConverter;
+use substrate_abi::{SubstrateAbiConverter, TryConvert};
 
 pub trait Scabi<T: frame_system::Config + pallet_balances::Config> {
     fn args_evm_2_xbi_call_evm(
@@ -126,9 +125,11 @@ impl<T: crate::Config + frame_system::Config + pallet_balances::Config> Scabi<T>
     ) -> Result<XBIInstr, Error<T>> {
         let value: u128 = SubstrateAbiConverter::convert(value);
         Ok(XBIInstr::CallWasm {
-            dest: SubstrateAbiConverter::try_morph((target, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
-                .unwrap()
-                .map_err(|_| Error::XBIABIFailedToCastBetweenTypesAddress)?,
+            dest: SubstrateAbiConverter::try_convert((
+                target,
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            ))
+            .map_err(|_| Error::XBIABIFailedToCastBetweenTypesAddress)?,
             value,
             gas_limit,
             storage_deposit_limit: None,

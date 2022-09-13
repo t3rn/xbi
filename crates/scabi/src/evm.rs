@@ -3,10 +3,9 @@ use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_core::U256;
 use sp_runtime::traits::Convert;
-use sp_runtime::traits::TryMorph;
 use sp_std::prelude::*;
 use substrate_abi::{
-    error::Error as SabiError, AccountId20, Data, Gas, SubstrateAbiConverter, Value256,
+    error::Error as SabiError, AccountId20, Data, Gas, SubstrateAbiConverter, TryConvert, Value256,
 };
 
 #[derive(Clone, Eq, PartialEq, Encode, Decode, Debug, TypeInfo)]
@@ -52,8 +51,8 @@ impl TryFrom<CallWasm> for CallEvm {
     type Error = SabiError;
 
     fn try_from(call: CallWasm) -> Result<Self, Self::Error> {
-        let source = SubstrateAbiConverter::try_morph(call.origin_source).unwrap()?;
-        let target = SubstrateAbiConverter::try_morph(call.dest).unwrap()?;
+        let source = SubstrateAbiConverter::try_convert(call.origin_source)?;
+        let target = SubstrateAbiConverter::try_convert(call.dest)?;
         let value = SubstrateAbiConverter::convert(call.value);
         let input = call.data;
         let gas_limit = call.gas_limit;
@@ -108,7 +107,7 @@ mod tests {
             access_list,
         );
 
-        let call_wasm = SubstrateContractAbiConverter::try_morph(call_evm)
+        let call_wasm = SubstrateContractAbiConverter::try_convert(call_evm)
             .unwrap()
             .unwrap();
 

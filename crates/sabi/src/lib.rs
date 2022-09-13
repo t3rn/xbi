@@ -1,7 +1,7 @@
 use codec::{Decode, Encode};
 use error::Error;
 use sp_core::U256;
-use sp_runtime::traits::{Convert, TryMorph};
+use sp_runtime::traits::Convert;
 use sp_std::prelude::*;
 use std::marker::PhantomData;
 
@@ -29,9 +29,19 @@ pub enum ValueLen {
     U256,
 }
 
+/// Extensible conversion trait. Generic over only source type, with destination type being
+/// associated.
+pub trait TryConvert<A> {
+    /// The type into which `A` is mutated.
+    type Outcome;
+
+    /// Make conversion.
+    fn try_convert(a: A) -> Self::Outcome;
+}
+
 pub trait SubstrateAbi:
-    TryMorph<(AccountId20, [u8; 12]), Outcome = Result<AccountId32, Error>>
-    + TryMorph<AccountId32, Outcome = Result<AccountId20, Error>>
+    TryConvert<(AccountId20, [u8; 12]), Outcome = Result<AccountId32, Error>>
+    + TryConvert<AccountId32, Outcome = Result<AccountId20, Error>>
     + Convert<u32, u64>
     + Convert<u32, u128>
     + Convert<u32, U256>
@@ -45,24 +55,23 @@ pub trait SubstrateAbi:
 }
 pub struct SubstrateAbiConverter;
 
-impl TryMorph<(AccountId20, [u8; 12])> for SubstrateAbiConverter {
+impl TryConvert<(AccountId20, [u8; 12])> for SubstrateAbiConverter {
     type Outcome = Result<AccountId32, Error>;
 
-    fn try_morph(value: (AccountId20, [u8; 12])) -> Result<Self::Outcome, ()> {
+    fn try_convert(value: (AccountId20, [u8; 12])) -> Self::Outcome {
         let mut dest_bytes: Vec<u8> = vec![];
         dest_bytes.append(&mut value.0.encode());
         dest_bytes.append(&mut value.1.encode());
 
-        let result: Self::Outcome = Decode::decode(&mut &dest_bytes.as_slice()[..])
-            .map_err(|_e| Error::FailedToCastBetweenTypesValue);
-        Ok(result)
+        Decode::decode(&mut &dest_bytes.as_slice()[..])
+            .map_err(|_e| Error::FailedToCastBetweenTypesValue)
     }
 }
 
-impl TryMorph<AccountId32> for SubstrateAbiConverter {
+impl TryConvert<AccountId32> for SubstrateAbiConverter {
     type Outcome = Result<AccountId20, Error>;
 
-    fn try_morph(account_32: AccountId32) -> Result<Self::Outcome, ()> {
+    fn try_convert(account_32: AccountId32) -> Self::Outcome {
         let mut dest_bytes: Vec<u8> = vec![];
         let account_32_encoded = account_32.encode(); // hmm doesnt this add Len? FIXME: use as_ref
 
@@ -70,9 +79,8 @@ impl TryMorph<AccountId32> for SubstrateAbiConverter {
             dest_bytes.push(byte_of_account);
         }
 
-        let result: Result<AccountId20, Error> = Decode::decode(&mut &dest_bytes.as_slice()[..])
-            .map_err(|_e| Error::FailedToCastBetweenTypesValue);
-        Ok(result)
+        Decode::decode(&mut &dest_bytes.as_slice()[..])
+            .map_err(|_e| Error::FailedToCastBetweenTypesValue)
     }
 }
 
@@ -102,7 +110,7 @@ impl<T, O> From<T> for ValueMorphism<T, O> {
     }
 }
 
-impl<O> TryMorph<ValueMorphism<&mut &[u8], O>> for SubstrateAbiConverter
+impl<O> TryConvert<ValueMorphism<&mut &[u8], O>> for SubstrateAbiConverter
 where
     SubstrateAbiConverter: Convert<u32, O>,
     SubstrateAbiConverter: Convert<u64, O>,
@@ -111,35 +119,34 @@ where
 {
     type Outcome = Result<O, Error>;
 
-    fn try_morph(a: ValueMorphism<&mut &[u8], O>) -> Result<Self::Outcome, ()> {
+    fn try_convert(a: ValueMorphism<&mut &[u8], O>) -> Self::Outcome {
         match a.to_morph.len() {
             4 => {
                 let val: Result<Value32, Error> =
                     Decode::decode(a.to_morph).map_err(|_| Error::FailedToCastBetweenTypesValue);
-
-                Ok(val.map(Self::convert))
+                val.map(Self::convert)
             }
             8 => {
                 let val: Result<Value64, Error> =
                     Decode::decode(a.to_morph).map_err(|_| Error::FailedToCastBetweenTypesValue);
-                Ok(val.map(Self::convert))
+                val.map(Self::convert)
             }
             16 => {
                 let val: Result<Value128, Error> =
                     Decode::decode(a.to_morph).map_err(|_| Error::FailedToCastBetweenTypesValue);
-                Ok(val.map(Self::convert))
+                val.map(Self::convert)
             }
             32 => {
                 let val: Result<Value256, Error> =
                     Decode::decode(a.to_morph).map_err(|_| Error::FailedToCastBetweenTypesValue);
-                Ok(val.map(Self::convert))
+                val.map(Self::convert)
             }
-            _ => Ok(Err(Error::FailedToCastBetweenTypesValue)),
+            _ => Err(Error::FailedToCastBetweenTypesValue),
         }
     }
 }
 
-impl<O> TryMorph<ValueMorphism<&mut &[u8], Option<O>>> for SubstrateAbiConverter
+impl<O> TryConvert<ValueMorphism<&mut &[u8], Option<O>>> for SubstrateAbiConverter
 where
     SubstrateAbiConverter: Convert<u32, O>,
     SubstrateAbiConverter: Convert<u64, O>,
@@ -148,32 +155,30 @@ where
 {
     type Outcome = Result<Option<O>, Error>;
 
-    // TODO: make this zero copy
-    fn try_morph(a: ValueMorphism<&mut &[u8], Option<O>>) -> Result<Self::Outcome, ()> {
+    fn try_convert(a: ValueMorphism<&mut &[u8], Option<O>>) -> Self::Outcome {
         match a.to_morph.len() {
-            1 => Ok(Ok(None)),
+            1 => Ok(None),
             5 => {
                 let val: Result<Value32, Error> =
                     Decode::decode(a.to_morph).map_err(|_| Error::FailedToCastBetweenTypesValue);
-
-                Ok(val.map(Self::convert).map(|o| Some(o)))
+                val.map(Self::convert).map(|o| Some(o))
             }
             9 => {
                 let val: Result<Value64, Error> =
                     Decode::decode(a.to_morph).map_err(|_| Error::FailedToCastBetweenTypesValue);
-                Ok(val.map(Self::convert).map(|o| Some(o)))
+                val.map(Self::convert).map(|o| Some(o))
             }
             17 => {
                 let val: Result<Value128, Error> =
                     Decode::decode(a.to_morph).map_err(|_| Error::FailedToCastBetweenTypesValue);
-                Ok(val.map(Self::convert).map(|o| Some(o)))
+                val.map(Self::convert).map(|o| Some(o))
             }
             33 => {
                 let val: Result<Value256, Error> =
                     Decode::decode(a.to_morph).map_err(|_| Error::FailedToCastBetweenTypesValue);
-                Ok(val.map(Self::convert).map(|o| Some(o)))
+                val.map(Self::convert).map(|o| Some(o))
             }
-            _ => Ok(Err(Error::FailedToCastBetweenTypesValue)),
+            _ => Err(Error::FailedToCastBetweenTypesValue),
         }
     }
 }
@@ -274,9 +279,7 @@ mod tests {
         let original_account = AccountId20::repeat_byte(1u8);
         let padding = [4_u8; 12];
         let origin_source: AccountId32 =
-            SubstrateAbiConverter::try_morph((original_account, padding))
-                .unwrap()
-                .unwrap();
+            SubstrateAbiConverter::try_convert((original_account, padding)).unwrap();
         assert_eq!(
             origin_source,
             AccountId32::from([
@@ -289,9 +292,8 @@ mod tests {
     #[test]
     fn convert_account_id_32_to_20() {
         let original_account = AccountId32::new([1u8; 32]);
-        let origin_source: AccountId20 = SubstrateAbiConverter::try_morph(original_account)
-            .unwrap()
-            .unwrap();
+        let origin_source: AccountId20 =
+            SubstrateAbiConverter::try_convert(original_account).unwrap();
         assert_eq!(origin_source, AccountId20::repeat_byte(1_u8))
     }
 
@@ -299,31 +301,27 @@ mod tests {
     fn try_convert_u32_to_everything() {
         let value = 563_u32;
 
-        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u32>::new(
+        let next = SubstrateAbiConverter::try_convert(ValueMorphism::<_, u32>::new(
             &mut &value.encode()[..],
         ))
-        .unwrap()
         .unwrap();
         assert_eq!(next, value);
 
-        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u64>::new(
+        let next = SubstrateAbiConverter::try_convert(ValueMorphism::<_, u64>::new(
             &mut &value.encode()[..],
         ))
-        .unwrap()
         .unwrap();
         assert_eq!(next, value as u64);
 
-        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u128>::new(
+        let next = SubstrateAbiConverter::try_convert(ValueMorphism::<_, u128>::new(
             &mut &value.encode()[..],
         ))
-        .unwrap()
         .unwrap();
         assert_eq!(next, value as u128);
 
-        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, U256>::new(
+        let next = SubstrateAbiConverter::try_convert(ValueMorphism::<_, U256>::new(
             &mut &value.encode()[..],
         ))
-        .unwrap()
         .unwrap();
         assert_eq!(next, U256::from(value));
     }
@@ -332,31 +330,27 @@ mod tests {
     fn try_convert_u64_to_everything() {
         let value = 563324_u64;
 
-        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u32>::new(
+        let next = SubstrateAbiConverter::try_convert(ValueMorphism::<_, u32>::new(
             &mut &value.encode()[..],
         ))
-        .unwrap()
         .unwrap();
         assert_eq!(next, value as u32);
 
-        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u64>::new(
+        let next = SubstrateAbiConverter::try_convert(ValueMorphism::<_, u64>::new(
             &mut &value.encode()[..],
         ))
-        .unwrap()
         .unwrap();
         assert_eq!(next, value);
 
-        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u128>::new(
+        let next = SubstrateAbiConverter::try_convert(ValueMorphism::<_, u128>::new(
             &mut &value.encode()[..],
         ))
-        .unwrap()
         .unwrap();
         assert_eq!(next, value as u128);
 
-        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, U256>::new(
+        let next = SubstrateAbiConverter::try_convert(ValueMorphism::<_, U256>::new(
             &mut &value.encode()[..],
         ))
-        .unwrap()
         .unwrap();
         assert_eq!(next, U256::from(value));
     }
@@ -365,31 +359,27 @@ mod tests {
     fn try_convert_u128_to_everything() {
         let value = 563321231232134_u128;
 
-        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u32>::new(
+        let next = SubstrateAbiConverter::try_convert(ValueMorphism::<_, u32>::new(
             &mut &value.encode()[..],
         ))
-        .unwrap()
         .unwrap();
         assert_eq!(next, value as u32);
 
-        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u64>::new(
+        let next = SubstrateAbiConverter::try_convert(ValueMorphism::<_, u64>::new(
             &mut &value.encode()[..],
         ))
-        .unwrap()
         .unwrap();
         assert_eq!(next, value as u64);
 
-        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u128>::new(
+        let next = SubstrateAbiConverter::try_convert(ValueMorphism::<_, u128>::new(
             &mut &value.encode()[..],
         ))
-        .unwrap()
         .unwrap();
         assert_eq!(next, value);
 
-        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, U256>::new(
+        let next = SubstrateAbiConverter::try_convert(ValueMorphism::<_, U256>::new(
             &mut &value.encode()[..],
         ))
-        .unwrap()
         .unwrap();
         assert_eq!(next, U256::from(value));
     }
@@ -398,24 +388,21 @@ mod tests {
     fn try_convert_u256_to_everything_that_is_within_range() {
         let value = U256::from(563321231232134_u128);
 
-        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u64>::new(
+        let next = SubstrateAbiConverter::try_convert(ValueMorphism::<_, u64>::new(
             &mut &value.encode()[..],
         ))
-        .unwrap()
         .unwrap();
         assert_eq!(next, value.low_u64());
 
-        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u128>::new(
+        let next = SubstrateAbiConverter::try_convert(ValueMorphism::<_, u128>::new(
             &mut &value.encode()[..],
         ))
-        .unwrap()
         .unwrap();
         assert_eq!(next, value.low_u128());
 
-        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, U256>::new(
+        let next = SubstrateAbiConverter::try_convert(ValueMorphism::<_, U256>::new(
             &mut &value.encode()[..],
         ))
-        .unwrap()
         .unwrap();
         assert_eq!(next, value);
     }
@@ -425,10 +412,9 @@ mod tests {
     fn try_convert_u256_panic_overflow() {
         let value = U256::from(563321231232134_u128);
 
-        let next = SubstrateAbiConverter::try_morph(ValueMorphism::<_, u32>::new(
+        let next = SubstrateAbiConverter::try_convert(ValueMorphism::<_, u32>::new(
             &mut &value.encode()[..],
         ))
-        .unwrap()
         .unwrap();
         assert_eq!(next, value.low_u32());
     }
