@@ -21,36 +21,36 @@ extern crate alloc;
 
 use core::marker::PhantomData;
 use fp_evm::{
-    ExitError, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle,
-    PrecompileOutput, PrecompileResult,
+    ExitError, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
+    PrecompileResult,
 };
 use frame_support::dispatch::RawOrigin;
 use frame_support::dispatch::UnfilteredDispatchable;
 use frame_support::{
     codec::Decode,
-    dispatch::{Dispatchable, Encode, GetDispatchInfo, PostDispatchInfo},
+    dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo},
 };
 
-use frame_support::sp_runtime::traits::{StaticLookup};
 
 
-use xbi_format::xbi_codec::{XBIFormat, XBIInstr};
+
+use xbi_format::xbi_codec::{XBIFormat, XBIInstr, XBIMetadata};
 
 pub struct XBIPortal<T> {
     _marker: PhantomData<T>,
 }
 
 pub fn xbi_metadata_origin_2_local_account<T: frame_system::Config>(
-    xbi: XBIFormat,
+    metadata: &XBIMetadata,
 ) -> Result<T::AccountId, PrecompileFailure> {
-    let from = xbi
-        .metadata
+    let from = metadata
         .maybe_known_origin
+        .as_ref()
         .ok_or(PrecompileFailure::Error {
             exit_status: ExitError::Other("dispatch execution failed".into()),
         })?;
 
-    Decode::decode(&mut &from.encode()[..]).map_err(|_e| PrecompileFailure::Error {
+    sabi::associate(from.clone()).map_err(|_e| PrecompileFailure::Error {
         exit_status: ExitError::Other("dispatch execution failed".into()),
     })
 }
@@ -74,7 +74,7 @@ where
         let input = handle.input();
         let xbi: XBIFormat = custom_decode_xbi::<T>(input.to_vec())?;
         let from_local_account: T::AccountId =
-            xbi_metadata_origin_2_local_account::<T>(xbi.clone())?;
+            xbi_metadata_origin_2_local_account::<T>(&xbi.metadata)?;
 
         match xbi.instr {
             XBIInstr::CallNative { payload: _ } => {
@@ -120,33 +120,33 @@ where
                         exit_status: ExitError::Other("dispatch execution failed".into()),
                     })?;
             }
+            XBIInstr::CallWasm {
+                dest: _,
+                value: _,
+                gas_limit: _,
+                storage_deposit_limit: _,
+                data: _,
+            } => {
+                todo!("Need wasm impl")
+            }
             XBIInstr::Transfer { dest, value } => {
-                let dest_local: T::AccountId =
-                    Decode::decode(&mut &dest.encode()[..]).map_err(|_e| {
-                        PrecompileFailure::Error {
-                            exit_status: ExitError::Other("dispatch execution failed".into()),
-                        }
-                    })?;
-
-                let value_local: <T as pallet_balances::Config>::Balance =
-                    Decode::decode(&mut &value.encode()[..]).map_err(|_e| {
-                        PrecompileFailure::Error {
-                            exit_status: ExitError::Other("dispatch execution failed".into()),
-                        }
-                    })?;
-
                 let call_transfer_here = pallet_balances::Call::<T>::transfer {
-                    dest: T::Lookup::unlookup(dest_local.clone()).into(),
-                    value: value_local,
+                    dest: sabi::associate(dest).map_err(|_e| PrecompileFailure::Error {
+                        exit_status: ExitError::Other(
+                            "Failed to associate dest into T::AccountId".into(),
+                        ),
+                    })?,
+                    value: value.try_into().map_err(|_e| PrecompileFailure::Error {
+                        exit_status: ExitError::Other("Faailed to read balance from value".into()),
+                    })?,
                 };
-
                 call_transfer_here
                     .dispatch_bypass_filter(RawOrigin::Signed(from_local_account).into())
                     .map_err(|_| PrecompileFailure::Error {
                         exit_status: ExitError::Other("dispatch execution failed".into()),
                     })?;
             }
-            _ => todo!(),
+            _ => todo!("Need wasm impl"),
         }
 
         Ok(PrecompileOutput {
@@ -154,4 +154,12 @@ where
             output: Default::default(),
         })
     }
+}
+
+#[cfg(test)]
+mod tests {
+    
+
+    #[test]
+    fn hello() {}
 }

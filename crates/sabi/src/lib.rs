@@ -92,6 +92,16 @@ impl<T, O> ValueMorphism<T, O> {
     }
 }
 
+pub fn associate<T: Decode, U: Encode>(value: U) -> Result<T, Error> {
+    Decode::decode(&mut &value.encode()[..]).map_err(|_| Error::FailedToAssociateTypes)
+}
+
+impl<T, O> From<T> for ValueMorphism<T, O> {
+    fn from(value: T) -> Self {
+        ValueMorphism::new(value)
+    }
+}
+
 impl<O> TryMorph<ValueMorphism<&mut &[u8], O>> for SubstrateAbiConverter
 where
     SubstrateAbiConverter: Convert<u32, O>,
@@ -242,102 +252,6 @@ impl Convert<U256, u128> for SubstrateAbiConverter {
 
 impl SubstrateAbi for SubstrateAbiConverter {}
 
-// todo: maybe auto-conversion using Boxed types?
-// pub trait IValue {
-//     fn convert_2(&self, target_len: ValueLen) -> Result<Box<dyn IValue>, SabiError>;
-// }
-//
-// #[derive(Clone, Eq, PartialEq, Debug, TypeInfo)]
-// pub struct Value64 {
-//     val: u64,
-// }
-//
-// #[derive(Clone, Eq, PartialEq, Debug, TypeInfo)]
-// pub struct Value128 {
-//     val: u128,
-// }
-//
-// #[derive(Clone, Eq, PartialEq, Debug, TypeInfo)]
-// pub struct Value256 {
-//     val: U256,
-// }
-//
-// impl Value256 {
-//     fn as_u256(&self) -> U256 {
-//         self.val
-//     }
-//
-//     fn new(val: U256) -> Value256 {
-//         Value256 { val }
-//     }
-// }
-//
-// impl Value128 {
-//     fn as_u128(&self) -> u128 {
-//         self.val
-//     }
-//
-//     fn new(val: u128) -> Value128 {
-//         Value128 { val }
-//     }
-// }
-//
-// impl Value64 {
-//     fn as_u64(&self) -> u64 {
-//         self.val
-//     }
-//
-//     fn new(val: u64) -> Value64 {
-//         Value64 { val }
-//     }
-// }
-
-//
-// impl IValue for Value64 {
-//     fn convert_2(&self, target_len: ValueLen) -> Result<Box<dyn IValue>, SabiError> {
-//         match target_len {
-//             ValueLen::U64 => Ok(Box::new(self.clone())),
-//             ValueLen::U128 => Ok(Box::new(Value128::new(Sabi::value_64_2_value_128(
-//                 self.val,
-//             )))),
-//             ValueLen::U256 => Ok(Box::new(Value256::new(Sabi::value_64_2_value_256(
-//                 self.val,
-//             )))),
-//         }
-//     }
-// }
-//
-// impl IValue for Value128 {
-//     fn convert_2(&self, target_len: ValueLen) -> Result<Box<dyn IValue>, SabiError> {
-//         match target_len {
-//             ValueLen::U64 => match Sabi::value_128_2_value_64(self.val) {
-//                 Ok(val) => Ok(Box::new(Value64::new(val))),
-//                 Err(_) => Err(SabiError::SABIFailedToCastBetweenTypesValue),
-//             },
-//             ValueLen::U128 => Ok(Box::new(self.clone())),
-//             ValueLen::U256 => Ok(Box::new(Value256::new(Sabi::value_128_2_value_256(
-//                 self.val,
-//             )))),
-//         }
-//     }
-// }
-//
-// impl IValue for Value256 {
-//     fn convert_2(&self, target_len: ValueLen) -> Result<Box<dyn IValue>, SabiError> {
-//         match target_len {
-//             ValueLen::U64 => match Sabi::value_256_2_value_64(self.val) {
-//                 Ok(val) => Ok(Box::new(Value64::new(val))),
-//                 Err(_) => Err(SabiError::SABIFailedToCastBetweenTypesValue),
-//             },
-//             ValueLen::U128 => match Sabi::value_256_2_value_128(self.val) {
-//                 Ok(val) => Ok(Box::new(Value128::new(val))),
-//                 Err(_) => Err(SabiError::SABIFailedToCastBetweenTypesValue),
-//             },
-//             ValueLen::U256 => Ok(Box::new(self.clone())),
-//         }
-//     }
-// }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -345,7 +259,7 @@ mod tests {
     #[test]
     fn sabi_decodes_u128_to_target_values_correctly() {
         let input_val: u128 = 88;
-        let output_256 = SubstrateAbiConverter::convert(input_val).0;
+        let output_256: U256 = SubstrateAbiConverter::convert(input_val);
         assert_eq!(output_256, U256::from(input_val));
     }
 }
