@@ -18,4 +18,4 @@ substrate-abi = { path = "../sabi", default-features = false }
 
 [features]
 default = ["std"]
-std = ["sp-std/std", "sp-core/std", "sp-runtime/std", "substrate-abi/std"]
+std = ["sp-std/std", "sp-core/std", "sp-runtime/std", "substrate-abi/std", "scale-info/std", "serde/std", "codec/std", "log/std"]

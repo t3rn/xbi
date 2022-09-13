@@ -152,6 +152,7 @@ where
     SubstrateAbiConverter: Convert<u64, O>,
     SubstrateAbiConverter: Convert<u128, O>,
     SubstrateAbiConverter: Convert<U256, O>,
+    SubstrateAbiConverter: Convert<U256, O>,
 {
     type Outcome = Result<Option<O>, Error>;
 
