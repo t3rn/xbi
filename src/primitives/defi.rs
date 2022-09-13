@@ -1,9 +1,6 @@
-use frame_support::dispatch::DispatchResultWithPostInfo;
-
-
-use frame_system::pallet_prelude::OriginFor;
-
 use crate::xbi_abi::AssetId;
+use frame_support::dispatch::DispatchResultWithPostInfo;
+use frame_system::pallet_prelude::OriginFor;
 use sp_std::marker::PhantomData;
 
 pub trait DeFi<T: frame_system::Config + crate::pallet::Config + pallet_balances::Config> {

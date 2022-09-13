@@ -1,8 +1,8 @@
-use crate::{xbi_abi::*, xbi_format::XBIInstr};
-
 use crate::{
+    xbi_abi::*,
     xbi_codec::{ActionNotificationTimeouts, XBIFormat, XBIMetadata},
-    xbi_format::{XBICheckOutStatus},
+    xbi_format::XBICheckOutStatus,
+    xbi_format::XBIInstr,
 };
 use codec::{Decode, Encode};
 
