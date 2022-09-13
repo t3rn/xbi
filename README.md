@@ -7,7 +7,7 @@ First implementation blueprint in `src/xbi_format.rs`
 /// Global XBI Types.
 /// Could also introduce t3rn-primitives/abi but perhaps easier to rely on sp_std / global types
 pub type Data = Vec<u8>;
-pub type AssetId = u64; // Could also be xcm::MultiAsset
+pub type AssetId = u32; // Could also be xcm::MultiAsset
 pub type Value = u128; // Could also be [u64; 2] or sp_core::U128
 pub type ValueEvm = sp_core::U256; // Could also be [u64; 4]
 pub type Gas = u64; // [u64; 4]

@@ -2,7 +2,7 @@ use crate::{xbi_abi::*, xbi_format::XBIInstr};
 
 use crate::{
     xbi_codec::{ActionNotificationTimeouts, XBIFormat, XBIMetadata},
-    xbi_format::{XBICheckOutStatus, XBINotificationKind},
+    xbi_format::{XBICheckOutStatus},
 };
 use codec::{Decode, Encode};
 
@@ -59,6 +59,7 @@ fn custom_encodes_decodes_xbi_evm_and_metadata() {
             max_notifications_cost: 8u128,
             maybe_known_origin: None,
             actual_aggregated_cost: None,
+            maybe_fee_asset_id: None,
         },
     };
 
@@ -190,31 +191,9 @@ fn custom_encodes_decodes_xbi_transfer() {
 }
 
 #[test]
-fn custom_encodes_decodes_xbi_transfer_orml() {
-    let xbi_transfer_orml = XBIInstr::TransferORML {
-        currency_id: 1u64,
-        dest: AccountId32::new([
-            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-            2, 2, 2,
-        ]),
-        value: 1,
-    };
-
-    let decoded_xbi_transfer_orml: XBIInstr =
-        Decode::decode(&mut &xbi_transfer_orml.encode()[..]).unwrap();
-    assert_eq!(
-        decoded_xbi_transfer_orml.encode(),
-        xbi_transfer_orml.encode()
-    );
-    assert_eq!(xbi_transfer_orml, decoded_xbi_transfer_orml);
-
-    assert_eq!(xbi_transfer_orml.encode().len(), 57);
-}
-
-#[test]
 fn custom_encodes_decodes_xbi_transfer_assets() {
     let xbi_transfer_assets = XBIInstr::TransferAssets {
-        currency_id: 1u64,
+        currency_id: 1u32,
         dest: AccountId32::new([
             2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
             2, 2, 2,
@@ -229,7 +208,7 @@ fn custom_encodes_decodes_xbi_transfer_assets() {
         xbi_transfer_assets.encode()
     );
     assert_eq!(xbi_transfer_assets, decoded_xbi_transfer_assets);
-    assert_eq!(xbi_transfer_assets.encode().len(), 57);
+    assert_eq!(xbi_transfer_assets.encode().len(), 53);
 }
 
 #[test]
@@ -243,18 +222,4 @@ fn custom_encodes_decodes_xbi_results() {
     let decoded_xbi_result: XBIInstr = Decode::decode(&mut &xbi_result.encode()[..]).unwrap();
     assert_eq!(decoded_xbi_result.encode(), xbi_result.encode());
     assert_eq!(xbi_result, decoded_xbi_result);
-}
-
-#[test]
-fn custom_encodes_decodes_xbi_notification() {
-    let xbi_notification = XBIInstr::Notification {
-        kind: XBINotificationKind::Sent,
-        instruction_id: vec![1, 2, 3],
-        extra: vec![4, 5, 6],
-    };
-
-    let decoded_xbi_notification: XBIInstr =
-        Decode::decode(&mut &xbi_notification.encode()[..]).unwrap();
-    assert_eq!(decoded_xbi_notification.encode(), xbi_notification.encode());
-    assert_eq!(xbi_notification, decoded_xbi_notification);
 }

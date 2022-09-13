@@ -1,6 +1,6 @@
 pub mod assets;
+pub mod defi;
 pub mod evm;
-pub mod orml;
 pub mod transfers;
 pub mod wasm;
 pub mod xbi;

@@ -14,17 +14,16 @@ pub use pallet::*;
 
 pub use xcm::latest;
 
-// #[cfg(test)]
-// mod mock;
 #[cfg(test)]
 mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
+    use crate::primitives::defi::DeFi;
     use crate::{
         primitives::{
-            assets::Assets, evm::Evm, orml::ORML, transfers::Transfers, wasm::WASM,
-            xbi_callback::XBICallback, xcm::XCM,
+            assets::Assets, evm::Evm, transfers::Transfers, wasm::WASM, xbi_callback::XBICallback,
+            xcm::XCM,
         },
         xbi_format::*,
         xbi_scabi::Scabi,
@@ -92,9 +91,9 @@ pub mod pallet {
 
         type Evm: Evm<Self>;
 
-        type ORML: ORML<Self>;
-
         type Assets: Assets<Self>;
+
+        type DeFi: DeFi<Self>;
 
         type WASM: WASM<Self>;
 
@@ -197,22 +196,13 @@ pub mod pallet {
         No3VMSupportedAtDest,
         NoTransferSupportedAtDest,
         NoTransferAssetsSupportedAtDest,
-        NoTransferORMLSupportedAtDest,
         NoTransferEscrowSupportedAtDest,
         NoTransferMultiEscrowSupportedAtDest,
-        NoSwapSupportedAtDest,
-        NoAddLiquiditySupportedAtDest,
+        NoDeFiSupportedAtDest,
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub fn execute_xcm(origin: OriginFor<T>, _xcm: Xcm<Call<T>>) -> DispatchResult {
-            let _who = ensure_signed(origin)?;
-
-            Ok(())
-        }
-
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         pub fn cleanup(origin: OriginFor<T>) -> DispatchResult {
             ensure_none(origin)?;
@@ -235,7 +225,7 @@ pub mod pallet {
                         XBICheckOut::new_ignore_costs::<T>(
                             xbi_checkin.notification_delivery_timeout,
                             vec![],
-                            XBICheckOutStatus::ErrorDeliveryTimeout,
+                            XBICheckOutStatus::ErrorDeliveryTimeoutExceeded,
                         ),
                     );
                     timeout_counter += 1;
@@ -256,7 +246,7 @@ pub mod pallet {
                         XBICheckOut::new_ignore_costs::<T>(
                             xbi_checkin.notification_delivery_timeout,
                             vec![],
-                            XBICheckOutStatus::ErrorExecutionTimeout,
+                            XBICheckOutStatus::ErrorExecutionTimeoutExceeded,
                         ),
                     );
                     timeout_counter += 1;
@@ -347,7 +337,7 @@ pub mod pallet {
                             XBICheckOut::new_ignore_costs::<T>(
                                 checkin.notification_delivery_timeout,
                                 e.encode(),
-                                XBICheckOutStatus::ErrorFailedXCMDispatch,
+                                XBICheckOutStatus::ErrorFailedOnXCMDispatch,
                             ),
                         );
                     }
@@ -522,15 +512,7 @@ pub mod pallet {
                     data,
                     false,
                 ),
-                XBIInstr::CallCustom { .. } => {
-                    // T::Custom::call(
-                    // 	caller,
-                    // 	dest,
-                    // 	value,
-                    // 	input,
-                    // )}
-                    Err(Error::<T>::XBIInstructionNotAllowedHere.into())
-                }
+                XBIInstr::CallCustom { .. } => Err(Error::<T>::XBIInstructionNotAllowedHere.into()),
                 XBIInstr::Transfer { dest, value } => {
                     T::Transfers::transfer(
                         &caller,
@@ -555,24 +537,54 @@ pub mod pallet {
                     )?;
                     Ok(().into())
                 }
-                XBIInstr::TransferORML {
-                    currency_id,
-                    dest,
-                    value,
-                } => {
-                    T::ORML::transfer(
-                        currency_id,
-                        &XbiAbi::<T>::address_global_2_local(caller.encode())?,
-                        &XbiAbi::<T>::address_global_2_local(dest.encode())?,
-                        XbiAbi::<T>::value_global_2_local(value)?,
-                    )?;
-                    Ok(().into())
-                }
+                XBIInstr::Swap {
+                    asset_out,
+                    asset_in,
+                    amount,
+                    max_limit,
+                    discount,
+                } => T::DeFi::swap(
+                    origin,
+                    asset_out,
+                    asset_in,
+                    XbiAbi::<T>::value_global_2_local(amount)?,
+                    XbiAbi::<T>::value_global_2_local(max_limit)?,
+                    discount,
+                ),
+                XBIInstr::AddLiquidity {
+                    asset_a,
+                    asset_b,
+                    amount_a,
+                    amount_b_max_limit,
+                } => T::DeFi::add_liquidity(
+                    origin,
+                    asset_a,
+                    asset_b,
+                    XbiAbi::<T>::value_global_2_local(amount_a)?,
+                    XbiAbi::<T>::value_global_2_local(amount_b_max_limit)?,
+                ),
+                XBIInstr::RemoveLiquidity {
+                    asset_a,
+                    asset_b,
+                    liquidity_amount,
+                } => T::DeFi::remove_liquidity(
+                    origin,
+                    asset_a,
+                    asset_b,
+                    XbiAbi::<T>::value_global_2_local(liquidity_amount)?,
+                ),
+                XBIInstr::GetPrice {
+                    asset_a,
+                    asset_b,
+                    amount,
+                } => T::DeFi::get_price(
+                    origin,
+                    asset_a,
+                    asset_b,
+                    XbiAbi::<T>::value_global_2_local(amount)?,
+                ),
                 XBIInstr::Result { .. } => Err(Error::<T>::XBIInstructionNotAllowedHere.into()),
                 XBIInstr::Unknown { .. } => Err(Error::<T>::XBIInstructionNotAllowedHere.into()),
-                XBIInstr::Notification { .. } => {
-                    Err(Error::<T>::XBIInstructionNotAllowedHere.into())
-                }
             }
         }
     }
