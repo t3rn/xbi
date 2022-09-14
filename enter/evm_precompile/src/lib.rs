@@ -21,20 +21,19 @@ extern crate alloc;
 
 use core::marker::PhantomData;
 use fp_evm::{
-    Context, ExitError, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle,
-    PrecompileOutput, PrecompileResult,
+    ExitError, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
+    PrecompileResult,
 };
 use frame_support::dispatch::RawOrigin;
 use frame_support::dispatch::UnfilteredDispatchable;
 use frame_support::{
     codec::Decode,
-    dispatch::{Dispatchable, Encode, GetDispatchInfo, PostDispatchInfo},
-    weights::{DispatchClass, Pays},
+    dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo},
 };
 
-use frame_support::sp_runtime::traits::{AccountIdConversion, StaticLookup};
 
-use pallet_evm::{AddressMapping, GasWeightMapping};
+
+
 use xbi_format::xbi_codec::{XBIFormat, XBIInstr, XBIMetadata};
 
 pub struct XBIPortal<T> {
@@ -78,7 +77,7 @@ where
             xbi_metadata_origin_2_local_account::<T>(&xbi.metadata)?;
 
         match xbi.instr {
-            XBIInstr::CallNative { payload } => {
+            XBIInstr::CallNative { payload: _ } => {
                 // let message_call = payload.take_decoded().map_err(|_| Error::FailedToDecode)?;
                 // let actual_weight = match message_call.dispatch(dispatch_origin) {
                 // 	Ok(post_info) => post_info.actual_weight,
@@ -122,11 +121,11 @@ where
                     })?;
             }
             XBIInstr::CallWasm {
-                dest,
-                value,
-                gas_limit,
-                storage_deposit_limit,
-                data,
+                dest: _,
+                value: _,
+                gas_limit: _,
+                storage_deposit_limit: _,
+                data: _,
             } => {
                 todo!("Need wasm impl")
             }

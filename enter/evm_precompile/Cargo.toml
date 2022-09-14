@@ -13,10 +13,12 @@ frame-system = {  git = "https://github.com/paritytech/substrate", default-featu
 frame-support = {  git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.27" }
 
 fp-evm = {  git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.27", default-features = false }
-pallet-evm = {   git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.27", default-features = false }
 
+pallet-evm = {   git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.27", default-features = false }
+pallet-xcm = { git = "https://github.com/paritytech/polkadot", tag = "v0.9.27", default-features = false }
 pallet-balances = {  git = "https://github.com/paritytech/substrate", default-features = false , branch = "polkadot-v0.9.27" }
 pallet-xbi-portal = {  path = "../..", default-features = false }
+
 
 sabi = { path = "../../crates/sabi" , default-features = false, package = "substrate-abi" }
 scabi = { path = "../../crates/scabi" , default-features = false, package = "substrate-contracts-abi" }
@@ -34,5 +36,6 @@ std = [
 	"xbi-format/std",
     "pallet-balances/std",
 	"pallet-evm/std",
+	"pallet-xcm/std",
 	"pallet-xbi-portal/std",
 ]
