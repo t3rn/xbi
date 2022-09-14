@@ -81,7 +81,7 @@ impl TryConvert<AccountId32> for SubstrateAbiConverter {
     /// Convert an `AccountId32` to an `AccountId20`, taking the short hash of the first 20 bytes.
     fn try_convert(account_32: AccountId32) -> Self::Outcome {
         let mut dest_bytes: Vec<u8> = vec![];
-        let mut account_32_encoded = account_32.encode(); // FIXME: ensure len is not provided here
+        let account_32_encoded = account_32.encode(); // FIXME: ensure len is not provided here
 
         dest_bytes.append(&mut account_32_encoded[..20].to_vec());
 
