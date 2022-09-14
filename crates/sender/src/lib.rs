@@ -1,4 +1,5 @@
 use sp_runtime::traits::Dispatchable;
+use sp_runtime::{DispatchErrorWithPostInfo, DispatchResultWithInfo};
 
 /// Sender is the trait providing the base `send` function.
 /// All implementations of subtypes of sender must also provide an implementation of `send`.
@@ -26,8 +27,18 @@ pub struct CallPromise<Result, Call: Dispatchable>(pub fn(Result) -> Call);
 // Xbi promise delegates are defined as components that may handle the result of a sent message
 // this would allow for chaining of middleware, I think
 trait PromiseDelegate<T, Call: Dispatchable>: Sender<T> {
-    fn then(req: T, promise: CallPromise<Self::Outcome, Call>);
+    fn then(
+        req: T,
+        promise: CallPromise<Self::Outcome, Call>,
+    ) -> DispatchResultWithInfo<Call::PostInfo>;
+
     fn join(req: Vec<T>, promise: CallPromise<Vec<Self::Outcome>, Call>);
+
+    fn chain(
+        result: Call::PostInfo,
+        req: T,
+        promise: CallPromise<Self::Outcome, Call>,
+    ) -> DispatchResultWithInfo<Call::PostInfo>;
 }
 
 // Note: because of the store simulation, if one test fails, they all will fail. Run each one independently to find the busted test.
@@ -91,14 +102,31 @@ mod tests {
     }
 
     impl PromiseDelegate<u32, DummyDispatch> for DummySender {
-        fn then(req: u32, promise: CallPromise<Self::Outcome, DummyDispatch>) {
-            promise.0(DummySender::send(req)).dispatch(50).unwrap();
+        fn then(
+            req: u32,
+            promise: CallPromise<Self::Outcome, DummyDispatch>,
+        ) -> DispatchResultWithInfo<<DummyDispatch as Dispatchable>::PostInfo> {
+            promise.0(DummySender::send(req)).dispatch(50)
         }
 
         fn join(req: Vec<u32>, promise: CallPromise<Vec<Self::Outcome>, DummyDispatch>) {
             promise.0(req.iter().map(|req| DummySender::send(*req)).collect())
-                .dispatch(50)
+                .dispatch(50) // Todo: compose these promises
                 .unwrap();
+        }
+
+        /// Chain is much like `then`, except it allows some logic to be passed based on the output of postinfo
+        fn chain(
+            result: <DummyDispatch as Dispatchable>::PostInfo,
+            req: u32,
+            promise: CallPromise<Self::Outcome, DummyDispatch>,
+        ) -> DispatchResultWithInfo<<DummyDispatch as Dispatchable>::PostInfo> {
+            let is_even = req % 2 == 0;
+            if is_even {
+                promise.0(DummySender::send(req)).dispatch(50)
+            } else {
+                Ok(result)
+            }
         }
     }
 
@@ -196,16 +224,63 @@ mod tests {
     #[serial_test::serial]
     #[test]
     fn sender_with_dispatch_updates_queue() {
-        fn check_result_is_even(result: Result<u32, TestError>) -> DummyDispatch {
+        fn check_result_is_ok(result: Result<u32, TestError>) -> DummyDispatch {
             match result {
                 Ok(x) => DummyDispatch(1),
                 Err(e) => DummyDispatch(0),
             }
         }
-        DummySender::then(500, CallPromise(check_result_is_even));
+        DummySender::then(500, CallPromise(check_result_is_ok));
 
         let guard = QUEUE.lock().unwrap();
         assert_eq!(*guard.get(&1_u8).unwrap(), 500);
+
+        let guard = DISPATCH_CALLS.lock().unwrap();
+        assert_eq!(*guard.get(&50).unwrap(), 1_u8);
+    }
+
+    #[serial_test::serial]
+    #[test]
+    fn sender_with_chainable_dispatch_updates_queue() {
+        fn check_result_is_ok(result: Result<u32, TestError>) -> DummyDispatch {
+            match result {
+                Ok(x) => DummyDispatch(1),
+                Err(e) => DummyDispatch(0),
+            }
+        }
+
+        DummySender::then(500, CallPromise(check_result_is_ok))
+            .and_then(|x| DummySender::chain(x, 100, CallPromise(check_result_is_ok)))
+            .and_then(|x| DummySender::chain(x, 101, CallPromise(check_result_is_ok)))
+            .and_then(|x| DummySender::chain(x, 102, CallPromise(check_result_is_ok)))
+            .and_then(|x| DummySender::chain(x, 103, CallPromise(check_result_is_ok)))
+            .unwrap();
+
+        let guard = QUEUE.lock().unwrap();
+        // is 102 due to the final chain condition not passing, proving the promise didnt update entirely
+        assert_eq!(*guard.get(&1_u8).unwrap(), 102);
+
+        let guard = DISPATCH_CALLS.lock().unwrap();
+        assert_eq!(*guard.get(&50).unwrap(), 1_u8);
+    }
+
+    #[serial_test::serial]
+    #[test]
+    fn sender_with_set_of_dispatch_updates_queue() {
+        fn check_result_is_ok(result: Vec<Result<u32, TestError>>) -> DummyDispatch {
+            if result.iter().any(|x| x.is_err()) {
+                DummyDispatch(0)
+            } else {
+                DummyDispatch(1)
+            }
+        }
+
+        let requests: Vec<u32> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+        DummySender::join(requests, CallPromise(check_result_is_ok));
+
+        let guard = QUEUE.lock().unwrap();
+        assert_eq!(*guard.get(&1_u8).unwrap(), 12);
 
         let guard = DISPATCH_CALLS.lock().unwrap();
         assert_eq!(*guard.get(&50).unwrap(), 1_u8);
