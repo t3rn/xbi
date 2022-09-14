@@ -7,8 +7,9 @@ use std::marker::PhantomData;
 
 /// Global XBI Types.
 pub type Data = Vec<u8>;
+/// A representation of an Asset Id, this is utilised for xbi instructions relating to multiple assets
 pub type AssetId = u64; // Could also be xcm::MultiAsset
-pub type Gas = u64; // [u64; 4]
+pub type Gas = u64;
 pub type AccountId32 = sp_runtime::AccountId32;
 pub type AccountId20 = sp_core::H160; // Could also take it from MultiLocation::Junction::AccountKey20 { network: NetworkId, key: [u8; 20] },
 
@@ -31,6 +32,8 @@ pub enum ValueLen {
 
 /// Extensible conversion trait. Generic over only source type, with destination type being
 /// associated.
+/// This being associated over outcome allows us to implement for any Type over some provider struct,
+/// allowing us to minimise the need for newtypes if using `TryFrom`.
 pub trait TryConvert<A> {
     /// The type into which `A` is mutated.
     type Outcome;
@@ -39,6 +42,7 @@ pub trait TryConvert<A> {
     fn try_convert(a: A) -> Self::Outcome;
 }
 
+/// Provide the required data type conversions for a converter to be marked as a `SubstrateAbi`.
 pub trait SubstrateAbi:
     TryConvert<(AccountId20, [u8; 12]), Outcome = Result<AccountId32, Error>>
     + TryConvert<AccountId32, Outcome = Result<AccountId20, Error>>
@@ -53,11 +57,14 @@ pub trait SubstrateAbi:
     + Convert<u128, U256>
 {
 }
+
+/// Providing access to the SubstrateAbi
 pub struct SubstrateAbiConverter;
 
 impl TryConvert<(AccountId20, [u8; 12])> for SubstrateAbiConverter {
     type Outcome = Result<AccountId32, Error>;
 
+    /// Convert an `AccountId20` to an `AccountId32`. Providing some buffer for the extra bytes to fill.
     fn try_convert(value: (AccountId20, [u8; 12])) -> Self::Outcome {
         let mut dest_bytes: Vec<u8> = vec![];
         dest_bytes.append(&mut value.0.encode());
@@ -71,19 +78,19 @@ impl TryConvert<(AccountId20, [u8; 12])> for SubstrateAbiConverter {
 impl TryConvert<AccountId32> for SubstrateAbiConverter {
     type Outcome = Result<AccountId20, Error>;
 
+    /// Convert an `AccountId32` to an `AccountId20`, taking the short hash of the first 20 bytes.
     fn try_convert(account_32: AccountId32) -> Self::Outcome {
         let mut dest_bytes: Vec<u8> = vec![];
-        let account_32_encoded = account_32.encode(); // hmm doesnt this add Len? FIXME: use as_ref
+        let mut account_32_encoded = account_32.encode(); // FIXME: ensure len is not provided here
 
-        for &byte_of_account in account_32_encoded.iter().take(20) {
-            dest_bytes.push(byte_of_account);
-        }
+        dest_bytes.append(&mut account_32_encoded[..20].to_vec());
 
         Decode::decode(&mut &dest_bytes.as_slice()[..])
             .map_err(|_e| Error::FailedToCastBetweenTypesValue)
     }
 }
 
+/// Try to associate a value to some associated type, as long as they are each part of `Codec`.
 pub fn associate<T: Decode, U: Encode>(value: U) -> Result<T, Error> {
     Decode::decode(&mut &value.encode()[..]).map_err(|_| Error::FailedToAssociateTypes)
 }
@@ -110,6 +117,7 @@ impl<T, O> From<T> for ValueMorphism<T, O> {
     }
 }
 
+/// Morph some bytes into `O` as long as `O` can be converted into.
 impl<O> TryConvert<ValueMorphism<&mut &[u8], O>> for SubstrateAbiConverter
 where
     SubstrateAbiConverter: Convert<u32, O>,
@@ -146,6 +154,8 @@ where
     }
 }
 
+/// Morph some bytes into `Option<O>` as long as `O` can be converted into, and the bytes representation
+/// of `Some<O>` exists.
 impl<O> TryConvert<ValueMorphism<&mut &[u8], Option<O>>> for SubstrateAbiConverter
 where
     SubstrateAbiConverter: Convert<u32, O>,
@@ -184,12 +194,15 @@ where
     }
 }
 
+/// Identity conversion for types to ensure `O` -> `O` conversions in blanket implementations.
 impl<T> Convert<T, T> for SubstrateAbiConverter {
     fn convert(a: T) -> T {
         a
     }
 }
 
+/// Convert a load of types, short circuitting on overflows.
+/// This might change to utilise saturation instead.
 impl Convert<u32, u64> for SubstrateAbiConverter {
     fn convert(a: u32) -> u64 {
         a as u64
