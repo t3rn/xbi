@@ -1,3 +1,5 @@
+use sp_runtime::traits::Dispatchable;
+
 /// Sender is the trait providing the base `send` function.
 /// All implementations of subtypes of sender must also provide an implementation of `send`.
 /// The subtype of send would then utilise this trait to send a message, and then register the handler/promise
@@ -19,18 +21,21 @@ trait Promise {
 
 // #[cfg(feature = "frame")] TODO: this could only be implemented in frame with `Call`
 // TODO: implement promise
-struct CallPromise<Call>(Call);
+pub struct CallPromise<Result, Call: Dispatchable>(pub fn(Result) -> Call);
 
 // Xbi promise delegates are defined as components that may handle the result of a sent message
 // this would allow for chaining of middleware, I think
-trait PromiseDelegate<T>: Sender<T> {
-    fn then<F: Promise>(req: T, promise: F) -> Self::Outcome;
+trait PromiseDelegate<T, Call: Dispatchable>: Sender<T> {
+    fn then(req: T, promise: CallPromise<Self::Outcome, Call>);
+    fn join(req: Vec<T>, promise: CallPromise<Vec<Self::Outcome>, Call>);
 }
 
+// Note: because of the store simulation, if one test fails, they all will fail. Run each one independently to find the busted test.
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    use sp_runtime::DispatchResultWithInfo;
     use std::collections::HashMap;
 
     // Simulate some storage
@@ -39,19 +44,40 @@ mod tests {
             let m = HashMap::new();
             std::sync::Mutex::new(m)
         };
+        static ref DISPATCH_CALLS: std::sync::Mutex<HashMap<u64, u8>> = {
+            let m = HashMap::new();
+            std::sync::Mutex::new(m)
+        };
     }
 
     #[derive(Debug, Clone)]
     enum TestError {}
+
+    // Mock dispatchable that simply updates the calls with a byte
+    struct DummyDispatch(u8);
+
+    impl Dispatchable for DummyDispatch {
+        type Config = Vec<u8>;
+        type Info = Vec<u8>;
+        type Origin = u64;
+        type PostInfo = u8;
+        fn dispatch(self, origin: Self::Origin) -> DispatchResultWithInfo<Self::PostInfo> {
+            let mut guard = DISPATCH_CALLS.lock().unwrap();
+            guard.insert(origin, self.0);
+
+            Ok(1)
+        }
+    }
 
     struct DummySender {}
 
     impl Sender<u32> for DummySender {
         type Outcome = Result<u32, TestError>;
         fn send(req: u32) -> Self::Outcome {
-            QUEUE.lock().unwrap().insert(1_u8, req);
-            // Simulate a result where
-            Ok(req + req)
+            let mut guard = QUEUE.lock().unwrap();
+            guard.insert(1_u8, req);
+            // Simulate a result where it is mutated
+            Ok(req)
         }
     }
 
@@ -64,12 +90,27 @@ mod tests {
         }
     }
 
+    impl PromiseDelegate<u32, DummyDispatch> for DummySender {
+        fn then(req: u32, promise: CallPromise<Self::Outcome, DummyDispatch>) {
+            promise.0(DummySender::send(req)).dispatch(50).unwrap();
+        }
+
+        fn join(req: Vec<u32>, promise: CallPromise<Vec<Self::Outcome>, DummyDispatch>) {
+            promise.0(req.iter().map(|req| DummySender::send(*req)).collect())
+                .dispatch(50)
+                .unwrap();
+        }
+    }
+
+    #[serial_test::serial]
     #[test]
     fn sender_updates_queue() {
         DummySender::send(500).unwrap();
-        assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 500)
+        let guard = QUEUE.try_lock().unwrap();
+        assert_eq!(*guard.get(&1_u8).unwrap(), 500)
     }
 
+    #[serial_test::serial]
     #[test]
     fn sender_with_resolver_updates_queue() {
         DummySender::resolve(
@@ -77,7 +118,7 @@ mod tests {
             Box::new(|result| match result {
                 Ok(x) => {
                     QUEUE.lock().unwrap().insert(1_u8, x + x);
-                    assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 2000);
+                    assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 1000);
 
                     Ok(x)
                 }
@@ -89,9 +130,11 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 2000)
+        let guard = QUEUE.lock().unwrap();
+        assert_eq!(*guard.get(&1_u8).unwrap(), 1000)
     }
 
+    #[serial_test::serial]
     #[test]
     fn sender_with_nested_resolver_updates_queue() {
         DummySender::resolve(
@@ -103,7 +146,7 @@ mod tests {
                         let new_x = x + x;
                         // update shared store with new x
                         QUEUE.lock().unwrap().insert(1_u8, new_x);
-                        assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 2000);
+                        assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 1000); // x + x
                         DummySender::resolve(new_x, Box::new(|result| result))
                     }
                     Err(e) => {
@@ -115,35 +158,56 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 2000)
+        assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 1000)
     }
+
+    #[serial_test::serial]
     #[test]
     fn sender_with_super_nested_resolver_updates_queue() {
         DummySender::resolve(
             500,
             Box::new(|result: Result<u32, TestError>| {
                 result
-                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
-                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
-                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
-                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
-                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
-                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
-                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
-                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
-                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
-                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
-                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
-                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
-                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
-                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
-                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
-                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
-                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r + r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r + r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r + r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r + r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r + r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r + r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r + r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r + r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r + r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r + r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r + r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r + r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r + r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r + r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r + r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r + r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r + r, Box::new(|result| result)))
             }),
         )
         .unwrap();
 
-        assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 32000)
+        let mut guard = QUEUE.lock().unwrap();
+        assert_eq!(*guard.get(&1_u8).unwrap(), 65536000) // FIXME: raciness
+    }
+
+    #[serial_test::serial]
+    #[test]
+    fn sender_with_dispatch_updates_queue() {
+        fn check_result_is_even(result: Result<u32, TestError>) -> DummyDispatch {
+            match result {
+                Ok(x) => DummyDispatch(1),
+                Err(e) => DummyDispatch(0),
+            }
+        }
+        DummySender::then(500, CallPromise(check_result_is_even));
+
+        let guard = QUEUE.lock().unwrap();
+        assert_eq!(*guard.get(&1_u8).unwrap(), 500);
+
+        let guard = DISPATCH_CALLS.lock().unwrap();
+        assert_eq!(*guard.get(&50).unwrap(), 1_u8);
     }
 }

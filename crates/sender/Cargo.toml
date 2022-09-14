@@ -6,6 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
 
 [dev-dependencies]
 lazy_static = "1.4.0"
+serial_test = "*"
+
+[features]
+default = ["std"]
+std = ["sp-runtime/std"]
