@@ -24,7 +24,7 @@ struct CallPromise<Call>(Call);
 // Xbi promise delegates are defined as components that may handle the result of a sent message
 // this would allow for chaining of middleware, I think
 trait PromiseDelegate<T>: Sender<T> {
-    fn then<F: Promise>(promise: F) -> Self::Outcome;
+    fn then<F: Promise>(req: T, promise: F) -> Self::Outcome;
 }
 
 #[cfg(test)]
@@ -116,5 +116,34 @@ mod tests {
         .unwrap();
 
         assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 2000)
+    }
+    #[test]
+    fn sender_with_super_nested_resolver_updates_queue() {
+        DummySender::resolve(
+            500,
+            Box::new(|result: Result<u32, TestError>| {
+                result
+                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
+                    .and_then(|r| DummySender::resolve(r, Box::new(|result| result)))
+            }),
+        )
+        .unwrap();
+
+        assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 32000)
     }
 }
