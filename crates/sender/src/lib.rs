@@ -274,12 +274,18 @@ mod tests {
             }
         }
 
-        let requests: Vec<u32> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        let mut requests: Vec<u32> = vec![];
+        requests.resize(500, 1);
+        let requests = requests
+            .iter()
+            .enumerate()
+            .map(|(index, _)| (index + 1) as u32)
+            .collect();
 
         DummySender::join(requests, CallPromise(check_result_is_ok));
 
         let guard = QUEUE.lock().unwrap();
-        assert_eq!(*guard.get(&1_u8).unwrap(), 12);
+        assert_eq!(*guard.get(&1_u8).unwrap(), 500);
 
         let guard = DISPATCH_RESULTS.lock().unwrap();
         assert_eq!(*guard.get(&50).unwrap(), 1_u8);
