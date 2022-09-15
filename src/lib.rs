@@ -167,13 +167,13 @@ pub mod pallet {
     #[derive(Encode, sp_runtime::RuntimeDebug)]
     #[cfg_attr(feature = "std", derive(Decode))]
     pub enum InherentError {
-        XbiCleanup(),
+        XbiCleanup,
     }
 
     impl sp_inherents::IsFatalError for InherentError {
         fn is_fatal_error(&self) -> bool {
             match self {
-                InherentError::XbiCleanup() => true,
+                InherentError::XbiCleanup => true,
             }
         }
     }
@@ -278,7 +278,7 @@ pub mod pallet {
             for (_checkout_counter, (xbi_id, xbi_checkout)) in
                 (0_u32..T::CheckOutLimit::get()).zip(<XBICheckOutsQueued<T>>::iter())
             {
-                if let Err(_err) = pallet::Pallet::<T>::exit(
+                if let Err(_err) = pallet::Pallet::<T>::resolve(
                     <XBICheckIns<T>>::get(xbi_id)
                         .expect("Assume XBICheckOutsQueued is populated after XBICheckIns"),
                     xbi_checkout.clone(),
@@ -307,7 +307,7 @@ pub mod pallet {
             // If ordered execution locally via XBI : (T::MyParachainId::get(), T::MyParachainId::get())
             // Or if received XBI order of execution from remote Parachain
             if dest == T::MyParachainId::get() {
-                let instant_checkout = match Self::enter_here(origin, checkin.xbi) {
+                let instant_checkout = match Self::receive(origin, checkin.xbi) {
                     Err(e) => XBICheckOut::new_ignore_costs::<T>(
                         checkin.notification_delivery_timeout,
                         e.encode(),
@@ -326,7 +326,7 @@ pub mod pallet {
                 };
                 <XBICheckOutsQueued<T>>::insert(xbi_id, instant_checkout);
             } else {
-                match Self::enter_remote(
+                match Self::send(
                     checkin.xbi.clone(),
                     Box::new(Self::target_2_xcm_location(dest)?.into()),
                 ) {
@@ -353,7 +353,7 @@ pub mod pallet {
 
         #[pallet::weight(50_000 + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
         pub fn check_in_xbi(_origin: OriginFor<T>, xbi: XBIFormat) -> DispatchResult {
-            Self::do_check_in_xbi(xbi).map_err(|e| e.into())
+            Self::queue(xbi).map_err(|e| e.into())
         }
     }
 
@@ -387,27 +387,8 @@ pub mod pallet {
                 .map_err(|_| Error::<T>::EnterFailedOnMultiLocationTransform)
         }
 
-        pub fn enter_remote(
-            xbi: XBIFormat,
-            dest: Box<xcm::VersionedMultiLocation>,
-        ) -> Result<(), Error<T>> {
-            let dest = MultiLocation::try_from(*dest)
-                .map_err(|()| Error::<T>::EnterFailedOnMultiLocationTransform)?;
-
-            let require_weight_at_most = xbi.metadata.max_exec_cost as u64;
-            let xbi_call = pallet::Call::check_in_xbi::<T> { xbi };
-            let xbi_format_msg = Xcm(vec![Transact {
-                origin_type: OriginKind::SovereignAccount,
-                require_weight_at_most,
-                call: xbi_call.encode().into(),
-            }]);
-
-            // Could have beein either Trait DI : T::Xcm::send_xcm or pallet_xcm::Pallet::<T>::send_xcm(
-            T::Xcm::send_xcm(xcm::prelude::Here, dest, xbi_format_msg)
-                .map_err(|_| Error::<T>::EnterFailedOnXcmSend)
-        }
-
-        pub fn do_check_in_xbi(xbi: XBIFormat) -> Result<(), Error<T>> {
+        ////================================================================
+        pub fn queue(xbi: XBIFormat) -> Result<(), Error<T>> {
             let xbi_id = T::Hashing::hash(&xbi.metadata.id.encode()[..]);
 
             if <Self as Store>::XBICheckIns::contains_key(xbi_id)
@@ -440,27 +421,30 @@ pub mod pallet {
             Ok(())
         }
 
-        pub fn exit(
-            checkin: XBICheckIn<T::BlockNumber>,
-            checkout: XBICheckOut,
+        pub fn send(
+            xbi: XBIFormat,
+            dest: Box<xcm::VersionedMultiLocation>,
         ) -> Result<(), Error<T>> {
-            // expect checkout to be XBI::Result
-            T::Callback::callback(checkin, checkout);
+            let dest = MultiLocation::try_from(*dest)
+                .map_err(|()| Error::<T>::EnterFailedOnMultiLocationTransform)?;
 
-            Ok(())
-            // match checkin.xbi.instr {
-            //     XBIInstr::CallWasm { .. } => T::WASM::callback(checkin, checkout),
-            //     XBIInstr::CallCustom { .. } => T::Custom::callback(checkin, checkout),
-            //     XBIInstr::Transfer { .. } => T::Transfer::callback(checkin, checkout),
-            //     XBIInstr::TransferAssets { .. } => T::TransferAssets::callback(checkin, checkout),
-            //     XBIInstr::Result { .. } => return Err(Error::ExitUnhandled),
-            //     XBIInstr::Notification { .. } => return Err(Error::ExitUnhandled),
-            //     XBIInstr::CallNative { .. } => return Err(Error::ExitUnhandled),
-            //     XBIInstr::CallEvm { .. } => T::Evm::callback(checkin, checkout),
-            // }
+            let require_weight_at_most = xbi.metadata.max_exec_cost as u64;
+            let xbi_call = pallet::Call::check_in_xbi::<T> { xbi };
+            let xbi_format_msg = Xcm(vec![Transact {
+                origin_type: OriginKind::SovereignAccount,
+                require_weight_at_most,
+                call: xbi_call.encode().into(),
+            }]);
+
+            // Could have beein either Trait DI : T::Xcm::send_xcm or pallet_xcm::Pallet::<T>::send_xcm(
+            T::Xcm::send_xcm(xcm::prelude::Here, dest, xbi_format_msg)
+                .map_err(|_| Error::<T>::EnterFailedOnXcmSend)
         }
 
-        pub fn enter_here(origin: OriginFor<T>, xbi: XBIFormat) -> DispatchResultWithPostInfo {
+        ////================================================================
+
+        /// These are functions for the receiver, this handles the format
+        pub fn receive(origin: OriginFor<T>, xbi: XBIFormat) -> DispatchResultWithPostInfo {
             let caller = ensure_signed(origin.clone())?;
             match xbi.instr {
                 XBIInstr::CallNative { payload: _ } => {
@@ -586,6 +570,27 @@ pub mod pallet {
                 XBIInstr::Result { .. } => Err(Error::<T>::XBIInstructionNotAllowedHere.into()),
                 XBIInstr::Unknown { .. } => Err(Error::<T>::XBIInstructionNotAllowedHere.into()),
             }
+        }
+
+        /// These are functions for the receiver, this writes back to the store and invokes its callbacks
+        pub fn resolve(
+            checkin: XBICheckIn<T::BlockNumber>,
+            checkout: XBICheckOut,
+        ) -> Result<(), Error<T>> {
+            // expect checkout to be XBI::Result
+            T::Callback::callback(checkin, checkout);
+
+            Ok(())
+            // match checkin.xbi.instr {
+            //     XBIInstr::CallWasm { .. } => T::WASM::callback(checkin, checkout),
+            //     XBIInstr::CallCustom { .. } => T::Custom::callback(checkin, checkout),
+            //     XBIInstr::Transfer { .. } => T::Transfer::callback(checkin, checkout),
+            //     XBIInstr::TransferAssets { .. } => T::TransferAssets::callback(checkin, checkout),
+            //     XBIInstr::Result { .. } => return Err(Error::ExitUnhandled),
+            //     XBIInstr::Notification { .. } => return Err(Error::ExitUnhandled),
+            //     XBIInstr::CallNative { .. } => return Err(Error::ExitUnhandled),
+            //     XBIInstr::CallEvm { .. } => T::Evm::callback(checkin, checkout),
+            // }
         }
     }
 }
