@@ -1,5 +1,5 @@
 use sp_runtime::traits::Dispatchable;
-use sp_runtime::{DispatchErrorWithPostInfo, DispatchResultWithInfo};
+use sp_runtime::DispatchResultWithInfo;
 
 /// Sender is the trait providing the base `send` function.
 /// All implementations of subtypes of sender must also provide an implementation of `send`.
@@ -20,8 +20,8 @@ trait Promise {
     type Result;
 }
 
-// #[cfg(feature = "frame")] TODO: this could only be implemented in frame with `Call`
-// TODO: implement promise
+// TODO: this could only be implemented in frame with `Call`
+// #[cfg(feature = "frame")]
 pub struct CallPromise<Result, Call: Dispatchable>(pub fn(Result) -> Call);
 
 // Xbi promise delegates are defined as components that may handle the result of a sent message
@@ -55,7 +55,7 @@ mod tests {
             let m = HashMap::new();
             std::sync::Mutex::new(m)
         };
-        static ref DISPATCH_CALLS: std::sync::Mutex<HashMap<u64, u8>> = {
+        static ref DISPATCH_RESULTS: std::sync::Mutex<HashMap<u64, u8>> = {
             let m = HashMap::new();
             std::sync::Mutex::new(m)
         };
@@ -73,7 +73,7 @@ mod tests {
         type Origin = u64;
         type PostInfo = u8;
         fn dispatch(self, origin: Self::Origin) -> DispatchResultWithInfo<Self::PostInfo> {
-            let mut guard = DISPATCH_CALLS.lock().unwrap();
+            let mut guard = DISPATCH_RESULTS.lock().unwrap();
             guard.insert(origin, self.0);
 
             Ok(1)
@@ -87,7 +87,6 @@ mod tests {
         fn send(req: u32) -> Self::Outcome {
             let mut guard = QUEUE.lock().unwrap();
             guard.insert(1_u8, req);
-            // Simulate a result where it is mutated
             Ok(req)
         }
     }
@@ -101,21 +100,22 @@ mod tests {
         }
     }
 
+    const DUMMY_ORIGIN: u64 = 50;
+
     impl PromiseDelegate<u32, DummyDispatch> for DummySender {
         fn then(
             req: u32,
             promise: CallPromise<Self::Outcome, DummyDispatch>,
         ) -> DispatchResultWithInfo<<DummyDispatch as Dispatchable>::PostInfo> {
-            promise.0(DummySender::send(req)).dispatch(50)
+            promise.0(DummySender::send(req)).dispatch(DUMMY_ORIGIN)
         }
 
         fn join(req: Vec<u32>, promise: CallPromise<Vec<Self::Outcome>, DummyDispatch>) {
             promise.0(req.iter().map(|req| DummySender::send(*req)).collect())
-                .dispatch(50) // Todo: compose these promises
+                .dispatch(DUMMY_ORIGIN)
                 .unwrap();
         }
 
-        /// Chain is much like `then`, except it allows some logic to be passed based on the output of postinfo
         fn chain(
             result: <DummyDispatch as Dispatchable>::PostInfo,
             req: u32,
@@ -123,7 +123,7 @@ mod tests {
         ) -> DispatchResultWithInfo<<DummyDispatch as Dispatchable>::PostInfo> {
             let is_even = req % 2 == 0;
             if is_even {
-                promise.0(DummySender::send(req)).dispatch(50)
+                promise.0(DummySender::send(req)).dispatch(DUMMY_ORIGIN)
             } else {
                 Ok(result)
             }
@@ -175,7 +175,7 @@ mod tests {
                         // update shared store with new x
                         QUEUE.lock().unwrap().insert(1_u8, new_x);
                         assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 1000); // x + x
-                        DummySender::resolve(new_x, Box::new(|result| result))
+                        DummySender::resolve(new_x + new_x, Box::new(|result| result))
                     }
                     Err(e) => {
                         QUEUE.lock().unwrap().insert(1_u8, 0);
@@ -186,7 +186,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 1000)
+        assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 2000)
     }
 
     #[serial_test::serial]
@@ -217,8 +217,7 @@ mod tests {
         )
         .unwrap();
 
-        let mut guard = QUEUE.lock().unwrap();
-        assert_eq!(*guard.get(&1_u8).unwrap(), 65536000) // FIXME: raciness
+        assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 65536000)
     }
 
     #[serial_test::serial]
@@ -226,16 +225,16 @@ mod tests {
     fn sender_with_dispatch_updates_queue() {
         fn check_result_is_ok(result: Result<u32, TestError>) -> DummyDispatch {
             match result {
-                Ok(x) => DummyDispatch(1),
-                Err(e) => DummyDispatch(0),
+                Ok(_x) => DummyDispatch(1),
+                Err(_e) => DummyDispatch(0),
             }
         }
-        DummySender::then(500, CallPromise(check_result_is_ok));
+        DummySender::then(500, CallPromise(check_result_is_ok)).unwrap();
 
         let guard = QUEUE.lock().unwrap();
         assert_eq!(*guard.get(&1_u8).unwrap(), 500);
 
-        let guard = DISPATCH_CALLS.lock().unwrap();
+        let guard = DISPATCH_RESULTS.lock().unwrap();
         assert_eq!(*guard.get(&50).unwrap(), 1_u8);
     }
 
@@ -244,8 +243,8 @@ mod tests {
     fn sender_with_chainable_dispatch_updates_queue() {
         fn check_result_is_ok(result: Result<u32, TestError>) -> DummyDispatch {
             match result {
-                Ok(x) => DummyDispatch(1),
-                Err(e) => DummyDispatch(0),
+                Ok(_x) => DummyDispatch(1),
+                Err(_e) => DummyDispatch(0),
             }
         }
 
@@ -257,10 +256,10 @@ mod tests {
             .unwrap();
 
         let guard = QUEUE.lock().unwrap();
-        // is 102 due to the final chain condition not passing, proving the promise didnt update entirely
+        // is 102 due to the final chain condition not passing, proving the promise didnt update
         assert_eq!(*guard.get(&1_u8).unwrap(), 102);
 
-        let guard = DISPATCH_CALLS.lock().unwrap();
+        let guard = DISPATCH_RESULTS.lock().unwrap();
         assert_eq!(*guard.get(&50).unwrap(), 1_u8);
     }
 
@@ -282,7 +281,7 @@ mod tests {
         let guard = QUEUE.lock().unwrap();
         assert_eq!(*guard.get(&1_u8).unwrap(), 12);
 
-        let guard = DISPATCH_CALLS.lock().unwrap();
+        let guard = DISPATCH_RESULTS.lock().unwrap();
         assert_eq!(*guard.get(&50).unwrap(), 1_u8);
     }
 }
