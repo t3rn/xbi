@@ -1,3 +1,5 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+
 use sp_runtime::traits::Dispatchable;
 use sp_runtime::DispatchResultWithInfo;
 
@@ -5,28 +7,25 @@ use sp_runtime::DispatchResultWithInfo;
 /// All implementations of subtypes of sender must also provide an implementation of `send`.
 /// The subtype of send would then utilise this trait to send a message, and then register the handler/promise
 /// to handle the result.
-trait Sender<T> {
+pub trait Sender<T> {
     type Outcome;
     fn send(req: T) -> Self::Outcome;
 }
 
 /// ResolveSender is a handler that allows the user to specify what to do with the response
 /// This allows for extensible middleware that could possibly end in a promise
-trait ResolveSender<T>: Sender<T> {
+pub trait ResolveSender<T>: Sender<T> {
     fn resolve<F: FnOnce(Self::Outcome) -> Self::Outcome>(req: T, f: Box<F>) -> Self::Outcome;
 }
 
-trait Promise {
-    type Result;
-}
-
-// TODO: this could only be implemented in frame with `Call`
-// #[cfg(feature = "frame")]
+// #[cfg(feature = "promises")]
 pub struct CallPromise<Result, Call: Dispatchable>(pub fn(Result) -> Call);
 
+// #[cfg(feature = "promises")]
 // Xbi promise delegates are defined as components that may handle the result of a sent message
 // this would allow for chaining of middleware, I think
-trait PromiseDelegate<T, Call: Dispatchable>: Sender<T> {
+// TODO: it's possible we might not implement promises for this, and it would be in the receiver
+pub trait PromiseDelegate<T, Call: Dispatchable>: Sender<T> {
     fn then(
         req: T,
         promise: CallPromise<Self::Outcome, Call>,

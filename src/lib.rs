@@ -2,8 +2,6 @@
 #![feature(associated_type_defaults)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use xcm::latest::Xcm;
-
 pub mod primitives;
 pub mod xbi_abi;
 pub mod xbi_codec;
@@ -11,8 +9,14 @@ pub mod xbi_format;
 pub mod xbi_scabi;
 
 pub use pallet::*;
-
 pub use xcm::latest;
+
+use crate::primitives::xcm::XCM;
+use crate::xbi_format::{XBIFormat, XBIInstr};
+use codec::Encode;
+use xbi_sender::Sender;
+use xcm::latest::{Instruction, MultiLocation, OriginKind, Xcm};
+use xcm::VersionedMultiLocation;
 
 #[cfg(test)]
 mod tests;
@@ -34,7 +38,7 @@ pub mod pallet {
     use sp_core::Hasher;
     use sp_runtime::traits::StaticLookup;
     use sp_std::{default::Default, prelude::*};
-    use xcm::latest::{prelude::*, MultiLocation, OriginKind};
+    use xcm::latest::prelude::*;
 
     /// Queue XBI for batch execution
     #[pallet::storage]
@@ -307,7 +311,7 @@ pub mod pallet {
             // If ordered execution locally via XBI : (T::MyParachainId::get(), T::MyParachainId::get())
             // Or if received XBI order of execution from remote Parachain
             if dest == T::MyParachainId::get() {
-                let instant_checkout = match Self::receive(origin, checkin.xbi) {
+                let instant_checkout = match Self::channel_receive(origin, checkin) {
                     Err(e) => XBICheckOut::new_ignore_costs::<T>(
                         checkin.notification_delivery_timeout,
                         e.encode(),
@@ -326,10 +330,10 @@ pub mod pallet {
                 };
                 <XBICheckOutsQueued<T>>::insert(xbi_id, instant_checkout);
             } else {
-                match Self::send(
+                match <Self as Sender<_>>::send((
+                    Self::target_2_xcm_location(dest)?.into(),
                     checkin.xbi.clone(),
-                    Box::new(Self::target_2_xcm_location(dest)?.into()),
-                ) {
+                )) {
                     // Instant checkout with error
                     Err(e) => {
                         <XBICheckOutsQueued<T>>::insert(
@@ -354,6 +358,11 @@ pub mod pallet {
         #[pallet::weight(50_000 + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
         pub fn check_in_xbi(_origin: OriginFor<T>, xbi: XBIFormat) -> DispatchResult {
             Self::queue(xbi).map_err(|e| e.into())
+        }
+
+        #[pallet::weight(50_000 + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
+        pub fn receive(origin: OriginFor<T>, xbi: XBIFormat) -> DispatchResult {
+            Self::channel_receive(origin, xbi).map_err(|e| e.into())
         }
     }
 
@@ -388,9 +397,11 @@ pub mod pallet {
         }
 
         ////================================================================
+        // TODO: at the moment this is used as receive, which has a double meaning here
         pub fn queue(xbi: XBIFormat) -> Result<(), Error<T>> {
             let xbi_id = T::Hashing::hash(&xbi.metadata.id.encode()[..]);
 
+            /// TODO: limit these queries to the checkin store, since the others just hold hashes
             if <Self as Store>::XBICheckIns::contains_key(xbi_id)
                 || <Self as Store>::XBICheckInsQueued::contains_key(xbi_id)
                 || <Self as Store>::XBICheckInsPending::contains_key(xbi_id)
@@ -421,30 +432,87 @@ pub mod pallet {
             Ok(())
         }
 
-        pub fn send(
-            xbi: XBIFormat,
-            dest: Box<xcm::VersionedMultiLocation>,
-        ) -> Result<(), Error<T>> {
-            let dest = MultiLocation::try_from(*dest)
-                .map_err(|()| Error::<T>::EnterFailedOnMultiLocationTransform)?;
-
-            let require_weight_at_most = xbi.metadata.max_exec_cost as u64;
-            let xbi_call = pallet::Call::check_in_xbi::<T> { xbi };
-            let xbi_format_msg = Xcm(vec![Transact {
-                origin_type: OriginKind::SovereignAccount,
-                require_weight_at_most,
-                call: xbi_call.encode().into(),
-            }]);
-
-            // Could have beein either Trait DI : T::Xcm::send_xcm or pallet_xcm::Pallet::<T>::send_xcm(
-            T::Xcm::send_xcm(xcm::prelude::Here, dest, xbi_format_msg)
-                .map_err(|_| Error::<T>::EnterFailedOnXcmSend)
-        }
-
         ////================================================================
 
+        // TODO: rename me when we have a receiver
         /// These are functions for the receiver, this handles the format
-        pub fn receive(origin: OriginFor<T>, xbi: XBIFormat) -> DispatchResultWithPostInfo {
+        pub fn channel_receive(
+            origin: OriginFor<T>,
+            checkin: XBICheckIn<T::BlockNumber>,
+        ) -> DispatchResultWithPostInfo {
+            let caller = ensure_signed(origin.clone())?;
+            let dest = checkin.xbi.metadata.src_para_id;
+            let xbi_id = T::Hashing::hash(checkin); // FIXME: dont do this
+            match Self::handle_instruction(origin, checkin.xbi) {
+                Ok(info) => {
+                    // If ordered execution locally via XBI : (T::MyParachainId::get(), T::MyParachainId::get())
+                    // Or if received XBI order of execution from remote Parachain
+                    if dest == T::MyParachainId::get() {
+                        let actual_delivery_cost = 0;
+                        // todo: source for the  of XBI Dispatch - execute in credit
+                        let instant_checkout = XbiAbi::<T>::post_dispatch_info_2_xbi_checkout(
+                            info,
+                            checkin.notification_delivery_timeout,
+                            XBICheckOutStatus::SuccessfullyExecuted,
+                            actual_delivery_cost,
+                        );
+                        <XBICheckOutsQueued<T>>::insert(xbi_id, instant_checkout);
+                    } else {
+                        match Self::send(
+                            checkin.clone(),
+                            Box::new(Self::target_2_xcm_location(dest)?.into()),
+                        ) {
+                            // Instant checkout with error
+                            Err(e) => {
+                                <XBICheckOutsQueued<T>>::insert(
+                                    xbi_id,
+                                    XBICheckOut::new_ignore_costs::<T>(
+                                        checkin.notification_delivery_timeout,
+                                        e.encode(),
+                                        XBICheckOutStatus::ErrorFailedOnXCMDispatch,
+                                    ),
+                                );
+                            }
+                            Ok(_) => {
+                                <XBICheckInsPending<T>>::insert(xbi_id, checkin);
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    let checkout = XBICheckOut::new_ignore_costs::<T>(
+                        checkin.notification_delivery_timeout,
+                        e.encode(),
+                        XBICheckOutStatus::ErrorFailedExecution,
+                    );
+                    match <Self as xbi_sender::Sender<XBIFormat>>::send((
+                        checkin.xbi.clone(),
+                        Box::new(Self::target_2_xcm_location(dest)?.into()),
+                    )) {
+                        // Instant checkout with error
+                        Err(e) => {
+                            <XBICheckOutsQueued<T>>::insert(
+                                xbi_id,
+                                XBICheckOut::new_ignore_costs::<T>(
+                                    checkin.notification_delivery_timeout,
+                                    e.encode(),
+                                    XBICheckOutStatus::ErrorFailedOnXCMDispatch,
+                                ),
+                            );
+                        }
+                        Ok(_) => {
+                            <XBICheckInsPending<T>>::insert(xbi_id, checkin);
+                        }
+                    }
+                }
+            }
+        }
+
+        /// Handle the instruction
+        pub fn handle_instruction(
+            origin: OriginFor<T>,
+            xbi: XBIFormat,
+        ) -> DispatchResultWithPostInfo {
             let caller = ensure_signed(origin.clone())?;
             match xbi.instr {
                 XBIInstr::CallNative { payload: _ } => {
@@ -592,5 +660,26 @@ pub mod pallet {
             //     XBIInstr::CallEvm { .. } => T::Evm::callback(checkin, checkout),
             // }
         }
+    }
+}
+
+impl<T: Config> Sender<(VersionedMultiLocation, XBIFormat)> for Pallet<T> {
+    type Outcome = Result<(), Error<T>>;
+    fn send(xbi: (VersionedMultiLocation, XBIFormat)) -> Self::Outcome {
+        let (dest, xbi) = xbi;
+        let dest = MultiLocation::try_from(dest)
+            .map_err(|()| Error::<T>::EnterFailedOnMultiLocationTransform)?;
+
+        let require_weight_at_most = xbi.metadata.max_exec_cost as u64;
+
+        let xbi_call = pallet::Call::receive::<T> { xbi };
+        let xbi_format_msg = Xcm(vec![Instruction::Transact {
+            origin_type: OriginKind::SovereignAccount,
+            require_weight_at_most,
+            call: xbi_call.encode().into(),
+        }]);
+
+        T::Xcm::send_xcm(xcm::prelude::Here, dest, xbi_format_msg)
+            .map_err(|_| Error::<T>::EnterFailedOnXcmSend)
     }
 }

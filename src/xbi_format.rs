@@ -34,7 +34,7 @@ impl Default for XBICheckOutStatus {
 
 #[derive(Clone, Eq, PartialEq, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
 pub struct XBICheckOut {
-    pub xbi: XBIInstr, // XBIInstr::Result
+    pub xbi: XBIInstr, // TODO: XBIInstr::Result(XbiResult { }), then the result can be a struct here
     pub resolution_status: XBICheckOutStatus,
     pub checkout_timeout: Timeout,
     pub actual_execution_cost: Value,
@@ -180,7 +180,7 @@ pub enum XBIInstr {
         asset_b: AssetId,
         amount: Value,
     },
-    // 255
+    // 255 TODO: make this a tuple type with a struct XbiResult
     Result {
         outcome: XBICheckOutStatus,
         output: Data,

@@ -17,6 +17,8 @@ serde = { default-features = false, version = "1.0", optional = true }
 substrate-abi = { path = "crates/sabi", default-features = false }
 substrate-contracts-abi = { path = "crates/scabi", default-features = false }
 
+xbi-sender = { path = "crates/sender", default-features = false }
+
 #cumulus-primitives-core = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.27', default-features = false }
 #
 ## should have additional compilation flag added only if ORML is used
@@ -62,5 +64,5 @@ std = [
 #    "cumulus-primitives-core/std",
     "log/std",
 #    "pallet-assets/std",
-#    "orml-traits/std",
+    "xbi-sender/std"
 ]
