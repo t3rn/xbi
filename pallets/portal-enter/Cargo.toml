@@ -9,7 +9,7 @@ version = "0.9.19"
 impl-trait-for-tuples = "0.2.2"
 codec      = { package = "parity-scale-codec", version = "3", default-features = false }
 xcm = { git = "https://github.com/paritytech/polkadot", tag = "v0.9.19", default-features = false }
-pallet-xbi-portal = { path = "..", default-features = false }
+pallet-xbi-portal = { path = "../..", default-features = false }
 t3rn-primitives = { path = "../../../primitives", default-features = false }
 
 cumulus-primitives-core             = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.27', default-features = false }

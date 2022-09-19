@@ -1,0 +1,68 @@
+[package]
+authors = ["t3rn <team@t3rn.io>"]
+edition = "2021"
+name = "pallet-xbi-portal"
+description = "An abstract and configurable XCM message executor."
+version = "0.9.26"
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3", default-features = false }
+impl-trait-for-tuples = "0.2.2"
+log = { version = "0.4.14", default-features = false }
+scale-info = { version = "2.1.1", default-features = false, features = [
+    "derive",
+] }
+serde = { default-features = false, version = "1.0", optional = true }
+
+substrate-abi = { path = "../../crates/sabi", default-features = false }
+substrate-contracts-abi = { path = "../../crates/scabi", default-features = false }
+
+xbi-sender = { path = "../../crates/sender", default-features = false }
+
+#cumulus-primitives-core = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.27', default-features = false }
+#
+## should have additional compilation flag added only if ORML is used
+#orml-traits = { git = "https://github.com/t3rn/open-runtime-module-library", branch = "polkadot-v0.9.27", default-features = false, optional = true }
+## should have additional compilation flag added only if Pallet Assets is used
+#pallet-assets = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+
+xcm = { git = "https://github.com/paritytech/polkadot", tag = "v0.9.26", default-features = false }
+pallet-xcm = { git = "https://github.com/paritytech/polkadot", tag = "v0.9.26", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-inherents = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true }
+
+[dev-dependencies]
+pallet-evm = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.27" }
+#pallet-base-fee = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.27" }
+#pallet-ethereum = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.27" }
+
+[features]
+default = ["std"]
+runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
+std = [
+    "codec/std",
+    "scale-info/std",
+    "xcm/std",
+    "pallet-xcm/std",
+    "serde/std",
+    "sp-std/std",
+    "sp-inherents/std",
+    "sp-io/std",
+    "sp-arithmetic/std",
+    "sp-core/std",
+    "sp-runtime/std",
+    "frame-support/std",
+    "frame-system/std",
+#    "cumulus-primitives-core/std",
+    "log/std",
+#    "pallet-assets/std",
+    "xbi-sender/std"
+]

@@ -2,6 +2,8 @@ use codec::{Decode, Encode};
 use core::fmt::Debug;
 use frame_support::RuntimeDebug;
 use scale_info::TypeInfo;
+use sp_core::Hasher;
+use sp_runtime::traits::Hash;
 use sp_runtime::AccountId32;
 use sp_std::prelude::*;
 
@@ -241,6 +243,12 @@ impl XBIMetadata {
     ) -> Result<Balance, crate::Error<T>> {
         Decode::decode(&mut &self.max_notifications_cost.encode()[..])
             .map_err(|_e| crate::Error::<T>::EnterFailedOnMultiLocationTransform)
+    }
+
+    pub fn id<Hashing: Hash + Hasher<Out = <Hashing as Hash>::Output>>(
+        &self,
+    ) -> <Hashing as Hasher>::Out {
+        <Hashing as Hasher>::hash(&self.id.encode()[..])
     }
 
     pub fn new(

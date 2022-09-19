@@ -6,3 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+xbi-format = { path = "../../crates/xbi-format", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+    "xbi-format/std"
+]

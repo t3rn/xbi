@@ -1,6 +1,9 @@
 use codec::{Decode, Encode};
+use core::fmt::Debug;
 use frame_support::RuntimeDebug;
 use scale_info::TypeInfo;
+use sp_core::Hasher;
+use sp_runtime::traits::Hash;
 use sp_runtime::AccountId32;
 use sp_std::prelude::*;
 
@@ -36,7 +39,7 @@ impl Default for XBICheckOutStatus {
 
 #[derive(Clone, Eq, PartialEq, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
 pub struct XBICheckOut {
-    pub xbi: XBIInstr, // XBIInstr::Result
+    pub xbi: XBIInstr, // TODO: XBIInstr::Result(XbiResult { }), then the result can be a struct here
     pub resolution_status: XBICheckOutStatus,
     pub checkout_timeout: Timeout,
     pub actual_execution_cost: Value,
@@ -69,7 +72,7 @@ impl XBICheckOut {
         }
     }
 
-    pub fn new_ignore_costs<T: frame_system::Config>(
+    pub fn new_ignore_costs<T: frame_system::Config + crate::pallet::Config>(
         _delivery_timeout: T::BlockNumber,
         output: Vec<u8>,
         resolution_status: XBICheckOutStatus,
@@ -98,13 +101,13 @@ pub struct XBICheckIn<BlockNumber> {
     pub notification_execution_timeout: BlockNumber,
 }
 
-#[derive(Clone, Eq, PartialEq, RuntimeDebug, Default, Encode, Decode, TypeInfo)]
+#[derive(Clone, Eq, PartialEq, Debug, Default, Encode, Decode, TypeInfo)]
 pub struct XBIFormat {
     pub instr: XBIInstr,
     pub metadata: XBIMetadata,
 }
 
-#[derive(Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Eq, PartialEq, Debug, TypeInfo)]
 pub enum XBIInstr {
     // 0
     Unknown {
@@ -182,7 +185,7 @@ pub enum XBIInstr {
         asset_b: AssetId,
         amount: Value,
     },
-    // 255
+    // 255 TODO: make this a tuple type with a struct XbiResult
     Result {
         outcome: XBICheckOutStatus,
         output: Data,
@@ -198,13 +201,13 @@ impl Default for XBIInstr {
 
 pub type Timeout = u32;
 
-#[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo)]
+#[derive(Clone, Eq, PartialEq, Debug, Encode, Decode, TypeInfo)]
 pub enum XBINotificationKind {
     Sent,
     Delivered,
     Executed,
 }
-#[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo)]
+#[derive(Clone, Eq, PartialEq, Debug, Encode, Decode, TypeInfo)]
 pub struct ActionNotificationTimeouts {
     pub action: Timeout,
     pub notification: Timeout,
@@ -219,7 +222,7 @@ impl Default for ActionNotificationTimeouts {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, RuntimeDebug, Default, Encode, Decode, TypeInfo)]
+#[derive(Clone, Eq, PartialEq, Debug, Default, Encode, Decode, TypeInfo)]
 pub struct XBIMetadata {
     pub id: sp_core::H256,
     pub dest_para_id: u32,
@@ -238,6 +241,19 @@ pub struct XBIMetadata {
 /// max_exec_cost -> exec_in_credit
 /// max_exec_cost -> exec_in_credit -> max execution cost (EVM/WASM::max_gas_fees)
 impl XBIMetadata {
+    pub fn to_exec_in_credit<T: crate::Config, Balance: Encode + Decode + Clone>(
+        &self,
+    ) -> Result<Balance, crate::Error<T>> {
+        Decode::decode(&mut &self.max_notifications_cost.encode()[..])
+            .map_err(|_e| crate::Error::<T>::EnterFailedOnMultiLocationTransform)
+    }
+
+    pub fn id<Hashing: Hash + Hasher<Out = <Hashing as Hash>::Output>>(
+        &self,
+    ) -> <Hashing as Hasher>::Out {
+        <Hashing as Hasher>::hash(&self.id.encode()[..])
+    }
+
     pub fn new(
         id: sp_core::H256,
         dest_para_id: u32,

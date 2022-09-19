@@ -12,8 +12,7 @@ pub use pallet::*;
 pub use xcm::latest;
 
 use crate::primitives::xcm::XCM;
-use crate::xbi_codec::XBICheckIn;
-use crate::xbi_format::{XBIFormat, XBIInstr};
+use crate::xbi_codec::{XBICheckIn, XBICheckOut, XBICheckOutStatus};
 use codec::Encode;
 use xbi_sender::Sender;
 use xcm::latest::{Instruction, MultiLocation, OriginKind, Xcm};
@@ -36,7 +35,6 @@ pub mod pallet {
     };
     use frame_support::pallet_prelude::*;
     use frame_system::{offchain::SendTransactionTypes, pallet_prelude::*};
-    use sp_core::Hasher;
     use sp_runtime::traits::StaticLookup;
     use sp_std::{default::Default, prelude::*};
     use xcm::latest::prelude::*;
@@ -307,12 +305,15 @@ pub mod pallet {
             checkin: XBICheckIn<T::BlockNumber>,
             xbi_id: T::Hash,
         ) -> DispatchResult {
-            // let _who = ensure_signed(origin)?;
+            let _who = ensure_signed(origin.clone())?;
 
             let dest = checkin.xbi.metadata.dest_para_id;
+
+            // TODO: bake this in pre-send
             // If ordered execution locally via XBI : (T::MyParachainId::get(), T::MyParachainId::get())
             // Or if received XBI order of execution from remote Parachain
             if dest == T::MyParachainId::get() {
+                // TODO: receiver must take checkouts & checkins if both handler and results
                 let instant_checkout = match Self::channel_receive(origin, checkin.clone()) {
                     Err(e) => XBICheckOut::new_ignore_costs::<T>(
                         checkin.notification_delivery_timeout,
@@ -332,41 +333,24 @@ pub mod pallet {
                 };
                 <XBICheckOutsQueued<T>>::insert(xbi_id, instant_checkout);
             } else {
-                match <Self as Sender<_>>::send((
-                    Self::target_2_xcm_location(dest)?.into(),
-                    checkin.clone(),
-                )) {
-                    // Instant checkout with error
-                    Err(e) => {
-                        <XBICheckOutsQueued<T>>::insert(
-                            xbi_id,
-                            XBICheckOut::new_ignore_costs::<T>(
-                                checkin.notification_delivery_timeout,
-                                e.encode(),
-                                XBICheckOutStatus::ErrorFailedOnXCMDispatch,
-                            ),
-                        );
-                    }
-                    // Insert pending
-                    Ok(_) => {
-                        <XBICheckInsPending<T>>::insert(xbi_id, checkin);
-                    }
-                }
+                Self::send((Self::target_2_xcm_location(dest)?.into(), checkin.clone()));
             }
 
             Ok(())
         }
 
+        // TODO: this needs to be baked into the store not here, pre send
         #[pallet::weight(50_000 + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
         pub fn check_in_xbi(_origin: OriginFor<T>, xbi: XBIFormat) -> DispatchResult {
             Self::queue(xbi).map_err(|e| e.into())
         }
 
         #[pallet::weight(50_000 + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
-        pub fn receive(origin: OriginFor<T>, xbi: XBICheckIn<T::BlockNumber>) -> DispatchResult {
+        pub fn receive(
+            origin: OriginFor<T>,
+            xbi: XBICheckIn<T::BlockNumber>,
+        ) -> DispatchResultWithPostInfo {
             Self::channel_receive(origin, xbi)
-                .map_err(|e| e.error)
-                .map(|_| ())
         }
     }
 
@@ -403,9 +387,9 @@ pub mod pallet {
         ////================================================================
         // TODO: at the moment this is used as receive, which has a double meaning here
         pub fn queue(xbi: XBIFormat) -> Result<(), Error<T>> {
-            let xbi_id = T::Hashing::hash(&xbi.metadata.id.encode()[..]);
+            let xbi_id = xbi.metadata.id::<T::Hashing>();
 
-            /// TODO: limit these queries to the checkin store, since the others just hold hashes
+            // TODO: limit these queries to the checkin store, since the others just hold hashes
             if <Self as Store>::XBICheckIns::contains_key(xbi_id)
                 || <Self as Store>::XBICheckInsQueued::contains_key(xbi_id)
                 || <Self as Store>::XBICheckInsPending::contains_key(xbi_id)
@@ -444,10 +428,12 @@ pub mod pallet {
             origin: OriginFor<T>,
             checkin: XBICheckIn<T::BlockNumber>,
         ) -> DispatchResultWithPostInfo {
-            let caller = ensure_signed(origin.clone())?;
+            let _who = ensure_signed(origin.clone())?;
+
             let dest = checkin.xbi.metadata.src_para_id;
-            let xbi_id = T::Hashing::hash(&checkin.encode()[..]); // FIXME: dont do this
-                                                                  // FIXME: too many clones
+            let xbi_id = checkin.xbi.metadata.id::<T::Hashing>();
+
+            // FIXME: too many clones
             match Self::handle_instruction(origin, checkin.xbi.clone()) {
                 Ok(info) => {
                     // If ordered execution locally via XBI : (T::MyParachainId::get(), T::MyParachainId::get())
@@ -463,25 +449,7 @@ pub mod pallet {
                         )?;
                         <XBICheckOutsQueued<T>>::insert(xbi_id, instant_checkout);
                     } else {
-                        match Self::send((
-                            Self::target_2_xcm_location(dest)?.into(),
-                            checkin.clone(),
-                        )) {
-                            // Instant checkout with error
-                            Err(e) => {
-                                <XBICheckOutsQueued<T>>::insert(
-                                    xbi_id,
-                                    XBICheckOut::new_ignore_costs::<T>(
-                                        checkin.notification_delivery_timeout,
-                                        e.encode(),
-                                        XBICheckOutStatus::ErrorFailedOnXCMDispatch,
-                                    ),
-                                );
-                            }
-                            Ok(_) => {
-                                <XBICheckInsPending<T>>::insert(xbi_id, checkin);
-                            }
-                        }
+                        Self::send((Self::target_2_xcm_location(dest)?.into(), checkin.clone()));
                     }
                     // TODO: prolly wrong
                     Ok(Default::default())
@@ -492,25 +460,10 @@ pub mod pallet {
                         e.encode(),
                         XBICheckOutStatus::ErrorFailedExecution,
                     );
-                    match Self::send((Self::target_2_xcm_location(dest)?.into(), checkin.clone())) {
-                        // Instant checkout with error
-                        Err(e) => {
-                            <XBICheckOutsQueued<T>>::insert(
-                                xbi_id,
-                                XBICheckOut::new_ignore_costs::<T>(
-                                    checkin.notification_delivery_timeout,
-                                    e.encode(),
-                                    XBICheckOutStatus::ErrorFailedOnXCMDispatch,
-                                ),
-                            );
-                            Err(e.into())
-                        }
-                        Ok(_) => {
-                            <XBICheckInsPending<T>>::insert(xbi_id, checkin);
-                            // TODO: no
-                            Ok(Default::default())
-                        }
-                    }
+                    <XBICheckOutsQueued<T>>::insert(xbi_id, checkout);
+                    // TODO: fix me, both are wrong
+                    Self::send((Self::target_2_xcm_location(dest)?.into(), checkin.clone()));
+                    Ok(Default::default())
                 }
             }
         }
@@ -674,19 +627,45 @@ impl<T: Config> Sender<(VersionedMultiLocation, XBICheckIn<T::BlockNumber>)> for
     type Outcome = Result<(), Error<T>>;
     fn send(xbi: (VersionedMultiLocation, XBICheckIn<T::BlockNumber>)) -> Self::Outcome {
         let (dest, checkin) = xbi;
-        let dest = MultiLocation::try_from(dest)
-            .map_err(|()| Error::<T>::EnterFailedOnMultiLocationTransform)?;
+        // TODO: we need to do more here, we need the store, and we need to be able to queue/enqueue this, atm it is just 1 for 1
+        let xbi_id = checkin.xbi.metadata.id::<T::Hashing>();
 
-        let require_weight_at_most = checkin.xbi.metadata.max_exec_cost as u64;
+        let result: Self::Outcome = {
+            let dest = MultiLocation::try_from(dest)
+                .map_err(|()| Error::<T>::EnterFailedOnMultiLocationTransform)?;
 
-        let xbi_call = pallet::Call::receive::<T> { xbi: checkin };
-        let xbi_format_msg = Xcm(vec![Instruction::Transact {
-            origin_type: OriginKind::SovereignAccount,
-            require_weight_at_most,
-            call: xbi_call.encode().into(),
-        }]);
+            let require_weight_at_most = checkin.xbi.metadata.max_exec_cost as u64;
 
-        T::Xcm::send_xcm(xcm::prelude::Here, dest, xbi_format_msg)
-            .map_err(|_| Error::<T>::EnterFailedOnXcmSend)
+            let xbi_call = pallet::Call::receive::<T> {
+                xbi: checkin.clone(),
+            };
+            let xbi_format_msg = Xcm(vec![Instruction::Transact {
+                origin_type: OriginKind::SovereignAccount,
+                require_weight_at_most,
+                call: xbi_call.encode().into(),
+            }]);
+
+            // TODO: may be different consensus mechanisms
+            T::Xcm::send_xcm(xcm::prelude::Here, dest, xbi_format_msg)
+                .map_err(|_| Error::<T>::EnterFailedOnXcmSend)
+        };
+
+        match result {
+            Ok(_) => {
+                <XBICheckInsPending<T>>::insert(xbi_id, checkin);
+                Ok(())
+            }
+            Err(e) => {
+                <XBICheckOutsQueued<T>>::insert(
+                    xbi_id,
+                    XBICheckOut::new_ignore_costs::<T>(
+                        checkin.notification_delivery_timeout,
+                        e.encode(),
+                        XBICheckOutStatus::ErrorFailedOnXCMDispatch,
+                    ),
+                );
+                Err(e)
+            }
+        }
     }
 }
