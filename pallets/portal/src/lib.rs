@@ -525,15 +525,12 @@ pub mod pallet {
                     false,
                 ),
                 XBIInstr::CallCustom { .. } => Err(Error::<T>::XBIInstructionNotAllowedHere.into()),
-                XBIInstr::Transfer { dest, value } => {
-                    T::Transfers::transfer(
-                        &caller,
-                        &XbiAbi::<T>::address_global_2_local(dest.encode())?,
-                        XbiAbi::<T>::value_global_2_local(value)?,
-                        true,
-                    )?;
-                    Ok(().into())
-                }
+                XBIInstr::Transfer { dest, value } => T::Transfers::transfer(
+                    &caller,
+                    &XbiAbi::<T>::address_global_2_local(dest.encode())?,
+                    XbiAbi::<T>::value_global_2_local(value)?,
+                    true,
+                ),
                 XBIInstr::TransferAssets {
                     currency_id,
                     dest,
@@ -623,6 +620,7 @@ pub mod pallet {
     }
 }
 
+// TODO: atm this is not a blanket impl, we need to extract a lot of this into functionality, lets get it working first
 impl<T: Config> Sender<(VersionedMultiLocation, XBICheckIn<T::BlockNumber>)> for Pallet<T> {
     type Outcome = Result<(), Error<T>>;
     fn send(xbi: (VersionedMultiLocation, XBICheckIn<T::BlockNumber>)) -> Self::Outcome {

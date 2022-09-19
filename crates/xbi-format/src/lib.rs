@@ -72,7 +72,7 @@ impl XBICheckOut {
         }
     }
 
-    pub fn new_ignore_costs<T: frame_system::Config + crate::pallet::Config>(
+    pub fn new_ignore_costs<T: frame_system::Config>(
         _delivery_timeout: T::BlockNumber,
         output: Vec<u8>,
         resolution_status: XBICheckOutStatus,
@@ -241,12 +241,12 @@ pub struct XBIMetadata {
 /// max_exec_cost -> exec_in_credit
 /// max_exec_cost -> exec_in_credit -> max execution cost (EVM/WASM::max_gas_fees)
 impl XBIMetadata {
-    pub fn to_exec_in_credit<T: crate::Config, Balance: Encode + Decode + Clone>(
-        &self,
-    ) -> Result<Balance, crate::Error<T>> {
-        Decode::decode(&mut &self.max_notifications_cost.encode()[..])
-            .map_err(|_e| crate::Error::<T>::EnterFailedOnMultiLocationTransform)
-    }
+    // pub fn to_exec_in_credit<T: crate::Config, Balance: Encode + Decode + Clone>(
+    //     &self,
+    // ) -> Result<Balance, crate::Error<T>> {
+    //     Decode::decode(&mut &self.max_notifications_cost.encode()[..])
+    //         .map_err(|_e| crate::Error::<T>::EnterFailedOnMultiLocationTransform)
+    // }
 
     pub fn id<Hashing: Hash + Hasher<Out = <Hashing as Hash>::Output>>(
         &self,
