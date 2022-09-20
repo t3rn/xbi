@@ -1,11 +1,15 @@
-use std::marker::PhantomData;
-use xbi_format::{XBICheckIn, XBICheckOut, XBICheckOutStatus, XBIFormat};
+use codec::{Decode, Encode};
+use scale_info::TypeInfo;
+use sp_std::marker::PhantomData;
+use xbi_format::{XBICheckIn, XBICheckOut, XBICheckOutStatus, XBIFormat, XBIInstr};
 
-// #[cfg(feature = "frame")]
+#[cfg(feature = "frame")]
 use frame_support::pallet_prelude::DispatchResultWithPostInfo;
+#[cfg(feature = "frame")]
 use frame_system::{ensure_signed, Config};
 
 /// Receivers either handle requests (checkins) or responses(checkouts)
+#[derive(Clone, Eq, PartialEq, Encode, Decode, TypeInfo, Debug)]
 pub enum Message<BlockNumber> {
     // #[cfg(feature = "requests")]
     CheckIn(XBICheckIn<BlockNumber>),
@@ -35,18 +39,20 @@ pub trait Receiver<BlockNumber> {
 
     /// Response should update the state of the storage checkout queues and notify the sender of completion
     fn handle_response(caller: Self::Origin, msg: XBICheckOut) -> Self::Outcome;
-
-    fn is_invoke_self(src: u32, dest: u32) -> bool {
-        src == dest
-    }
 }
 
-// #[cfg(feature = "frame")]
-pub struct FrameReceiver<T: Config> {
-    phantom: PhantomData<T>,
+#[cfg(feature = "frame")]
+pub struct FrameReceiver<T, Sender> {
+    phantom: PhantomData<(T, Sender)>,
 }
 
-impl<T: Config> Receiver<T::BlockNumber> for FrameReceiver<T> {
+#[cfg(feature = "frame")]
+pub type ParachainTargetId = u32;
+
+#[cfg(feature = "frame")]
+impl<T: Config, Sender: xbi_sender::Sender<(ParachainTargetId, Message<T::BlockNumber>)>>
+    Receiver<T::BlockNumber> for FrameReceiver<T, Sender>
+{
     type Origin = T::Origin;
     type Outcome = DispatchResultWithPostInfo;
 
@@ -57,36 +63,37 @@ impl<T: Config> Receiver<T::BlockNumber> for FrameReceiver<T> {
     ) -> DispatchResultWithPostInfo {
         let _who = ensure_signed(origin.clone())?;
         let xbi_id = msg.xbi.metadata.id::<T::Hashing>();
+        let dest = msg.xbi.metadata.src_para_id;
 
         match Self::handle_instruction(origin, msg.xbi.clone()) {
             Ok(info) => {
-                if Self::is_invoke_self(msg.xbi.metadata.src_para_id, msg.xbi.metadata.dest_para_id)
-                {
-                    let actual_delivery_cost = 0;
-                    // let instant_checkout = XbiAbi::<T>::post_dispatch_info_2_xbi_checkout(
-                    //     info,
-                    //     checkin.notification_delivery_timeout,
-                    //     XBICheckOutStatus::SuccessfullyExecuted,
-                    //     actual_delivery_cost,
-                    // )?;
-                    // <XBICheckOutsQueued<T>>::insert(xbi_id, instant_checkout); TODO: update queued
-                    Ok(Default::default()) //TODO: no
-                } else {
-                    // TODO: send
-                    // Self::send((Self::target_2_xcm_location(dest)?.into(), checkin.clone()));
-                    Ok(Default::default()) //TODO: no
-                }
+                // todo: source for the cost of XBI Dispatch - execute in credit
+                let actual_delivery_cost = 0;
+                let execution_cost = info.actual_weight.map(|w| w.into()).unwrap_or(0);
+                Sender::send((
+                    dest,
+                    // TODO: use scabi to convert postdispatch_info
+                    Message::CheckOut(XBICheckOut::new::<T>(
+                        msg.notification_delivery_timeout,
+                        info.encode(),
+                        XBICheckOutStatus::SuccessfullyExecuted,
+                        execution_cost,
+                        actual_delivery_cost,
+                        actual_delivery_cost + execution_cost,
+                    )),
+                ));
+                Ok(info)
             }
             Err(e) => {
-                // let checkout = XBICheckOut::new_ignore_costs::<T>( TODO: T only needs blocknumber
-                //     msg.notification_delivery_timeout,
-                //     e.encode(),
-                //     XBICheckOutStatus::ErrorFailedExecution,
-                // );
+                let checkout = XBICheckOut::new_ignore_costs::<T>(
+                    msg.notification_delivery_timeout,
+                    e.encode(),
+                    XBICheckOutStatus::ErrorFailedExecution,
+                );
+                // TODO: another option is to queue these messages with destinations and the queue knows about the sender/receiver
                 // <XBICheckOutsQueued<T>>::insert(xbi_id, checkout);
-                // TODO: fix me, both are wrong
-                // Self::send((Self::target_2_xcm_location(dest)?.into(), checkin.clone()));
-                Ok(Default::default())
+                Sender::send((dest, Message::CheckOut(checkout)));
+                Err(e)
             }
         }
     }
@@ -94,6 +101,21 @@ impl<T: Config> Receiver<T::BlockNumber> for FrameReceiver<T> {
     /// This enables the receiver to select which instructions it wants to handle
     fn handle_instruction(origin: Self::Origin, xbi: XBIFormat) -> DispatchResultWithPostInfo {
         let caller = ensure_signed(origin.clone())?;
+        // TODO: provide the callbacks here
+        match xbi.instr {
+            XBIInstr::Unknown { .. } => {}
+            XBIInstr::CallNative { .. } => {}
+            XBIInstr::CallEvm { .. } => {}
+            XBIInstr::CallWasm { .. } => {}
+            XBIInstr::CallCustom { .. } => {}
+            XBIInstr::Transfer { .. } => {}
+            XBIInstr::TransferAssets { .. } => {}
+            XBIInstr::Swap { .. } => {}
+            XBIInstr::AddLiquidity { .. } => {}
+            XBIInstr::RemoveLiquidity { .. } => {}
+            XBIInstr::GetPrice { .. } => {}
+            XBIInstr::Result { .. } => {}
+        }
         Ok(Default::default()) // TODO: no
     }
 

@@ -20,6 +20,7 @@ frame-support = { git = "https://github.com/paritytech/substrate", branch = "pol
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true }
 
 xbi-format = { path = "../../crates/xbi-format", default-features = false }
+xbi-sender = { path = "../../crates/sender", default-features = false }
 
 [features]
 default = ["std", "frame-std"]
@@ -29,6 +30,7 @@ frame = [ "frame-support", "frame-system"]
 frame-std = [ "frame-support/std", "frame-system/std"]
 std = [
     "xbi-format/std",
+    "xbi-sender/std",
     "sp-std/std",
     "sp-io/std",
     "sp-core/std",

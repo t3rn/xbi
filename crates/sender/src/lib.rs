@@ -1,7 +1,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+// TODO: merge this into xbi-channel and use flags instead, will be nicer.
+
 use sp_runtime::traits::Dispatchable;
-use sp_runtime::DispatchResultWithInfo;
+use sp_runtime::{sp_std, DispatchResultWithInfo};
+use sp_std::prelude::*;
 
 /// Sender is the trait providing the base `send` function.
 /// All implementations of subtypes of sender must also provide an implementation of `send`.
@@ -38,6 +41,18 @@ pub trait PromiseDelegate<T, Call: Dispatchable>: Sender<T> {
         req: T,
         promise: CallPromise<Self::Outcome, Call>,
     ) -> DispatchResultWithInfo<Call::PostInfo>;
+}
+
+// let instant_checkout = XbiAbi::<T>::post_dispatch_info_2_xbi_checkout(
+//     info,
+//     checkin.notification_delivery_timeout,
+//     XBICheckOutStatus::SuccessfullyExecuted,
+//     actual_delivery_cost,
+// )?;
+// <XBICheckOutsQueued<T>>::insert(xbi_id, instant_checkout); TODO: update queued
+// TODO: add me for blanket impl
+fn is_invoke_self(src: u32, dest: u32) -> bool {
+    src == dest
 }
 
 // Note: because of the store simulation, if one test fails, they all will fail. Run each one independently to find the busted test.

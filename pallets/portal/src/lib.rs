@@ -4,16 +4,16 @@
 
 pub mod primitives;
 pub mod xbi_abi;
-pub mod xbi_codec;
-pub mod xbi_format;
 pub mod xbi_scabi;
 
 pub use pallet::*;
 pub use xcm::latest;
 
 use crate::primitives::xcm::XCM;
-use crate::xbi_codec::{XBICheckIn, XBICheckOut, XBICheckOutStatus};
 use codec::Encode;
+use xbi_format::{XBICheckIn, XBICheckOut, XBICheckOutStatus};
+use xbi_receiver::Message;
+use xbi_receiver::Receiver;
 use xbi_sender::Sender;
 use xcm::latest::{Instruction, MultiLocation, OriginKind, Xcm};
 use xcm::VersionedMultiLocation;
@@ -29,7 +29,7 @@ pub mod pallet {
             assets::Assets, evm::Evm, transfers::Transfers, wasm::WASM, xbi_callback::XBICallback,
             xcm::XCM,
         },
-        xbi_format::*,
+        xbi_abi::*,
         xbi_scabi::Scabi,
         *,
     };
@@ -37,6 +37,7 @@ pub mod pallet {
     use frame_system::{offchain::SendTransactionTypes, pallet_prelude::*};
     use sp_runtime::traits::StaticLookup;
     use sp_std::{default::Default, prelude::*};
+    use xbi_format::*;
     use xcm::latest::prelude::*;
 
     /// Queue XBI for batch execution
@@ -103,6 +104,9 @@ pub mod pallet {
         type Xcm: XCM<Self>;
 
         type Callback: XBICallback<Self>;
+
+        // type Receiver: Receiver<Self::BlockNumber> =
+        //     xbi_receiver::FrameReceiver<Self::BlockNumber, Self>;
 
         #[pallet::constant]
         type ExpectedBlockTimeMs: Get<u32>;
@@ -333,7 +337,7 @@ pub mod pallet {
                 };
                 <XBICheckOutsQueued<T>>::insert(xbi_id, instant_checkout);
             } else {
-                Self::send((Self::target_2_xcm_location(dest)?.into(), checkin.clone()));
+                Self::send((dest, Message::CheckIn(checkin.clone())));
             }
 
             Ok(())
@@ -348,9 +352,17 @@ pub mod pallet {
         #[pallet::weight(50_000 + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
         pub fn receive(
             origin: OriginFor<T>,
-            xbi: XBICheckIn<T::BlockNumber>,
+            msg: Message<T::BlockNumber>,
         ) -> DispatchResultWithPostInfo {
-            Self::channel_receive(origin, xbi)
+            // Self::channel_receive(origin, xbi)
+            match msg {
+                Message::CheckIn(checkin) => {
+                    xbi_receiver::FrameReceiver::<T, Self>::handle_request(origin, checkin)
+                }
+                Message::CheckOut(checkout) => {
+                    xbi_receiver::FrameReceiver::<T, Self>::handle_response(origin, checkout)
+                }
+            }
         }
     }
 
@@ -449,10 +461,9 @@ pub mod pallet {
                         )?;
                         <XBICheckOutsQueued<T>>::insert(xbi_id, instant_checkout);
                     } else {
-                        Self::send((Self::target_2_xcm_location(dest)?.into(), checkin.clone()));
+                        Self::send((dest, Message::CheckIn(checkin.clone())));
                     }
-                    // TODO: prolly wrong
-                    Ok(Default::default())
+                    Ok(info)
                 }
                 Err(e) => {
                     let checkout = XBICheckOut::new_ignore_costs::<T>(
@@ -460,10 +471,9 @@ pub mod pallet {
                         e.encode(),
                         XBICheckOutStatus::ErrorFailedExecution,
                     );
-                    <XBICheckOutsQueued<T>>::insert(xbi_id, checkout);
-                    // TODO: fix me, both are wrong
-                    Self::send((Self::target_2_xcm_location(dest)?.into(), checkin.clone()));
-                    Ok(Default::default())
+                    <XBICheckOutsQueued<T>>::insert(xbi_id, checkout.clone());
+                    Self::send((dest, Message::CheckOut(checkout)));
+                    Err(e)
                 }
             }
         }
@@ -525,25 +535,28 @@ pub mod pallet {
                     false,
                 ),
                 XBIInstr::CallCustom { .. } => Err(Error::<T>::XBIInstructionNotAllowedHere.into()),
-                XBIInstr::Transfer { dest, value } => T::Transfers::transfer(
-                    &caller,
-                    &XbiAbi::<T>::address_global_2_local(dest.encode())?,
-                    XbiAbi::<T>::value_global_2_local(value)?,
-                    true,
-                ),
+                XBIInstr::Transfer { dest, value } => {
+                    T::Transfers::transfer(
+                        &caller,
+                        &XbiAbi::<T>::address_global_2_local(dest.encode())?,
+                        XbiAbi::<T>::value_global_2_local(value)?,
+                        true,
+                    )?;
+                    Ok(().into())
+                }
                 XBIInstr::TransferAssets {
                     currency_id,
                     dest,
                     value,
                 } => {
-                    T::Assets::transfer(
-                        origin,
-                        currency_id,
-                        <T::Lookup as StaticLookup>::unlookup(XbiAbi::<T>::address_global_2_local(
-                            dest.encode(),
-                        )?),
-                        XbiAbi::<T>::value_global_2_local(value)?,
-                    )?;
+                    // T::Assets::transfer(
+                    //     origin,
+                    //     currency_id,
+                    //     <T::Lookup as StaticLookup>::unlookup(XbiAbi::<T>::address_global_2_local(
+                    //         dest.encode(),
+                    //     )?),
+                    //     XbiAbi::<T>::value_global_2_local(value)?,
+                    // )?;
                     Ok(().into())
                 }
                 XBIInstr::Swap {
@@ -552,46 +565,58 @@ pub mod pallet {
                     amount,
                     max_limit,
                     discount,
-                } => T::DeFi::swap(
-                    origin,
-                    asset_out,
-                    asset_in,
-                    XbiAbi::<T>::value_global_2_local(amount)?,
-                    XbiAbi::<T>::value_global_2_local(max_limit)?,
-                    discount,
-                ),
+                } => {
+                    // T::DeFi::swap(
+                    //     origin,
+                    //     asset_out,
+                    //     asset_in,
+                    //     XbiAbi::<T>::value_global_2_local(amount)?,
+                    //     XbiAbi::<T>::value_global_2_local(max_limit)?,
+                    //     discount,
+                    // )?;
+                    Ok(().into())
+                }
                 XBIInstr::AddLiquidity {
                     asset_a,
                     asset_b,
                     amount_a,
                     amount_b_max_limit,
-                } => T::DeFi::add_liquidity(
-                    origin,
-                    asset_a,
-                    asset_b,
-                    XbiAbi::<T>::value_global_2_local(amount_a)?,
-                    XbiAbi::<T>::value_global_2_local(amount_b_max_limit)?,
-                ),
+                } => {
+                    // T::DeFi::add_liquidity(
+                    //     origin,
+                    //     asset_a,
+                    //     asset_b,
+                    //     XbiAbi::<T>::value_global_2_local(amount_a)?,
+                    //     XbiAbi::<T>::value_global_2_local(amount_b_max_limit)?,
+                    // );
+                    Ok(().into())
+                }
                 XBIInstr::RemoveLiquidity {
                     asset_a,
                     asset_b,
                     liquidity_amount,
-                } => T::DeFi::remove_liquidity(
-                    origin,
-                    asset_a,
-                    asset_b,
-                    XbiAbi::<T>::value_global_2_local(liquidity_amount)?,
-                ),
+                } => {
+                    // T::DeFi::remove_liquidity(
+                    //     origin,
+                    //     asset_a,
+                    //     asset_b,
+                    //     XbiAbi::<T>::value_global_2_local(liquidity_amount)?,
+                    // );
+                    Ok(().into())
+                }
                 XBIInstr::GetPrice {
                     asset_a,
                     asset_b,
                     amount,
-                } => T::DeFi::get_price(
-                    origin,
-                    asset_a,
-                    asset_b,
-                    XbiAbi::<T>::value_global_2_local(amount)?,
-                ),
+                } => {
+                    // T::DeFi::get_price(
+                    //     origin,
+                    //     asset_a,
+                    //     asset_b,
+                    //     XbiAbi::<T>::value_global_2_local(amount)?,
+                    // );
+                    Ok(().into())
+                }
                 XBIInstr::Result { .. } => Err(Error::<T>::XBIInstructionNotAllowedHere.into()),
                 XBIInstr::Unknown { .. } => Err(Error::<T>::XBIInstructionNotAllowedHere.into()),
             }
@@ -621,48 +646,96 @@ pub mod pallet {
 }
 
 // TODO: atm this is not a blanket impl, we need to extract a lot of this into functionality, lets get it working first
-impl<T: Config> Sender<(VersionedMultiLocation, XBICheckIn<T::BlockNumber>)> for Pallet<T> {
+impl<T: Config> Sender<(u32, Message<T::BlockNumber>)> for Pallet<T> {
     type Outcome = Result<(), Error<T>>;
-    fn send(xbi: (VersionedMultiLocation, XBICheckIn<T::BlockNumber>)) -> Self::Outcome {
-        let (dest, checkin) = xbi;
-        // TODO: we need to do more here, we need the store, and we need to be able to queue/enqueue this, atm it is just 1 for 1
-        let xbi_id = checkin.xbi.metadata.id::<T::Hashing>();
+    fn send(xbi: (u32, Message<T::BlockNumber>)) -> Self::Outcome {
+        let (dest, msg) = xbi;
+        let dest: VersionedMultiLocation = Self::target_2_xcm_location(dest)?.into();
 
-        let result: Self::Outcome = {
-            let dest = MultiLocation::try_from(dest)
-                .map_err(|()| Error::<T>::EnterFailedOnMultiLocationTransform)?;
+        match msg {
+            Message::CheckIn(checkin) => {
+                // TODO: we need to do more here, we need the store, and we need to be able to queue/enqueue this, atm it is just 1 for 1
+                let xbi_id = checkin.xbi.metadata.id::<T::Hashing>();
 
-            let require_weight_at_most = checkin.xbi.metadata.max_exec_cost as u64;
+                // TODO: if dest is self, just instant checkout
+                let result: Self::Outcome = {
+                    let dest = MultiLocation::try_from(dest)
+                        .map_err(|()| Error::<T>::EnterFailedOnMultiLocationTransform)?;
 
-            let xbi_call = pallet::Call::receive::<T> {
-                xbi: checkin.clone(),
-            };
-            let xbi_format_msg = Xcm(vec![Instruction::Transact {
-                origin_type: OriginKind::SovereignAccount,
-                require_weight_at_most,
-                call: xbi_call.encode().into(),
-            }]);
+                    let require_weight_at_most = checkin.xbi.metadata.max_exec_cost as u64;
 
-            // TODO: may be different consensus mechanisms
-            T::Xcm::send_xcm(xcm::prelude::Here, dest, xbi_format_msg)
-                .map_err(|_| Error::<T>::EnterFailedOnXcmSend)
-        };
+                    let xbi_call = pallet::Call::receive::<T> {
+                        msg: Message::CheckIn(checkin.clone()),
+                    };
+                    let xbi_format_msg = Xcm(vec![Instruction::Transact {
+                        origin_type: OriginKind::SovereignAccount,
+                        require_weight_at_most,
+                        call: xbi_call.encode().into(),
+                    }]);
 
-        match result {
-            Ok(_) => {
-                <XBICheckInsPending<T>>::insert(xbi_id, checkin);
-                Ok(())
+                    // TODO: may be different consensus mechanisms
+                    T::Xcm::send_xcm(xcm::prelude::Here, dest, xbi_format_msg)
+                        .map_err(|_| Error::<T>::EnterFailedOnXcmSend)
+                };
+
+                match result {
+                    Ok(_) => {
+                        <XBICheckInsPending<T>>::insert(xbi_id, checkin);
+                        Ok(())
+                    }
+                    Err(e) => {
+                        <XBICheckOutsQueued<T>>::insert(
+                            xbi_id,
+                            XBICheckOut::new_ignore_costs::<T>(
+                                checkin.notification_delivery_timeout,
+                                e.encode(),
+                                XBICheckOutStatus::ErrorFailedOnXCMDispatch,
+                            ),
+                        );
+                        Err(e)
+                    }
+                }
             }
-            Err(e) => {
-                <XBICheckOutsQueued<T>>::insert(
-                    xbi_id,
-                    XBICheckOut::new_ignore_costs::<T>(
-                        checkin.notification_delivery_timeout,
-                        e.encode(),
-                        XBICheckOutStatus::ErrorFailedOnXCMDispatch,
-                    ),
-                );
-                Err(e)
+            Message::CheckOut(checkout) => {
+                // TODO: do more here
+
+                let result: Self::Outcome = {
+                    let dest = MultiLocation::try_from(dest)
+                        .map_err(|()| Error::<T>::EnterFailedOnMultiLocationTransform)?;
+
+                    let require_weight_at_most = 1000_u64; // TODO: max cost for result messages
+
+                    let xbi_call = pallet::Call::receive::<T> {
+                        msg: Message::CheckOut(checkout.clone()),
+                    };
+                    let xbi_format_msg = Xcm(vec![Instruction::Transact {
+                        origin_type: OriginKind::SovereignAccount,
+                        require_weight_at_most,
+                        call: xbi_call.encode().into(),
+                    }]);
+
+                    // TODO: may be different consensus mechanisms
+                    T::Xcm::send_xcm(xcm::prelude::Here, dest, xbi_format_msg)
+                        .map_err(|_| Error::<T>::EnterFailedOnXcmSend)
+                };
+
+                match result {
+                    Ok(_) => {
+                        // <XBICheckOutsQueued<T>>::insert(xbi_id, checkout);
+                        Ok(())
+                    }
+                    Err(e) => {
+                        // <XBICheckOutsQueued<T>>::insert(
+                        //     xbi_id,
+                        //     XBICheckOut::new_ignore_costs::<T>(
+                        //         checkout.notification_delivery_timeout,
+                        //         e.encode(),
+                        //         XBICheckOutStatus::ErrorFailedOnXCMDispatch,
+                        //     ),
+                        // );
+                        Err(e)
+                    }
+                }
             }
         }
     }

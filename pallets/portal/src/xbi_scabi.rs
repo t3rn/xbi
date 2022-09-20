@@ -1,4 +1,4 @@
-use crate::{xbi_abi::*, xbi_format::*, Error};
+use crate::{xbi_abi::*, Error};
 use codec::Encode;
 use frame_support::{dispatch::PostDispatchInfo, weights::Weight};
 use frame_system::pallet_prelude::OriginFor;
@@ -6,6 +6,7 @@ use sp_core::{H160, H256, U256};
 use sp_runtime::traits::Convert;
 use sp_std::vec::Vec;
 use substrate_abi::{SubstrateAbiConverter, TryConvert};
+use xbi_format::*;
 
 pub trait Scabi<T: frame_system::Config + pallet_balances::Config> {
     fn args_evm_2_xbi_call_evm(
@@ -19,7 +20,7 @@ pub trait Scabi<T: frame_system::Config + pallet_balances::Config> {
         max_priority_fee_per_gas: Option<U256>,
         nonce: Option<U256>,
         access_list: Vec<(H160, Vec<H256>)>,
-    ) -> Result<XBIInstr, crate::Error<T>>;
+    ) -> Result<XBIInstr, Error<T>>;
 
     fn args_wasm_2_xbi_call_wasm(
         origin: T::AccountId,
@@ -29,7 +30,7 @@ pub trait Scabi<T: frame_system::Config + pallet_balances::Config> {
         storage_deposit_limit: Option<T::Balance>,
         data: Vec<u8>,
         debug: bool,
-    ) -> Result<XBIInstr, crate::Error<T>>;
+    ) -> Result<XBIInstr, Error<T>>;
 
     fn args_evm_2_xbi_call_wasm(
         origin: OriginFor<T>,
@@ -42,7 +43,7 @@ pub trait Scabi<T: frame_system::Config + pallet_balances::Config> {
         max_priority_fee_per_gas: Option<U256>,
         nonce: Option<U256>,
         access_list: Vec<(H160, Vec<H256>)>,
-    ) -> Result<XBIInstr, crate::Error<T>>;
+    ) -> Result<XBIInstr, Error<T>>;
 
     fn args_wasm_2_xbi_evm_wasm(
         origin: T::AccountId,
@@ -52,7 +53,7 @@ pub trait Scabi<T: frame_system::Config + pallet_balances::Config> {
         storage_deposit_limit: Option<T::Balance>,
         data: Vec<u8>,
         debug: bool,
-    ) -> Result<XBIInstr, crate::Error<T>>;
+    ) -> Result<XBIInstr, Error<T>>;
 
     fn post_dispatch_info_2_xbi_checkout(
         post_dispatch_info: PostDispatchInfo,
@@ -78,7 +79,7 @@ impl<T: crate::Config + frame_system::Config + pallet_balances::Config> Scabi<T>
         max_priority_fee_per_gas: Option<U256>,
         nonce: Option<U256>,
         access_list: Vec<(H160, Vec<H256>)>,
-    ) -> Result<XBIInstr, crate::Error<T>> {
+    ) -> Result<XBIInstr, Error<T>> {
         Ok(XBIInstr::CallEvm {
             source,
             target,

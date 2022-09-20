@@ -1,10 +1,7 @@
-use crate::{
-    xbi_abi::*,
-    xbi_codec::{ActionNotificationTimeouts, XBIFormat, XBIMetadata},
-    xbi_format::XBICheckOutStatus,
-    xbi_format::XBIInstr,
-};
+use crate::xbi_abi::*;
 use codec::{Decode, Encode};
+use xbi_format::{ActionNotificationTimeouts, XBIFormat, XBIMetadata};
+use xbi_format::{XBICheckOutStatus, XBIInstr};
 
 #[test]
 fn custom_encodes_decodes_xbi_evm() {
@@ -193,7 +190,7 @@ fn custom_encodes_decodes_xbi_transfer() {
 #[test]
 fn custom_encodes_decodes_xbi_transfer_assets() {
     let xbi_transfer_assets = XBIInstr::TransferAssets {
-        currency_id: 1u32,
+        currency_id: 1u64,
         dest: AccountId32::new([
             2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
             2, 2, 2,

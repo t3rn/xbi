@@ -1,8 +1,8 @@
+use crate::Error;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_std::marker::PhantomData;
-
-use crate::{xbi_format::*, Error};
+use xbi_format::*;
 
 pub trait XBIPortal<T: frame_system::Config> {
     fn do_check_in_xbi(xbi: XBIFormat) -> Result<(), Error<T>>;
