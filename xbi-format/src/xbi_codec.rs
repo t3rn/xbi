@@ -286,6 +286,7 @@ impl Decode for XBIInstr {
                 };
 
                 // Minimum length of XBI::CallWasm with empty / none values
+                // TODO: make all these unmagic and provide trait for them
                 // if len? < 52_usize {
                 //     return Err("Wrong XBI Order length".into());
                 // }
