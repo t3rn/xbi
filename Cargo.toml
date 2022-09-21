@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    'sabi',
+    'scabi',
+    'xbi-format'
+]
