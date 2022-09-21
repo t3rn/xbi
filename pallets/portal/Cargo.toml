@@ -14,12 +14,11 @@ scale-info = { version = "2.1.1", default-features = false, features = [
 ] }
 serde = { default-features = false, version = "1.0", optional = true }
 
-substrate-abi = { path = "../../crates/sabi", default-features = false }
-substrate-contracts-abi = { path = "../../crates/scabi", default-features = false }
-
+substrate-abi = { git = "https://github.com/t3rn/xbi.git", default-features = false }
+substrate-contracts-abi = { git = "https://github.com/t3rn/xbi.git", default-features = false }
 xbi-sender = { path = "../../crates/sender", default-features = false }
 xbi-receiver = { path = "../../crates/receiver", default-features = false, features = ["frame"] }
-xbi-format = {  path = "../../crates/xbi-format", default-features = false }
+xbi-format = { git = "https://github.com/t3rn/xbi.git", default-features = false }
 
 #cumulus-primitives-core = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.27', default-features = false }
 #

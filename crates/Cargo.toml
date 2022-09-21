@@ -1,9 +1,5 @@
 [workspace]
 members = [
-#    'pallets/*'
     'receiver',
     'sender',
-    'sabi',
-    'scabi',
-    'xbi-format'
 ]

@@ -19,7 +19,7 @@ sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkad
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true }
 
-xbi-format = { path = "../../crates/xbi-format", default-features = false }
+xbi-format = { git = "https://github.com/t3rn/xbi.git", default-features = false }
 xbi-sender = { path = "../../crates/sender", default-features = false }
 
 [features]
