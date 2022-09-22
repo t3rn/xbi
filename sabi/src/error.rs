@@ -15,12 +15,14 @@ pub enum Error {
     FailedToAssociateTypes,
 }
 
+#[allow(clippy::from_over_into)]
 impl<const IDX: u8> Into<DispatchError> for ModuleErrorProvider<IDX> {
     fn into(self) -> DispatchError {
         DispatchError::Module(self.into())
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<[u8; 4]> for Error {
     fn into(self) -> [u8; 4] {
         match self {
@@ -31,6 +33,7 @@ impl Into<[u8; 4]> for Error {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<&'static str> for Error {
     fn into(self) -> &'static str {
         match self {
@@ -41,6 +44,7 @@ impl Into<&'static str> for Error {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl<const IDX: u8> Into<ModuleError> for ModuleErrorProvider<IDX> {
     fn into(self) -> ModuleError {
         let error: [u8; 4] = self.0.clone().into();

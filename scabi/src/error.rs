@@ -20,12 +20,14 @@ impl From<substrate_abi::error::Error> for Error {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl<const IDX: u8> Into<DispatchError> for ModuleErrorProvider<IDX> {
     fn into(self) -> DispatchError {
         DispatchError::Module(self.into())
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl<const IDX: u8> Into<[u8; 4]> for ModuleErrorProvider<IDX> {
     fn into(self) -> [u8; 4] {
         match self.0 {
@@ -37,6 +39,7 @@ impl<const IDX: u8> Into<[u8; 4]> for ModuleErrorProvider<IDX> {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<&'static str> for Error {
     fn into(self) -> &'static str {
         match self {
@@ -55,6 +58,7 @@ impl Into<&'static str> for Error {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl<const IDX: u8> Into<ModuleError> for ModuleErrorProvider<IDX> {
     fn into(self) -> ModuleError {
         let error: [u8; 4] = self.clone().into();

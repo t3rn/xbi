@@ -22,6 +22,7 @@ pub struct CallEvm {
 }
 
 impl CallEvm {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         source: AccountId20,
         target: AccountId20,

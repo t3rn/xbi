@@ -294,6 +294,7 @@ impl XBIMetadata {
         <Hashing as Hasher>::hash(&self.id.encode()[..])
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: sp_core::H256,
         dest_para_id: u32,

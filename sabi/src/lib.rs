@@ -70,7 +70,7 @@ impl TryConvert<(AccountId20, [u8; 12])> for SubstrateAbiConverter {
         dest_bytes.append(&mut value.0.encode());
         dest_bytes.append(&mut value.1.encode());
 
-        Decode::decode(&mut &dest_bytes.as_slice()[..])
+        Decode::decode(&mut dest_bytes.as_slice())
             .map_err(|_e| Error::FailedToCastBetweenTypesValue)
     }
 }
@@ -85,7 +85,7 @@ impl TryConvert<AccountId32> for SubstrateAbiConverter {
 
         dest_bytes.append(&mut account_32_encoded[..20].to_vec());
 
-        Decode::decode(&mut &dest_bytes.as_slice()[..])
+        Decode::decode(&mut dest_bytes.as_slice())
             .map_err(|_e| Error::FailedToCastBetweenTypesValue)
     }
 }
