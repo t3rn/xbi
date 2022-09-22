@@ -2,13 +2,13 @@ use codec::{Decode, Encode};
 use error::Error;
 use sp_core::U256;
 use sp_runtime::traits::Convert;
+use sp_std::marker::PhantomData;
 use sp_std::prelude::*;
-use std::marker::PhantomData;
 
 /// Global XBI Types.
 pub type Data = Vec<u8>;
 /// A representation of an Asset Id, this is utilised for xbi instructions relating to multiple assets
-pub type AssetId = u64; // Could also be xcm::MultiAsset
+pub type AssetId = u32; // Could also be xcm::MultiAsset
 pub type Gas = u64;
 pub type AccountId32 = sp_runtime::AccountId32;
 pub type AccountId20 = sp_core::H160; // Could also take it from MultiLocation::Junction::AccountKey20 { network: NetworkId, key: [u8; 20] },
@@ -70,7 +70,7 @@ impl TryConvert<(AccountId20, [u8; 12])> for SubstrateAbiConverter {
         dest_bytes.append(&mut value.0.encode());
         dest_bytes.append(&mut value.1.encode());
 
-        Decode::decode(&mut &dest_bytes.as_slice()[..])
+        Decode::decode(&mut dest_bytes.as_slice())
             .map_err(|_e| Error::FailedToCastBetweenTypesValue)
     }
 }
@@ -85,7 +85,7 @@ impl TryConvert<AccountId32> for SubstrateAbiConverter {
 
         dest_bytes.append(&mut account_32_encoded[..20].to_vec());
 
-        Decode::decode(&mut &dest_bytes.as_slice()[..])
+        Decode::decode(&mut dest_bytes.as_slice())
             .map_err(|_e| Error::FailedToCastBetweenTypesValue)
     }
 }

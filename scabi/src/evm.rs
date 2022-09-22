@@ -22,6 +22,7 @@ pub struct CallEvm {
 }
 
 impl CallEvm {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         source: AccountId20,
         target: AccountId20,
@@ -107,9 +108,7 @@ mod tests {
             access_list,
         );
 
-        let call_wasm = SubstrateContractAbiConverter::try_convert(call_evm)
-            .unwrap()
-            .unwrap();
+        let call_wasm = SubstrateContractAbiConverter::try_convert(call_evm).unwrap();
 
         assert_eq!(
             call_wasm,

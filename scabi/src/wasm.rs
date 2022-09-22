@@ -56,8 +56,8 @@ impl TryFrom<CallEvm> for CallWasm {
         let storage_deposit_limit = None;
         let data = call.input;
         Ok(CallWasm {
-            origin_source: origin_source,
-            dest: dest,
+            origin_source,
+            dest,
             value,
             gas_limit,
             storage_deposit_limit,

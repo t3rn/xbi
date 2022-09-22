@@ -1,6 +1,2 @@
 [workspace]
-members = [
-    'sabi',
-    'scabi',
-    'xbi-format'
-]
+members = [ 'sabi', 'scabi', 'xbi-format' ]
