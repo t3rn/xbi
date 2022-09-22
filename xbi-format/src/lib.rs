@@ -42,6 +42,7 @@ impl Default for XBICheckOutStatus {
 // TODO: enrich the dtos in this library with reusable structs, so that the data is not flat.
 // e.g parachain dest & source are the same, but described by the variable over some dto.
 
+/// A representation of the state of an XBI message, meters relating to cost and any timeouts
 #[derive(Clone, Eq, PartialEq, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
 pub struct XBICheckOut {
     /// The requested instruction
@@ -134,14 +135,9 @@ pub struct XBIFormat {
 #[derive(Clone, Eq, PartialEq, Debug, TypeInfo)]
 pub enum XBIInstr {
     /// An opaque message providing the instruction identifier and some bytes
-    Unknown {
-        identifier: u8,
-        params: Vec<u8>,
-    },
+    Unknown { identifier: u8, params: Vec<u8> },
     /// A call native to the parachain, this is also opaque and can be custom
-    CallNative {
-        payload: Data,
-    },
+    CallNative { payload: Data },
     /// A call to an EVM contract
     CallEvm {
         source: AccountId20, // Could use either [u8; 20] or Junction::AccountKey20
@@ -172,10 +168,7 @@ pub enum XBIInstr {
         additional_params: Data,
     },
     /// A simple transfer
-    Transfer {
-        dest: AccountId32,
-        value: Value,
-    },
+    Transfer { dest: AccountId32, value: Value },
     /// A multiple asset transfer
     TransferAssets {
         currency_id: AssetId,

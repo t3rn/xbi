@@ -485,9 +485,9 @@ impl Encode for XBIInstr {
 mod tests {
     use super::*;
 
-    use codec::{Decode, Encode};
     use crate::{ActionNotificationTimeouts, XBIFormat, XBIMetadata};
     use crate::{XBICheckOutStatus, XBIInstr};
+    use codec::{Decode, Encode};
 
     #[test]
     fn custom_encodes_decodes_xbi_evm() {
@@ -575,8 +575,8 @@ mod tests {
     fn custom_encodes_decodes_xbi_wasm() {
         let xbi_wasm = XBIInstr::CallWasm {
             dest: AccountId32::new([
-                2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-                2, 2, 2,
+                2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                2, 2, 2, 2,
             ]),
             value: 1,
             gas_limit: 2,
@@ -593,8 +593,8 @@ mod tests {
     fn custom_encodes_decodes_empty_xbi_wasm() {
         let xbi_wasm = XBIInstr::CallWasm {
             dest: AccountId32::new([
-                2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-                2, 2, 2,
+                2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                2, 2, 2, 2,
             ]),
             value: 1,
             gas_limit: 2,
@@ -614,12 +614,12 @@ mod tests {
     fn custom_encodes_decodes_xbi_call_custom() {
         let xbi_call_custom = XBIInstr::CallCustom {
             caller: AccountId32::new([
-                2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-                2, 2, 2,
+                2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                2, 2, 2, 2,
             ]),
             dest: AccountId32::new([
-                2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-                2, 2, 2,
+                2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                2, 2, 2, 2,
             ]),
             value: 1,
             input: vec![8, 9],
@@ -637,12 +637,12 @@ mod tests {
     fn custom_encodes_decodes_empty_xbi_call_custom() {
         let xbi_call_custom = XBIInstr::CallCustom {
             caller: AccountId32::new([
-                2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-                2, 2, 2,
+                2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                2, 2, 2, 2,
             ]),
             dest: AccountId32::new([
-                2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-                2, 2, 2,
+                2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                2, 2, 2, 2,
             ]),
             value: 1,
             input: vec![],
@@ -661,13 +661,14 @@ mod tests {
     fn custom_encodes_decodes_xbi_transfer() {
         let xbi_transfer = XBIInstr::Transfer {
             dest: AccountId32::new([
-                2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-                2, 2, 2,
+                2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                2, 2, 2, 2,
             ]),
             value: 1,
         };
 
-        let decoded_xbi_transfer: XBIInstr = Decode::decode(&mut &xbi_transfer.encode()[..]).unwrap();
+        let decoded_xbi_transfer: XBIInstr =
+            Decode::decode(&mut &xbi_transfer.encode()[..]).unwrap();
         assert_eq!(decoded_xbi_transfer.encode(), xbi_transfer.encode());
         assert_eq!(xbi_transfer, decoded_xbi_transfer);
         assert_eq!(xbi_transfer.encode().len(), 49);
@@ -678,8 +679,8 @@ mod tests {
         let xbi_transfer_assets = XBIInstr::TransferAssets {
             currency_id: 1u32,
             dest: AccountId32::new([
-                2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-                2, 2, 2,
+                2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                2, 2, 2, 2,
             ]),
             value: 1,
         };

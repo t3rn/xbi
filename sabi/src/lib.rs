@@ -2,8 +2,8 @@ use codec::{Decode, Encode};
 use error::Error;
 use sp_core::U256;
 use sp_runtime::traits::Convert;
+use sp_std::marker::PhantomData;
 use sp_std::prelude::*;
-use std::marker::PhantomData;
 
 /// Global XBI Types.
 pub type Data = Vec<u8>;

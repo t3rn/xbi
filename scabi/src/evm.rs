@@ -107,8 +107,7 @@ mod tests {
             access_list,
         );
 
-        let call_wasm = SubstrateContractAbiConverter::try_convert(call_evm)
-            .unwrap();
+        let call_wasm = SubstrateContractAbiConverter::try_convert(call_evm).unwrap();
 
         assert_eq!(
             call_wasm,
