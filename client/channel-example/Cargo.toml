@@ -15,6 +15,7 @@ structopt = { version = "0.3.26" }
 structopt-toml = { version = "0.5.1" }
 thiserror = { version = "1.0.30" }
 anyhow = { version = "1.0.65" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
 
 serde = { version = "1.0.136",  features = ["derive"] }
 serde_json = { version = "1.0.79"}

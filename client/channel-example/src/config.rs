@@ -14,16 +14,19 @@ pub struct Config {
     #[structopt(short, long)]
     pub debug: bool,
 
-    /// Input file
-    #[structopt(short = "c", long = "config", parse(from_os_str))]
-    pub config_file: PathBuf,
+    /// The primary node host address, without protocol information
+    #[structopt(short = "i", long = "id", default_value = "1000")]
+    pub primary_node_id: u64,
 
-    // TODO: split these for node a node b, can be shared
     /// The primary node host address, without protocol information
     #[structopt(short = "h", long = "host", default_value = "127.0.0.1:9944")]
-    pub node_host: String,
+    pub primary_node_host: String,
 
     /// The primary node host address, without protocol information
     #[structopt(short = "p", long = "protocol", default_value = "ws")]
-    pub node_protocol: String,
+    pub primary_node_protocol: String,
+
+    /// A json array of additional subscriber configs
+    #[structopt(short = "s", long = "subscribe", default_value = "[]")]
+    pub subscribers: String,
 }

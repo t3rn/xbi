@@ -1,60 +1,80 @@
 use crate::config::Config;
+use crate::manager::MessageManager;
+use crate::node::NodeConfig;
+use crate::subscriber::SubscriberNodeConfig;
 use codec::Decode;
-use sp_core::sr25519;
 use sp_runtime::AccountId32 as AccountId;
 ///! Very simple example that shows how to subscribe to events generically
 /// implying no runtime needs to be imported
-use std::sync::mpsc::channel;
 use structopt::StructOpt;
-use substrate_api_client::rpc::WsRpcClient;
-use substrate_api_client::{Api, PlainTipExtrinsicParams};
+use substrate_api_client::PlainTipExtrinsicParams;
+use tokio::sync::mpsc;
+use tokio::sync::mpsc::{Receiver, Sender};
 
 mod config;
+mod manager;
+mod node;
+mod subscriber;
 
-// Look at the how the transfer event looks like in in the metadata
-#[derive(Decode)]
-struct TransferEventArgs {
-    from: AccountId,
-    to: AccountId,
-    value: u128,
+#[derive(Debug, Clone)]
+pub enum Message {
+    NodeRequest(node::NodeMessage),
+    SubscriberEvent(subscriber::SubscriberEvent),
 }
 
-fn main() {
-    env_logger::init();
+#[tokio::main]
+async fn main() {
     let config = Config::from_args();
-
     if config.debug {
-        std::env::set_var("RUST_LOG", "debug");
+        std::env::set_var(
+            "RUST_LOG",
+            // "substrate_api_client=debug,xbi_client_channel_example=debug",
+            "substrate_api_client=none,xbi_client_channel_example=debug",
+        );
+    }
+    env_logger::init();
+    // TODO: overwrite initial config with args
+
+    let (global_tx, mut global_rx): (Sender<Message>, Receiver<Message>) = mpsc::channel(256);
+
+    let (node_tx, node_rx) = mpsc::channel(256);
+    NodeConfig::new(
+        config.primary_node_id,
+        build_url(&config.primary_node_protocol, &config.primary_node_host),
+        None,
+    )
+    .start(node_rx, global_tx.clone());
+
+    let subscribers: Vec<SubscriberNodeConfig> =
+        serde_json::from_str(&config.subscribers).unwrap_or_default();
+    for subscriber in subscribers {
+        let (_dummy_tx, dummy_rx): (Sender<()>, Receiver<()>) = mpsc::channel(1);
+        subscriber.start(dummy_rx, global_tx.clone())
     }
 
-    // extract initial config file
-    // overwrite initial config with args
-    // let url = get_node_url_from_cli();
-
-    // setup manager for parachain A
-    // register the handler
-    let client = WsRpcClient::new(&build_url(&config));
-    let api = Api::<sr25519::Pair, _, PlainTipExtrinsicParams>::new(client).unwrap();
-    println!("Subscribe to events");
-    let (events_in, events_out) = channel();
-
-    api.subscribe_events(events_in).unwrap();
-    let args: TransferEventArgs = api
-        .wait_for_event("Balances", "Transfer", None, &events_out)
-        .unwrap();
-
-    // if parachain b
-    // setup manager for parachain b
-
-    // dispatch loop
-
-    println!("Transactor: {:?}", args.from);
-    println!("Destination: {:?}", args.to);
-    println!("Value: {:?}", args.value);
+    let _main: Result<(), anyhow::Error> = tokio::spawn(async move {
+        while let Some(msg) = global_rx.recv().await {
+            match msg {
+                Message::NodeRequest(req) => {
+                    let _ = node_tx
+                        .send(req)
+                        .await
+                        .map_err(|e| log::error!("Failed to send command {}", e));
+                }
+                Message::SubscriberEvent(event) => {
+                    log::info!("Watched event from subscriber: {:?}", event);
+                }
+            }
+        }
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+        Ok(())
+    })
+    .await
+    .expect("Dispatch loop failed");
 }
 
-fn build_url(config: &Config) -> String {
-    let host = format!("{}://{}", config.node_protocol, config.node_host);
+fn build_url(protocol: &String, host: &String) -> String {
+    let host = format!("{}://{}", protocol, host);
     log::debug!("Built URL: {}", host);
     host
 }
