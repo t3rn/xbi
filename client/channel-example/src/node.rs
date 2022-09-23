@@ -60,9 +60,17 @@ impl MessageManager<NodeMessage> for NodeConfig {
 
         let _ = tokio::spawn(async move {
             let client = WsRpcClient::new(&host_shadow);
-            let _api = Api::<Pair, _, PlainTipExtrinsicParams>::new(client)
+            let api = Api::<Pair, _, PlainTipExtrinsicParams>::new(client)
                 .map(|api| api.set_signer(key_pair_shadow))
                 .unwrap();
+
+            let meta = api.get_metadata().unwrap();
+            let meta: substrate_api_client::metadata::Metadata = meta.try_into().unwrap();
+            log::trace!("{host_shadow} exposed {} pallets", meta.pallets.len());
+            log::trace!("{host_shadow} exposed {} events", meta.events.len());
+            log::trace!("{host_shadow} exposed {} errors", meta.errors.len());
+
+            // TODO: assert capabilities on parachain
 
             while let Some(msg) = rx.recv().await {
                 use NodeMessage::*;
