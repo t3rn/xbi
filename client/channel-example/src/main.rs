@@ -28,7 +28,6 @@ async fn main() {
     if config.debug {
         std::env::set_var(
             "RUST_LOG",
-            // "substrate_api_client=debug,xbi_client_channel_example=debug",
             "substrate_api_client=none,xbi_client_channel_example=debug",
         );
     }
@@ -38,12 +37,8 @@ async fn main() {
     let (global_tx, mut global_rx): (Sender<Message>, Receiver<Message>) = mpsc::channel(256);
 
     let (node_tx, node_rx) = mpsc::channel(256);
-    NodeConfig::new(
-        config.primary_node_id,
-        build_url(&config.primary_node_protocol, &config.primary_node_host),
-        None,
-    )
-    .start(node_rx, global_tx.clone());
+    NodeConfig::new(config.primary_node_id, config.primary_node_host, None, None)
+        .start(node_rx, global_tx.clone());
 
     let subscribers: Vec<SubscriberNodeConfig> =
         serde_json::from_str(&config.subscribers).unwrap_or_default();
@@ -71,12 +66,6 @@ async fn main() {
     })
     .await
     .expect("Dispatch loop failed");
-}
-
-fn build_url(protocol: &String, host: &String) -> String {
-    let host = format!("{}://{}", protocol, host);
-    log::debug!("Built URL: {}", host);
-    host
 }
 
 #[cfg(test)]
