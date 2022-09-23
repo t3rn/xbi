@@ -1,5 +1,4 @@
 use serde::Deserialize;
-use std::path::PathBuf;
 use structopt::StructOpt;
 use structopt_toml::StructOptToml;
 
@@ -19,12 +18,8 @@ pub struct Config {
     pub primary_node_id: u64,
 
     /// The primary node host address, without protocol information
-    #[structopt(short = "h", long = "host", default_value = "127.0.0.1:9944")]
+    #[structopt(short = "h", long = "host", default_value = "ws://127.0.0.1:9944")]
     pub primary_node_host: String,
-
-    /// The primary node host address, without protocol information
-    #[structopt(short = "p", long = "protocol", default_value = "ws")]
-    pub primary_node_protocol: String,
 
     /// A json array of additional subscriber configs
     #[structopt(short = "s", long = "subscribe", default_value = "[]")]
