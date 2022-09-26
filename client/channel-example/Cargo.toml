@@ -19,10 +19,16 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"
 
 serde = { version = "1.0.136",  features = ["derive"] }
 serde_json = { version = "1.0.79"}
+hex = { version = "0.4.3", features = ["serde"] }
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ['derive'] }
-hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 
 sp-runtime = { version = "6.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
 sp-keyring = { version = "6.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
 sp-core = { version = "6.0.0", default-features = false, features = ["full_crypto"], git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
 substrate-api-client = { git = "https://github.com/scs/substrate-api-client.git", branch = "polkadot-v0.9.27", features = ["std"] }
+
+actix-web = { version = "4", optional = true }
+
+[features]
+default = ["webapi"]
+webapi = ["actix-web"]

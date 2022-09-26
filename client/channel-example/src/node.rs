@@ -1,17 +1,19 @@
 use crate::manager::MessageManager;
 use crate::Message;
 use sp_core::crypto::Pair as PairExt;
-use sp_core::{sr25519, sr25519::Pair};
+use sp_core::sr25519::Pair;
 use sp_keyring::AccountKeyring;
+use std::panic::catch_unwind;
 use std::path::PathBuf;
 use substrate_api_client::rpc::WsRpcClient;
-use substrate_api_client::{Api, PlainTipExtrinsicParams};
+use substrate_api_client::{compose_extrinsic, Api, Metadata, PlainTipExtrinsicParams, XtStatus};
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
 
 #[derive(Debug, Clone)]
 pub enum NodeMessage {
     Noop,
+    XbiSend(Vec<u8>),
 }
 
 #[derive(Debug, Clone)]
@@ -47,8 +49,8 @@ impl NodeConfig {
 }
 
 impl MessageManager<NodeMessage> for NodeConfig {
-    fn start(&self, mut rx: Receiver<NodeMessage>, tx: Sender<Message>) {
-        log::debug!(
+    fn start(&self, mut rx: Receiver<NodeMessage>, _tx: Sender<Message>) {
+        log::info!(
             "Starting node manager for id {} and host {}",
             self.id,
             self.host
@@ -62,23 +64,41 @@ impl MessageManager<NodeMessage> for NodeConfig {
             let client = WsRpcClient::new(&host_shadow);
             let api = Api::<Pair, _, PlainTipExtrinsicParams>::new(client)
                 .map(|api| api.set_signer(key_pair_shadow))
-                .unwrap();
+                .expect("Failed to initiate the rpc client");
 
-            let meta = api.get_metadata().unwrap();
-            let meta: substrate_api_client::metadata::Metadata = meta.try_into().unwrap();
-            log::trace!("{host_shadow} exposed {} pallets", meta.pallets.len());
-            log::trace!("{host_shadow} exposed {} events", meta.events.len());
-            log::trace!("{host_shadow} exposed {} errors", meta.errors.len());
+            let meta: Option<Metadata> = api
+                .get_metadata()
+                .ok()
+                .and_then(|meta| meta.try_into().ok());
 
-            // TODO: assert capabilities on parachain
+            if let Some(meta) = meta {
+                log::info!("{host_shadow} exposed {} pallets", meta.pallets.len());
+                log::info!("{host_shadow} exposed {} events", meta.events.len());
+                log::info!("{host_shadow} exposed {} errors", meta.errors.len());
+                // TODO: assert capabilities on parachain, ensuring they have X installed
+            }
 
             while let Some(msg) = rx.recv().await {
                 use NodeMessage::*;
-                match msg {
-                    Noop => {}
-                }
-                // TODO: make requests to the node
                 log::debug!("Received request: {:?}", msg);
+                // TODO: make requests to the node
+                let extrinsic = match msg {
+                    Noop => None,
+                    XbiSend(bytes) =>
+                    // compose_extrinsic panics if the call is to something not in the metadata.
+                    // Whilst ok for some, we don't want to have to restart the manager just because of some bad request
+                    {
+                        catch_unwind(|| compose_extrinsic!(api.clone(), "XBI", "send", bytes)).ok()
+                    }
+                };
+                if let Some(extrinsic) = extrinsic {
+                    // FIXME: this blocks, use spawn_blocking
+                    let _ = api
+                        .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
+                        .map_err(|err| {
+                            log::error!("{host_shadow} failed to send request {:?}", err)
+                        });
+                }
                 tokio::time::sleep(tokio::time::Duration::from_secs(sleep_shadow)).await;
             }
         });

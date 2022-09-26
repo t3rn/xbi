@@ -4,7 +4,7 @@ use hex::FromHex;
 use serde::Deserialize;
 use sp_core::sr25519;
 use substrate_api_client::rpc::WsRpcClient;
-use substrate_api_client::{Api, EventsDecoder, PlainTipExtrinsicParams, Raw, RawEvent};
+use substrate_api_client::{Api, EventsDecoder, Metadata, PlainTipExtrinsicParams, Raw, RawEvent};
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
 
@@ -38,10 +38,11 @@ impl SubscriberNodeConfig {}
 
 impl MessageManager<()> for SubscriberNodeConfig {
     fn start(&self, mut _rx: Receiver<()>, tx: Sender<Message>) {
-        log::debug!(
-            "Starting subscriber manager for id {} at {}",
+        log::info!(
+            "Starting subscriber manager for id {} at {} on events {:?}",
             self.id,
-            self.host
+            self.host,
+            self.listener_events
         );
 
         let id_shadow = self.id.clone();
@@ -55,6 +56,17 @@ impl MessageManager<()> for SubscriberNodeConfig {
                 let client = WsRpcClient::new(&host_shadow);
                 let api = Api::<sr25519::Pair, _, PlainTipExtrinsicParams>::new(client).unwrap();
                 let event_decoder = EventsDecoder::new(api.metadata.clone());
+
+                let meta: Option<Metadata> = api
+                    .get_metadata()
+                    .ok()
+                    .and_then(|meta| meta.try_into().ok());
+
+                if let Some(meta) = meta {
+                    log::info!("{host_shadow} exposed {} pallets", meta.pallets.len());
+                    log::info!("{host_shadow} exposed {} events", meta.events.len());
+                    log::info!("{host_shadow} exposed {} errors", meta.errors.len());
+                }
 
                 let (events_in, events_out) = std::sync::mpsc::channel();
 
@@ -90,7 +102,7 @@ impl MessageManager<()> for SubscriberNodeConfig {
                                             Some(raw)
                                         }
                                         Raw::Error(runtime_error) => {
-                                            log::warn!(
+                                            log::debug!(
                                                 "{host_shadow} Extrinsic Failed: {:?}",
                                                 runtime_error
                                             );

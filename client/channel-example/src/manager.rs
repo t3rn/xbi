@@ -1,5 +1,4 @@
-use crate::{Config, Message};
-use std::sync::Arc;
+use crate::Message;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
 

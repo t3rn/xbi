@@ -1,24 +1,24 @@
+extern crate core;
+
 use crate::config::Config;
 use crate::manager::MessageManager;
-use crate::node::NodeConfig;
+use crate::node::{NodeConfig, NodeMessage};
 use crate::subscriber::SubscriberNodeConfig;
-use codec::Decode;
-use sp_runtime::AccountId32 as AccountId;
-///! Very simple example that shows how to subscribe to events generically
-/// implying no runtime needs to be imported
+use std::sync::Arc;
 use structopt::StructOpt;
-use substrate_api_client::PlainTipExtrinsicParams;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::{Receiver, Sender};
 
 mod config;
+#[cfg(feature = "webapi")]
+mod http;
 mod manager;
 mod node;
 mod subscriber;
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    NodeRequest(node::NodeMessage),
+    NodeRequest(NodeMessage),
     SubscriberEvent(subscriber::SubscriberEvent),
 }
 
@@ -28,25 +28,34 @@ async fn main() {
     if config.debug {
         std::env::set_var(
             "RUST_LOG",
-            "substrate_api_client=none,xbi_client_channel_example=debug",
+            // "substrate_api_client=none,xbi_client_channel_example=debug",
+            "substrate_api_client=error,xbi_client_channel_example=info,xbi_client_channel_example::http=debug",
         );
     }
     env_logger::init();
     // TODO: overwrite initial config with args
 
+    // Setup dispatch channel
     let (global_tx, mut global_rx): (Sender<Message>, Receiver<Message>) = mpsc::channel(256);
 
+    // Setup primary node channel
     let (node_tx, node_rx) = mpsc::channel(256);
     NodeConfig::new(config.primary_node_id, config.primary_node_host, None, None)
         .start(node_rx, global_tx.clone());
 
+    // Setup each subscriber
     let subscribers: Vec<SubscriberNodeConfig> =
         serde_json::from_str(&config.subscribers).unwrap_or_default();
     for subscriber in subscribers {
+        // Dummy channel since each subscriber doesnt handle messages, only send to the global dispatch.
         let (_dummy_tx, dummy_rx): (Sender<()>, Receiver<()>) = mpsc::channel(1);
         subscriber.start(dummy_rx, global_tx.clone())
     }
 
+    #[cfg(feature = "webapi")]
+    http::setup_http_pipeline(Arc::new(global_tx.clone())).await;
+
+    // Init the dispatch loop, this blocks.
     let _main: Result<(), anyhow::Error> = tokio::spawn(async move {
         while let Some(msg) = global_rx.recv().await {
             match msg {
@@ -57,7 +66,7 @@ async fn main() {
                         .map_err(|e| log::error!("Failed to send command {}", e));
                 }
                 Message::SubscriberEvent(event) => {
-                    log::info!("Watched event from subscriber: {:?}", event);
+                    log::trace!("Watched event from subscriber: {:?}", event);
                 }
             }
         }
