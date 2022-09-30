@@ -126,7 +126,7 @@ impl MessageManager<()> for SubscriberNodeConfig {
                                 }
                             }
                             Err(error) => {
-                                log::error!("couldn't decode event record list: {:?}", error)
+                                log::trace!("couldn't decode event record list: {:?}", error)
                             }
                         }
 

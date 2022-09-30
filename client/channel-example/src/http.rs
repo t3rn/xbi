@@ -51,7 +51,16 @@ async fn node_message(global_sender: Data<Arc<Sender<Message>>>, body: web::Byte
                 .unwrap_or_else(|_| HttpResponse::InternalServerError().finish())
         }
         Ok(msg) if &msg.kind == "XcmInitChannel" => global_sender
-            .send(Message::NodeRequest(Command::HrmpInitChannel))
+            .send(Message::NodeRequest(Command::HrmpInitChannel(
+                u32::from_le_bytes((&msg.bytes[0..4]).try_into().unwrap()),
+            )))
+            .await
+            .map(|_| HttpResponse::Ok().finish())
+            .unwrap_or_else(|_| HttpResponse::InternalServerError().finish()),
+        Ok(msg) if &msg.kind == "XcmAcceptChannel" => global_sender
+            .send(Message::NodeRequest(Command::HrmpAcceptChannel(
+                u32::from_le_bytes((&msg.bytes[0..4]).try_into().unwrap()),
+            )))
             .await
             .map(|_| HttpResponse::Ok().finish())
             .unwrap_or_else(|_| HttpResponse::InternalServerError().finish()),

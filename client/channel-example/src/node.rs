@@ -1,3 +1,5 @@
+use crate::extrinsic::hrmp::{accept_channel_req, init_open_channel_req};
+use crate::extrinsic::xcm::XcmBuilder;
 use crate::manager::MessageManager;
 use crate::Message;
 use hex::ToHex;
@@ -21,7 +23,8 @@ use xcm::{DoubleEncoded, VersionedMultiLocation, VersionedXcm};
 pub enum Command {
     Noop,
     Sudo(Vec<u8>),
-    HrmpInitChannel,
+    HrmpInitChannel(u32),
+    HrmpAcceptChannel(u32),
     XbiSend(Vec<u8>),
 }
 
@@ -125,56 +128,22 @@ impl MessageManager<Command> for NodeConfig {
                                 });
                         }
                     }
-                    HrmpInitChannel => {
-                        let dest = VersionedMultiLocation::V1(MultiLocation {
-                            parents: 1,
-                            interior: Junctions::Here,
-                        });
+                    HrmpInitChannel(parachain) => {
+                        let call = XcmBuilder::new()
+                            .with_withdraw_asset(Some(0), 1000000000000)
+                            .with_buy_execution(Some(0), 1000000000000)
+                            .with_transact(
+                                Some(1000000000),
+                                init_open_channel_req(parachain, None, None),
+                            )
+                            .with_refund_surplus()
+                            .with_deposit_asset(Some(0), 1, parachain)
+                            .build();
 
-                        let mut xcm: Xcm<Vec<u8>> = Xcm::new();
-                        xcm.0
-                            .push(Instruction::WithdrawAsset(MultiAssets::from(vec![
-                                MultiAsset {
-                                    id: AssetId::Concrete(MultiLocation {
-                                        parents: 0,
-                                        interior: Junctions::Here,
-                                    }),
-                                    fun: Fungible(1000000000000),
-                                },
-                            ])));
-                        xcm.0.push(Instruction::BuyExecution {
-                            fees: MultiAsset {
-                                id: AssetId::Concrete(MultiLocation {
-                                    parents: 0,
-                                    interior: Junctions::Here,
-                                }),
-                                fun: Fungible(1000000000000),
-                            },
-                            weight_limit: WeightLimit::Unlimited,
-                        });
-                        // TODO: no
-                        let call: DoubleEncoded<Vec<u8>> =
-                            <DoubleEncoded<_> as From<Vec<u8>>>::from(
-                                hex::decode("1700d10700000800000000a00f00").unwrap(),
-                            );
-                        xcm.0.push(Instruction::Transact {
-                            origin_type: OriginKind::Native,
-                            require_weight_at_most: 1000000000,
-                            call,
-                        });
-                        xcm.0.push(Instruction::RefundSurplus);
-                        xcm.0.push(Instruction::DepositAsset {
-                            assets: MultiAssetFilter::Wild(WildMultiAsset::All),
-                            max_assets: 1,
-                            beneficiary: MultiLocation {
-                                parents: 0,
-                                interior: Junctions::X1(Junction::Parachain(2001)),
-                            },
-                        });
                         let call = crate::extrinsic::xcm::xcm_send(
                             api.clone(),
-                            dest,
-                            VersionedXcm::V2(xcm),
+                            XcmBuilder::get_relaychain_dest(),
+                            VersionedXcm::V2(call),
                         );
                         let extrinsic =
                             catch_unwind(|| crate::extrinsic::sudo::wrap_sudo(api.clone(), call))
@@ -186,7 +155,36 @@ impl MessageManager<Command> for NodeConfig {
                                 .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
                                 .map_err(|err| {
                                     log::error!("{host_shadow} failed to send request {:?}", err)
-                                });
+                                })
+                                .map(|ok| log::info!("{host_shadow} completed request {:?}", ok));
+                        }
+                    }
+                    HrmpAcceptChannel(parachain) => {
+                        let call = XcmBuilder::new()
+                            .with_withdraw_asset(Some(0), 1000000000000)
+                            .with_buy_execution(Some(0), 1000000000000)
+                            .with_transact(Some(1000000000), accept_channel_req(parachain))
+                            .with_refund_surplus()
+                            .with_deposit_asset(Some(0), 1, parachain)
+                            .build();
+
+                        let call = crate::extrinsic::xcm::xcm_send(
+                            api.clone(),
+                            XcmBuilder::get_relaychain_dest(),
+                            VersionedXcm::V2(call),
+                        );
+                        let extrinsic =
+                            catch_unwind(|| crate::extrinsic::sudo::wrap_sudo(api.clone(), call))
+                                .ok();
+                        if let Some(extrinsic) = extrinsic {
+                            // FIXME: this blocks, use spawn_blocking
+
+                            let _ = api
+                                .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
+                                .map_err(|err| {
+                                    log::error!("{host_shadow} failed to send request {:?}", err)
+                                })
+                                .map(|ok| log::info!("{host_shadow} completed request {:?}", ok));
                         }
                     }
                 }
