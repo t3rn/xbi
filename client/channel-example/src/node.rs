@@ -11,7 +11,7 @@ use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
 
 #[derive(Debug, Clone)]
-pub enum NodeMessage {
+pub enum Command {
     Noop,
     XbiSend(Vec<u8>),
 }
@@ -44,12 +44,12 @@ impl NodeConfig {
             .clone()
             .and_then(|path| std::fs::read_to_string(path).ok())
             .and_then(|contents| Pair::from_string(&contents, None).ok())
-            .unwrap_or(AccountKeyring::Alice.pair())
+            .unwrap_or_else(|| AccountKeyring::Alice.pair())
     }
 }
 
-impl MessageManager<NodeMessage> for NodeConfig {
-    fn start(&self, mut rx: Receiver<NodeMessage>, _tx: Sender<Message>) {
+impl MessageManager<Command> for NodeConfig {
+    fn start(&self, mut rx: Receiver<Command>, _tx: Sender<Message>) {
         log::info!(
             "Starting node manager for id {} and host {}",
             self.id,
@@ -57,7 +57,7 @@ impl MessageManager<NodeMessage> for NodeConfig {
         );
 
         let host_shadow = self.host.clone();
-        let sleep_shadow = self.sleep_time_secs.clone();
+        let sleep_shadow = self.sleep_time_secs;
         let key_pair_shadow = self.read_key_or_alice();
 
         let _ = tokio::spawn(async move {
@@ -79,7 +79,7 @@ impl MessageManager<NodeMessage> for NodeConfig {
             }
 
             while let Some(msg) = rx.recv().await {
-                use NodeMessage::*;
+                use Command::*;
                 log::debug!("Received request: {:?}", msg);
                 // TODO: make requests to the node
                 let extrinsic = match msg {

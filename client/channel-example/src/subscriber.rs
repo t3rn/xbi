@@ -45,9 +45,9 @@ impl MessageManager<()> for SubscriberNodeConfig {
             self.listener_events
         );
 
-        let id_shadow = self.id.clone();
+        let id_shadow = self.id;
         let host_shadow = self.host.clone();
-        let sleep_shadow = self.sleep_time_secs.clone();
+        let sleep_shadow = self.sleep_time_secs;
         let listener_events_shadow = self.listener_events.clone();
 
         // If we want to listen to events, we spawn a listener for each event

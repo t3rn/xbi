@@ -2,7 +2,7 @@ extern crate core;
 
 use crate::config::Config;
 use crate::manager::MessageManager;
-use crate::node::{NodeConfig, NodeMessage};
+use crate::node::{Command, NodeConfig};
 use crate::subscriber::SubscriberNodeConfig;
 use std::sync::Arc;
 use structopt::StructOpt;
@@ -10,15 +10,15 @@ use tokio::sync::mpsc;
 use tokio::sync::mpsc::{Receiver, Sender};
 
 mod config;
+mod extrinsic;
 #[cfg(feature = "webapi")]
 mod http;
 mod manager;
 mod node;
 mod subscriber;
-
 #[derive(Debug, Clone)]
 pub enum Message {
-    NodeRequest(NodeMessage),
+    NodeRequest(Command),
     SubscriberEvent(subscriber::SubscriberEvent),
 }
 

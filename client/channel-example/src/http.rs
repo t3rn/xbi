@@ -1,4 +1,4 @@
-use crate::{Message, NodeMessage};
+use crate::{Command, Message};
 use actix_web::web::Data;
 use actix_web::{middleware, web, App, HttpResponse, HttpServer};
 use std::sync::Arc;
@@ -37,10 +37,10 @@ async fn node_message(global_sender: Data<Arc<Sender<Message>>>, body: web::Byte
         Ok(msg) if &msg.kind == "XbiFormat" => {
             log::debug!("Sending {:?} for dispatch", msg);
             global_sender
-                .send(Message::NodeRequest(NodeMessage::XbiSend(msg.bytes)))
+                .send(Message::NodeRequest(Command::XbiSend(msg.bytes)))
                 .await
                 .map(|_| HttpResponse::Ok().finish())
-                .unwrap_or(HttpResponse::InternalServerError().finish())
+                .unwrap_or_else(|_| HttpResponse::InternalServerError().finish())
         }
         Ok(msg) => {
             log::debug!("Unsupported message type {:?}", msg);
