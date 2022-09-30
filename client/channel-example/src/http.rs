@@ -42,6 +42,19 @@ async fn node_message(global_sender: Data<Arc<Sender<Message>>>, body: web::Byte
                 .map(|_| HttpResponse::Ok().finish())
                 .unwrap_or_else(|_| HttpResponse::InternalServerError().finish())
         }
+        Ok(msg) if &msg.kind == "Sudo" => {
+            log::debug!("Sending {:?} for dispatch", msg);
+            global_sender
+                .send(Message::NodeRequest(Command::Sudo(msg.bytes)))
+                .await
+                .map(|_| HttpResponse::Ok().finish())
+                .unwrap_or_else(|_| HttpResponse::InternalServerError().finish())
+        }
+        Ok(msg) if &msg.kind == "XcmInitChannel" => global_sender
+            .send(Message::NodeRequest(Command::HrmpInitChannel))
+            .await
+            .map(|_| HttpResponse::Ok().finish())
+            .unwrap_or_else(|_| HttpResponse::InternalServerError().finish()),
         Ok(msg) => {
             log::debug!("Unsupported message type {:?}", msg);
             HttpResponse::ExpectationFailed().finish()

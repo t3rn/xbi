@@ -1,5 +1,6 @@
 use crate::manager::MessageManager;
 use crate::Message;
+use hex::ToHex;
 use sp_core::crypto::Pair as PairExt;
 use sp_core::sr25519::Pair;
 use sp_keyring::AccountKeyring;
@@ -9,10 +10,18 @@ use substrate_api_client::rpc::WsRpcClient;
 use substrate_api_client::{compose_extrinsic, Api, Metadata, PlainTipExtrinsicParams, XtStatus};
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
+use xcm::latest::{
+    AssetId, Instruction, Junction, Junctions, MultiAsset, MultiAssetFilter, MultiAssets,
+    MultiLocation, OriginKind, WeightLimit, WildMultiAsset, Xcm,
+};
+use xcm::prelude::Fungible;
+use xcm::{DoubleEncoded, VersionedMultiLocation, VersionedXcm};
 
 #[derive(Debug, Clone)]
 pub enum Command {
     Noop,
+    Sudo(Vec<u8>),
+    HrmpInitChannel,
     XbiSend(Vec<u8>),
 }
 
@@ -82,23 +91,106 @@ impl MessageManager<Command> for NodeConfig {
                 use Command::*;
                 log::debug!("Received request: {:?}", msg);
                 // TODO: make requests to the node
-                let extrinsic = match msg {
-                    Noop => None,
+                match msg {
+                    Noop => {}
                     XbiSend(bytes) =>
                     // compose_extrinsic panics if the call is to something not in the metadata.
                     // Whilst ok for some, we don't want to have to restart the manager just because of some bad request
                     {
-                        catch_unwind(|| compose_extrinsic!(api.clone(), "XBI", "send", bytes)).ok()
+                        let extrinsic =
+                            catch_unwind(|| compose_extrinsic!(api.clone(), "XBI", "send", bytes))
+                                .ok();
+                        if let Some(extrinsic) = extrinsic {
+                            // FIXME: this blocks, use spawn_blocking
+
+                            let _ = api
+                                .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
+                                .map_err(|err| {
+                                    log::error!("{host_shadow} failed to send request {:?}", err)
+                                });
+                        }
                     }
-                };
-                if let Some(extrinsic) = extrinsic {
-                    // FIXME: this blocks, use spawn_blocking
-                    let _ = api
-                        .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
-                        .map_err(|err| {
-                            log::error!("{host_shadow} failed to send request {:?}", err)
+                    Sudo(bytes) => {
+                        log::info!("sending sudo call {:?}", bytes);
+                        let extrinsic =
+                            catch_unwind(|| crate::extrinsic::sudo::wrap_sudo(api.clone(), bytes))
+                                .ok();
+                        if let Some(extrinsic) = extrinsic {
+                            // FIXME: this blocks, use spawn_blocking
+
+                            let _ = api
+                                .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
+                                .map_err(|err| {
+                                    log::error!("{host_shadow} failed to send request {:?}", err)
+                                });
+                        }
+                    }
+                    HrmpInitChannel => {
+                        let dest = VersionedMultiLocation::V1(MultiLocation {
+                            parents: 1,
+                            interior: Junctions::Here,
                         });
+
+                        let mut xcm: Xcm<Vec<u8>> = Xcm::new();
+                        xcm.0
+                            .push(Instruction::WithdrawAsset(MultiAssets::from(vec![
+                                MultiAsset {
+                                    id: AssetId::Concrete(MultiLocation {
+                                        parents: 0,
+                                        interior: Junctions::Here,
+                                    }),
+                                    fun: Fungible(1000000000000),
+                                },
+                            ])));
+                        xcm.0.push(Instruction::BuyExecution {
+                            fees: MultiAsset {
+                                id: AssetId::Concrete(MultiLocation {
+                                    parents: 0,
+                                    interior: Junctions::Here,
+                                }),
+                                fun: Fungible(1000000000000),
+                            },
+                            weight_limit: WeightLimit::Unlimited,
+                        });
+                        // TODO: no
+                        let call: DoubleEncoded<Vec<u8>> =
+                            <DoubleEncoded<_> as From<Vec<u8>>>::from(
+                                hex::decode("1700d10700000800000000a00f00").unwrap(),
+                            );
+                        xcm.0.push(Instruction::Transact {
+                            origin_type: OriginKind::Native,
+                            require_weight_at_most: 1000000000,
+                            call,
+                        });
+                        xcm.0.push(Instruction::RefundSurplus);
+                        xcm.0.push(Instruction::DepositAsset {
+                            assets: MultiAssetFilter::Wild(WildMultiAsset::All),
+                            max_assets: 1,
+                            beneficiary: MultiLocation {
+                                parents: 0,
+                                interior: Junctions::X1(Junction::Parachain(2001)),
+                            },
+                        });
+                        let call = crate::extrinsic::xcm::xcm_send(
+                            api.clone(),
+                            dest,
+                            VersionedXcm::V2(xcm),
+                        );
+                        let extrinsic =
+                            catch_unwind(|| crate::extrinsic::sudo::wrap_sudo(api.clone(), call))
+                                .ok();
+                        if let Some(extrinsic) = extrinsic {
+                            // FIXME: this blocks, use spawn_blocking
+
+                            let _ = api
+                                .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
+                                .map_err(|err| {
+                                    log::error!("{host_shadow} failed to send request {:?}", err)
+                                });
+                        }
+                    }
                 }
+
                 tokio::time::sleep(tokio::time::Duration::from_secs(sleep_shadow)).await;
             }
         });

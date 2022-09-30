@@ -32,14 +32,14 @@ pub mod xcm {
     use codec::Encode;
     use substrate_api_client::compose_call;
 
-    pub const XCM_MODULE: &str = "PolkadotXCM";
+    pub const XCM_MODULE: &str = "PolkadotXcm";
     pub const XCM_SEND: &str = "send";
 
     pub fn xcm_send<P, Client, Params>(
         api: Api<P, Client, Params>,
         dest: VersionedMultiLocation,
         msg: VersionedXcm<Vec<u8>>,
-    ) -> ([u8; 2], VersionedMultiLocation, Vec<u8>)
+    ) -> ([u8; 2], VersionedMultiLocation, VersionedXcm<Vec<u8>>)
     where
         P: Pair,
         MultiSignature: From<P::Signature>,
@@ -47,7 +47,7 @@ pub mod xcm {
         Client: RpcClient,
         Params: ExtrinsicParams,
     {
-        compose_call!(api.metadata, XCM_MODULE, XCM_SEND, dest, msg.encode())
+        compose_call!(api.metadata, XCM_MODULE, XCM_SEND, dest, msg)
     }
 
     #[cfg(test)]
@@ -57,4 +57,7 @@ pub mod xcm {
         #[test]
         fn asdas() {}
     }
+}
+pub mod hrmp {
+    // TODO: build encoded call
 }
