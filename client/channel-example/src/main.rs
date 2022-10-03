@@ -18,13 +18,15 @@ mod node;
 mod subscriber;
 #[derive(Debug, Clone)]
 pub enum Message {
-    NodeRequest(Command),
+    PrimaryNode(Command),
+    SecondaryNode(Command),
     SubscriberEvent(subscriber::SubscriberEvent),
 }
 
 #[tokio::main]
 async fn main() {
     let config = Config::from_args();
+    // TODO: overwrite initial config with args
     if config.debug {
         std::env::set_var(
             "RUST_LOG",
@@ -33,15 +35,33 @@ async fn main() {
         );
     }
     env_logger::init();
-    // TODO: overwrite initial config with args
 
     // Setup dispatch channel
     let (global_tx, mut global_rx): (Sender<Message>, Receiver<Message>) = mpsc::channel(256);
 
     // Setup primary node channel
     let (node_tx, node_rx) = mpsc::channel(256);
-    NodeConfig::new(config.primary_node_id, config.primary_node_host, None, None)
+    NodeConfig::new(
+        config.primary_parachain_id,
+        config.primary_node_host,
+        None,
+        config.primary_node_seed,
+    )
+    .start(node_rx, global_tx.clone());
+
+    // Setup secondary node channel
+    let mut secondary_node_tx = None;
+    if let Some(secondary_node_host) = config.secondary_node_host {
+        let (node_tx, node_rx) = mpsc::channel(256);
+        NodeConfig::new(
+            config.secondary_parachain_id,
+            secondary_node_host,
+            None,
+            config.secondary_node_seed,
+        )
         .start(node_rx, global_tx.clone());
+        secondary_node_tx = Some(node_tx);
+    };
 
     // Setup each subscriber
     let subscribers: Vec<SubscriberNodeConfig> =
@@ -59,11 +79,19 @@ async fn main() {
     let _main: Result<(), anyhow::Error> = tokio::spawn(async move {
         while let Some(msg) = global_rx.recv().await {
             match msg {
-                Message::NodeRequest(req) => {
+                Message::PrimaryNode(req) => {
                     let _ = node_tx
                         .send(req)
                         .await
                         .map_err(|e| log::error!("Failed to send command {}", e));
+                }
+                Message::SecondaryNode(req) => {
+                    if let Some(node_tx) = &secondary_node_tx {
+                        let _ = node_tx
+                            .send(req)
+                            .await
+                            .map_err(|e| log::error!("Failed to send command {}", e));
+                    }
                 }
                 Message::SubscriberEvent(event) => {
                     log::trace!("Watched event from subscriber: {:?}", event);

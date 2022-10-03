@@ -147,8 +147,8 @@ pub mod hrmp {
     ) -> Vec<u8> {
         // TODO: get index from relaychain
         let bytes = [
-            [23, 0].to_vec(), // call_index
-            parachain_id.encode(),
+            [23, 0].to_vec(),      // call_index
+            parachain_id.encode(), // TODO: this is probably bug
             proposed_max_capacity.unwrap_or(8).encode(),
             proposed_max_message_size.unwrap_or(1024).encode(),
         ]

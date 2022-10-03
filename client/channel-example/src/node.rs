@@ -19,59 +19,55 @@ use xcm::latest::{
 use xcm::prelude::Fungible;
 use xcm::{DoubleEncoded, VersionedMultiLocation, VersionedXcm};
 
-#[derive(Debug, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub enum Command {
     Noop,
+    #[serde(with = "hex::serde")]
     Sudo(Vec<u8>),
     HrmpInitChannel(u32),
     HrmpAcceptChannel(u32),
-    XbiSend(Vec<u8>),
 }
 
 #[derive(Debug, Clone)]
 pub struct NodeConfig {
-    pub id: u64,
+    pub parachain_id: u32,
     pub host: String,
     pub sleep_time_secs: u64,
-    pub key_pair: Option<PathBuf>,
+    pub key_seed: Option<PathBuf>,
 }
 
 impl NodeConfig {
     pub fn new(
-        id: u64,
+        parachain_id: u32,
         host: String,
         sleep_time_secs: Option<u64>,
         key_pair: Option<PathBuf>,
     ) -> Self {
         NodeConfig {
-            id,
+            parachain_id,
             host,
             sleep_time_secs: sleep_time_secs.unwrap_or(5),
-            key_pair,
+            key_seed: key_pair,
         }
     }
 
     pub fn read_key_or_alice(&self) -> Pair {
-        self.key_pair
+        self.key_seed
             .clone()
             .and_then(|path| std::fs::read_to_string(path).ok())
-            .and_then(|contents| Pair::from_string(&contents, None).ok())
+            .and_then(|contents| Pair::from_string(&contents.replace(' ', "/"), None).ok())
             .unwrap_or_else(|| AccountKeyring::Alice.pair())
     }
 }
 
 impl MessageManager<Command> for NodeConfig {
     fn start(&self, mut rx: Receiver<Command>, _tx: Sender<Message>) {
-        log::info!(
-            "Starting node manager for id {} and host {}",
-            self.id,
-            self.host
-        );
+        log::info!("Starting node manager for host {}", self.host);
 
         let host_shadow = self.host.clone();
         let sleep_shadow = self.sleep_time_secs;
         let key_pair_shadow = self.read_key_or_alice();
-
+        let id_shadow = self.parachain_id;
         let _ = tokio::spawn(async move {
             let client = WsRpcClient::new(&host_shadow);
             let api = Api::<Pair, _, PlainTipExtrinsicParams>::new(client)
@@ -96,23 +92,6 @@ impl MessageManager<Command> for NodeConfig {
                 // TODO: make requests to the node
                 match msg {
                     Noop => {}
-                    XbiSend(bytes) =>
-                    // compose_extrinsic panics if the call is to something not in the metadata.
-                    // Whilst ok for some, we don't want to have to restart the manager just because of some bad request
-                    {
-                        let extrinsic =
-                            catch_unwind(|| compose_extrinsic!(api.clone(), "XBI", "send", bytes))
-                                .ok();
-                        if let Some(extrinsic) = extrinsic {
-                            // FIXME: this blocks, use spawn_blocking
-
-                            let _ = api
-                                .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
-                                .map_err(|err| {
-                                    log::error!("{host_shadow} failed to send request {:?}", err)
-                                });
-                        }
-                    }
                     Sudo(bytes) => {
                         log::info!("sending sudo call {:?}", bytes);
                         let extrinsic =
@@ -137,7 +116,7 @@ impl MessageManager<Command> for NodeConfig {
                                 init_open_channel_req(parachain, None, None),
                             )
                             .with_refund_surplus()
-                            .with_deposit_asset(Some(0), 1, parachain)
+                            .with_deposit_asset(Some(0), 1, id_shadow)
                             .build();
 
                         let call = crate::extrinsic::xcm::xcm_send(
@@ -154,7 +133,10 @@ impl MessageManager<Command> for NodeConfig {
                             let _ = api
                                 .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
                                 .map_err(|err| {
-                                    log::error!("{host_shadow} failed to send request {:?}", err)
+                                    log::error!(
+                                        "{host_shadow} failed to send init channel request {:?}",
+                                        err
+                                    )
                                 })
                                 .map(|ok| log::info!("{host_shadow} completed request {:?}", ok));
                         }
@@ -165,7 +147,7 @@ impl MessageManager<Command> for NodeConfig {
                             .with_buy_execution(Some(0), 1000000000000)
                             .with_transact(Some(1000000000), accept_channel_req(parachain))
                             .with_refund_surplus()
-                            .with_deposit_asset(Some(0), 1, parachain)
+                            .with_deposit_asset(Some(0), 1, id_shadow)
                             .build();
 
                         let call = crate::extrinsic::xcm::xcm_send(
