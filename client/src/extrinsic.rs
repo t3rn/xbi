@@ -4,6 +4,16 @@ use substrate_api_client::{
     compose_extrinsic, Api, ExtrinsicParams, RpcClient, UncheckedExtrinsicV4,
 };
 
+/// Allow us to catch a panickable event and return an option from it.
+/// Since substrate_api_client is largely pretty unsafe, we should ensure the macros are caught appropriately.
+#[macro_export]
+macro_rules! catch_panicable {
+    ($tt:expr) => {{
+        use std::panic::catch_unwind;
+        catch_unwind(|| $tt).ok()
+    }};
+}
+
 pub mod sudo {
     use super::*;
     use codec::Encode;
@@ -23,9 +33,10 @@ pub mod sudo {
         Params: ExtrinsicParams,
         Call: Encode + Clone,
     {
-        compose_extrinsic!(api, "Sudo", "sudo", call)
+        compose_extrinsic!(api, SUDO_MODULE, SUDO_CALL, call)
     }
 }
+
 pub mod xcm {
     use super::*;
     use ::xcm::latest::{
@@ -34,7 +45,6 @@ pub mod xcm {
     };
     use ::xcm::prelude::Fungible;
     use ::xcm::{DoubleEncoded, VersionedMultiLocation, VersionedXcm};
-    use codec::Encode;
     use substrate_api_client::compose_call;
 
     pub const XCM_MODULE: &str = "PolkadotXcm";
@@ -55,20 +65,26 @@ pub mod xcm {
         compose_call!(api.metadata, XCM_MODULE, XCM_SEND, dest, msg)
     }
 
-    pub struct XcmBuilder(Xcm<Vec<u8>>);
-    impl XcmBuilder {
-        pub fn new() -> Self {
-            Self(Xcm::new())
+    pub struct XcmBuilder {
+        inner: Xcm<Vec<u8>>,
+    }
+
+    impl Default for XcmBuilder {
+        fn default() -> Self {
+            Self { inner: Xcm::new() }
         }
+    }
+    impl XcmBuilder {
         pub fn get_relaychain_dest() -> VersionedMultiLocation {
             VersionedMultiLocation::V1(MultiLocation {
                 parents: 1,
                 interior: Junctions::Here,
             })
         }
+
         pub fn with_withdraw_asset(mut self, concrete_parent: Option<u8>, amt: u128) -> XcmBuilder {
-            self.0
-                 .0
+            self.inner
+                .0
                 .push(Instruction::WithdrawAsset(MultiAssets::from(vec![
                     MultiAsset {
                         id: AssetId::Concrete(MultiLocation {
@@ -80,8 +96,9 @@ pub mod xcm {
                 ])));
             self
         }
+
         pub fn with_buy_execution(mut self, concrete_parent: Option<u8>, amt: u128) -> XcmBuilder {
-            self.0 .0.push(Instruction::BuyExecution {
+            self.inner.0.push(Instruction::BuyExecution {
                 fees: MultiAsset {
                     id: AssetId::Concrete(MultiLocation {
                         parents: concrete_parent.unwrap_or(0),
@@ -96,20 +113,21 @@ pub mod xcm {
 
         pub fn with_transact(mut self, max_weight: Option<u64>, call_hex: Vec<u8>) -> XcmBuilder {
             let call: DoubleEncoded<Vec<u8>> = <DoubleEncoded<_> as From<Vec<u8>>>::from(call_hex);
-            self.0 .0.push(Instruction::Transact {
+            self.inner.0.push(Instruction::Transact {
                 origin_type: OriginKind::Native,
                 require_weight_at_most: max_weight.unwrap_or(1000000000),
                 call,
             });
             self
         }
+
         pub fn with_deposit_asset(
             mut self,
             from_parent: Option<u8>,
             max_assets: u32,
             parachain: u32,
         ) -> XcmBuilder {
-            self.0 .0.push(Instruction::DepositAsset {
+            self.inner.0.push(Instruction::DepositAsset {
                 assets: MultiAssetFilter::Wild(WildMultiAsset::All),
                 max_assets,
                 beneficiary: MultiLocation {
@@ -119,23 +137,18 @@ pub mod xcm {
             });
             self
         }
+
         pub fn with_refund_surplus(mut self) -> XcmBuilder {
-            self.0 .0.push(Instruction::RefundSurplus);
+            self.inner.0.push(Instruction::RefundSurplus);
             self
         }
+
         pub fn build(self) -> Xcm<Vec<u8>> {
-            self.0
+            self.inner
         }
     }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-
-        #[test]
-        fn asdas() {}
-    }
 }
+
 pub mod hrmp {
 
     use codec::Encode;
@@ -146,23 +159,21 @@ pub mod hrmp {
         proposed_max_message_size: Option<u32>,
     ) -> Vec<u8> {
         // TODO: get index from relaychain
-        let bytes = [
-            [23, 0].to_vec(),      // call_index
-            parachain_id.encode(), // TODO: this is probably bug
+        [
+            [23, 0].to_vec(), // call_index
+            parachain_id.encode(),
             proposed_max_capacity.unwrap_or(8).encode(),
             proposed_max_message_size.unwrap_or(1024).encode(),
         ]
-        .concat();
-        bytes
+        .concat()
     }
     pub fn accept_channel_req(parachain_id: u32) -> Vec<u8> {
         // TODO: get index from relaychain
-        let bytes = [
+        [
             [23, 1].to_vec(), // call_index
             parachain_id.encode(),
         ]
-        .concat();
-        bytes
+        .concat()
     }
 
     #[cfg(test)]

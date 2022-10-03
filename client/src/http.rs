@@ -24,7 +24,7 @@ pub struct EncodedCodecMessage {
     pub kind: HttpNodeCommand,
 }
 
-pub async fn setup_http_pipeline(global_sender: Arc<Sender<Message>>) {
+pub fn setup_http_pipeline(global_sender: Arc<Sender<Message>>) {
     log::info!("Starting HTTP pipeline");
     tokio::spawn(
         HttpServer::new(move || {
@@ -50,7 +50,6 @@ async fn node_message(global_sender: Data<Arc<Sender<Message>>>, body: web::Byte
     }
     match serde_json::from_slice::<EncodedCodecMessage>(body.as_ref()) {
         Ok(msg) => match msg.kind.get_command() {
-            Command::Noop => HttpResponse::Ok(),
             Command::Sudo(bytes) => {
                 log::debug!("Sending {:?} for dispatch", msg);
                 global_sender

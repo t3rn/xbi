@@ -1,27 +1,19 @@
 use crate::extrinsic::hrmp::{accept_channel_req, init_open_channel_req};
 use crate::extrinsic::xcm::XcmBuilder;
 use crate::manager::MessageManager;
-use crate::Message;
-use hex::ToHex;
+use crate::{catch_panicable, Message};
 use sp_core::crypto::Pair as PairExt;
 use sp_core::sr25519::Pair;
 use sp_keyring::AccountKeyring;
-use std::panic::catch_unwind;
 use std::path::PathBuf;
 use substrate_api_client::rpc::WsRpcClient;
-use substrate_api_client::{compose_extrinsic, Api, Metadata, PlainTipExtrinsicParams, XtStatus};
+use substrate_api_client::{Api, Metadata, PlainTipExtrinsicParams, XtStatus};
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
-use xcm::latest::{
-    AssetId, Instruction, Junction, Junctions, MultiAsset, MultiAssetFilter, MultiAssets,
-    MultiLocation, OriginKind, WeightLimit, WildMultiAsset, Xcm,
-};
-use xcm::prelude::Fungible;
-use xcm::{DoubleEncoded, VersionedMultiLocation, VersionedXcm};
+use xcm::VersionedXcm;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub enum Command {
-    Noop,
     #[serde(with = "hex::serde")]
     Sudo(Vec<u8>),
     HrmpInitChannel(u32),
@@ -46,7 +38,7 @@ impl NodeConfig {
         NodeConfig {
             parachain_id,
             host,
-            sleep_time_secs: sleep_time_secs.unwrap_or(5),
+            sleep_time_secs: sleep_time_secs.unwrap_or(1),
             key_seed: key_pair,
         }
     }
@@ -88,27 +80,32 @@ impl MessageManager<Command> for NodeConfig {
 
             while let Some(msg) = rx.recv().await {
                 use Command::*;
-                log::debug!("Received request: {:?}", msg);
-                // TODO: make requests to the node
+                log::trace!("Received request: {:?}", msg);
+
+                let api_shadow = api.clone();
+                let host_shadow = host_shadow.clone();
+
                 match msg {
-                    Noop => {}
                     Sudo(bytes) => {
                         log::info!("sending sudo call {:?}", bytes);
-                        let extrinsic =
-                            catch_unwind(|| crate::extrinsic::sudo::wrap_sudo(api.clone(), bytes))
-                                .ok();
-                        if let Some(extrinsic) = extrinsic {
-                            // FIXME: this blocks, use spawn_blocking
 
-                            let _ = api
-                                .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
-                                .map_err(|err| {
-                                    log::error!("{host_shadow} failed to send request {:?}", err)
-                                });
+                        if let Some(extrinsic) =
+                            catch_panicable!(crate::extrinsic::sudo::wrap_sudo(api.clone(), bytes))
+                        {
+                            tokio::task::spawn_blocking(move || {
+                                let _ = api_shadow
+                                    .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
+                                    .map_err(|err| {
+                                        log::error!(
+                                            "{host_shadow} failed to send request {:?}",
+                                            err
+                                        )
+                                    });
+                            });
                         }
                     }
                     HrmpInitChannel(parachain) => {
-                        let call = XcmBuilder::new()
+                        let call = XcmBuilder::default()
                             .with_withdraw_asset(Some(0), 1000000000000)
                             .with_buy_execution(Some(0), 1000000000000)
                             .with_transact(
@@ -124,25 +121,26 @@ impl MessageManager<Command> for NodeConfig {
                             XcmBuilder::get_relaychain_dest(),
                             VersionedXcm::V2(call),
                         );
-                        let extrinsic =
-                            catch_unwind(|| crate::extrinsic::sudo::wrap_sudo(api.clone(), call))
-                                .ok();
-                        if let Some(extrinsic) = extrinsic {
-                            // FIXME: this blocks, use spawn_blocking
-
-                            let _ = api
-                                .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
-                                .map_err(|err| {
-                                    log::error!(
+                        if let Some(extrinsic) =
+                            catch_panicable!(crate::extrinsic::sudo::wrap_sudo(api.clone(), call))
+                        {
+                            tokio::task::spawn_blocking(move || {
+                                let _ = api_shadow
+                                    .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
+                                    .map_err(|err| {
+                                        log::error!(
                                         "{host_shadow} failed to send init channel request {:?}",
                                         err
                                     )
-                                })
-                                .map(|ok| log::info!("{host_shadow} completed request {:?}", ok));
+                                    })
+                                    .map(|ok| {
+                                        log::info!("{host_shadow} completed request {:?}", ok)
+                                    });
+                            });
                         }
                     }
                     HrmpAcceptChannel(parachain) => {
-                        let call = XcmBuilder::new()
+                        let call = XcmBuilder::default()
                             .with_withdraw_asset(Some(0), 1000000000000)
                             .with_buy_execution(Some(0), 1000000000000)
                             .with_transact(Some(1000000000), accept_channel_req(parachain))
@@ -155,18 +153,22 @@ impl MessageManager<Command> for NodeConfig {
                             XcmBuilder::get_relaychain_dest(),
                             VersionedXcm::V2(call),
                         );
-                        let extrinsic =
-                            catch_unwind(|| crate::extrinsic::sudo::wrap_sudo(api.clone(), call))
-                                .ok();
-                        if let Some(extrinsic) = extrinsic {
-                            // FIXME: this blocks, use spawn_blocking
-
-                            let _ = api
-                                .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
-                                .map_err(|err| {
-                                    log::error!("{host_shadow} failed to send request {:?}", err)
-                                })
-                                .map(|ok| log::info!("{host_shadow} completed request {:?}", ok));
+                        if let Some(extrinsic) =
+                            catch_panicable!(crate::extrinsic::sudo::wrap_sudo(api.clone(), call))
+                        {
+                            tokio::task::spawn_blocking(move || {
+                                let _ = api_shadow
+                                    .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
+                                    .map_err(|err| {
+                                        log::error!(
+                                            "{host_shadow} failed to send request {:?}",
+                                            err
+                                        )
+                                    })
+                                    .map(|ok| {
+                                        log::info!("{host_shadow} completed request {:?}", ok)
+                                    });
+                            });
                         }
                     }
                 }

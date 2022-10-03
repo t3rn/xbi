@@ -4,6 +4,7 @@ use crate::config::Config;
 use crate::manager::MessageManager;
 use crate::node::{Command, NodeConfig};
 use crate::subscriber::SubscriberNodeConfig;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use structopt::StructOpt;
 use tokio::sync::mpsc;
@@ -23,7 +24,7 @@ pub enum Message {
     SubscriberEvent(subscriber::SubscriberEvent),
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread")]
 async fn main() {
     let config = Config::from_args();
     // TODO: overwrite initial config with args
@@ -73,11 +74,18 @@ async fn main() {
     }
 
     #[cfg(feature = "webapi")]
-    http::setup_http_pipeline(Arc::new(global_tx.clone())).await;
+    http::setup_http_pipeline(Arc::new(global_tx.clone()));
+
+    let running = Arc::new(AtomicBool::new(true));
+    setup_exit_handler(running.clone());
 
     // Init the dispatch loop, this blocks.
     let _main: Result<(), anyhow::Error> = tokio::spawn(async move {
         while let Some(msg) = global_rx.recv().await {
+            if !running.load(Ordering::SeqCst) {
+                log::info!("Exiting");
+                continue;
+            }
             match msg {
                 Message::PrimaryNode(req) => {
                     let _ = node_tx
@@ -103,6 +111,13 @@ async fn main() {
     })
     .await
     .expect("Dispatch loop failed");
+}
+
+fn setup_exit_handler(running: Arc<AtomicBool>) {
+    ctrlc::set_handler(move || {
+        running.store(false, Ordering::SeqCst);
+    })
+    .expect("Error setting Ctrl-C handler");
 }
 
 #[cfg(test)]
