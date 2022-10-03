@@ -74,6 +74,14 @@ async fn node_message(global_sender: Data<Arc<Sender<Message>>>, body: web::Byte
                 .await
                 .map(|_| HttpResponse::Ok())
                 .unwrap_or_else(|_| HttpResponse::InternalServerError()),
+            Command::UpdateRelayChain(new_host) => global_sender
+                .send(insert_command(
+                    Command::UpdateRelayChain(new_host.to_string()),
+                    msg.kind,
+                ))
+                .await
+                .map(|_| HttpResponse::Ok())
+                .unwrap_or_else(|_| HttpResponse::InternalServerError()),
         },
         Err(_) => HttpResponse::BadRequest(),
     }

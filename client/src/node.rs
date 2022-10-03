@@ -1,4 +1,4 @@
-use crate::extrinsic::hrmp::{accept_channel_req, init_open_channel_req};
+use crate::extrinsic::hrmp::{accept_channel_req, get_relaychain_metadata, init_open_channel_req};
 use crate::extrinsic::xcm::XcmBuilder;
 use crate::manager::MessageManager;
 use crate::{catch_panicable, Message};
@@ -18,6 +18,7 @@ pub enum Command {
     Sudo(Vec<u8>),
     HrmpInitChannel(u32),
     HrmpAcceptChannel(u32),
+    UpdateRelayChain(String),
 }
 
 #[derive(Debug, Clone)]
@@ -38,7 +39,7 @@ impl NodeConfig {
         NodeConfig {
             parachain_id,
             host,
-            sleep_time_secs: sleep_time_secs.unwrap_or(1),
+            sleep_time_secs: sleep_time_secs.unwrap_or(5),
             key_seed: key_pair,
         }
     }
@@ -47,7 +48,9 @@ impl NodeConfig {
         self.key_seed
             .clone()
             .and_then(|path| std::fs::read_to_string(path).ok())
-            .and_then(|contents| Pair::from_string(&contents.replace(' ', "/"), None).ok())
+            .and_then(|contents| {
+                Pair::from_string(&contents.replace(' ', "/").trim().to_string(), None).ok()
+            })
             .unwrap_or_else(|| AccountKeyring::Alice.pair())
     }
 }
@@ -66,18 +69,18 @@ impl MessageManager<Command> for NodeConfig {
                 .map(|api| api.set_signer(key_pair_shadow))
                 .expect("Failed to initiate the rpc client");
 
-            let meta: Option<Metadata> = api
+            let meta: Metadata = api
                 .get_metadata()
                 .ok()
-                .and_then(|meta| meta.try_into().ok());
+                .and_then(|meta| meta.try_into().ok())
+                .expect("{host_shadow} No metadata was returned");
 
-            if let Some(meta) = meta {
-                log::info!("{host_shadow} exposed {} pallets", meta.pallets.len());
-                log::info!("{host_shadow} exposed {} events", meta.events.len());
-                log::info!("{host_shadow} exposed {} errors", meta.errors.len());
-                // TODO: assert capabilities on parachain, ensuring they have X installed
-            }
+            // TODO: assert capabilities on parachain, ensuring they have X installed
+            log::info!("{host_shadow} exposed {} pallets", meta.pallets.len());
+            log::info!("{host_shadow} exposed {} events", meta.events.len());
+            log::info!("{host_shadow} exposed {} errors", meta.errors.len());
 
+            let mut relaychain_host = None;
             while let Some(msg) = rx.recv().await {
                 use Command::*;
                 log::trace!("Received request: {:?}", msg);
@@ -105,12 +108,14 @@ impl MessageManager<Command> for NodeConfig {
                         }
                     }
                     HrmpInitChannel(parachain) => {
+                        let relaychain_meta = get_relaychain_metadata(relaychain_host.clone());
+
                         let call = XcmBuilder::default()
                             .with_withdraw_asset(Some(0), 1000000000000)
                             .with_buy_execution(Some(0), 1000000000000)
                             .with_transact(
                                 Some(1000000000),
-                                init_open_channel_req(parachain, None, None),
+                                init_open_channel_req(parachain, None, None, Some(relaychain_meta)),
                             )
                             .with_refund_surplus()
                             .with_deposit_asset(Some(0), 1, id_shadow)
@@ -140,10 +145,15 @@ impl MessageManager<Command> for NodeConfig {
                         }
                     }
                     HrmpAcceptChannel(parachain) => {
+                        let relaychain_meta = get_relaychain_metadata(relaychain_host.clone());
+
                         let call = XcmBuilder::default()
                             .with_withdraw_asset(Some(0), 1000000000000)
                             .with_buy_execution(Some(0), 1000000000000)
-                            .with_transact(Some(1000000000), accept_channel_req(parachain))
+                            .with_transact(
+                                Some(1000000000),
+                                accept_channel_req(parachain, Some(relaychain_meta)),
+                            )
                             .with_refund_surplus()
                             .with_deposit_asset(Some(0), 1, id_shadow)
                             .build();
@@ -170,6 +180,10 @@ impl MessageManager<Command> for NodeConfig {
                                     });
                             });
                         }
+                    }
+                    UpdateRelayChain(new_host) => {
+                        log::info!("{host_shadow} updating relay chain to {new_host}");
+                        relaychain_host = Some(new_host);
                     }
                 }
 

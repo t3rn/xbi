@@ -1,5 +1,6 @@
 t0rn-rococo:
 	cargo run -- -d \
+		--primary_parachain_id 3333 \
 		--primary_node_host wss://dev.net.t3rn.io \
 		--primary_node_key /tmp/key \
 		-s '[{"id":1000,"host":"wss://rococo-rpc.polkadot.io","sleep_time_secs":5,"listener_events":[{"module": "Ump","variant": "ExecutedUpward"}]},{"id":1000,"host":"wss://dev.net.t3rn.io","sleep_time_secs":5,"listener_events":[{"module": "System","variant": "ExtrinsicFailed"}]}]'

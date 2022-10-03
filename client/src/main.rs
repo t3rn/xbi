@@ -24,7 +24,8 @@ pub enum Message {
     SubscriberEvent(subscriber::SubscriberEvent),
 }
 
-#[tokio::main(flavor = "multi_thread")]
+// #[tokio::main(flavor = "multi_thread")]
+#[tokio::main]
 async fn main() {
     let config = Config::from_args();
     // TODO: overwrite initial config with args
