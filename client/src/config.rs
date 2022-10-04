@@ -1,39 +1,101 @@
+use crate::{NodeConfig, SubscriberConfig};
+use clap::Parser;
+use config::{Environment, File};
 use serde::Deserialize;
-use std::path::PathBuf;
-use structopt::StructOpt;
-use structopt_toml::StructOptToml;
+use serde::Serialize;
+use std::env;
+use std::str::FromStr;
 
-#[derive(Debug, StructOpt, StructOptToml, Deserialize)]
-#[structopt(
-    name = "XBI Client - channel example",
-    about = "Connect the XBI client to two parachains and send some messages"
-)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     /// Activate debug mode
-    // short and long flags (-d, --debug) will be deduced from the field's name
-    #[structopt(short, long)]
     pub debug: bool,
 
-    #[structopt(long = "primary_parachain_id", default_value = "2000")]
-    pub primary_parachain_id: u32,
+    pub nodes: Nodes,
 
-    /// The primary node host address, without protocol information
-    #[structopt(long = "primary_node_host", default_value = "ws://127.0.0.1:9944")]
-    pub primary_node_host: String,
+    pub subscribers: Subscribers,
+}
 
-    #[structopt(long = "primary_node_key")]
-    pub primary_node_seed: Option<PathBuf>,
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+pub struct CliConfig {
+    /// Activate debug mode
+    #[clap(short, long)]
+    pub debug: Option<bool>,
 
-    #[structopt(long = "secondary_parachain_id", default_value = "3000")]
-    pub secondary_parachain_id: u32,
+    #[clap(short, long)]
+    pub nodes: Option<Nodes>,
 
-    #[structopt(long = "secondary_node_host")]
-    pub secondary_node_host: Option<String>,
+    #[clap(short, long)]
+    pub subscribers: Option<Subscribers>,
+}
 
-    #[structopt(long = "secondary_node_key")]
-    pub secondary_node_seed: Option<PathBuf>,
+impl Config {
+    pub fn new() -> Self {
+        let run_mode = env::var("XBI_CLIENT_RUN_MODE").unwrap_or_else(|_| "local".into());
 
-    /// A json array of additional subscriber configs
-    #[structopt(short = "s", long = "subscribe", default_value = "[]")]
-    pub subscribers: String,
+        let s = config::Config::builder()
+            // Start off by merging in the "default" configuration file
+            .add_source(File::with_name("default"))
+            // Add in the current environment file
+            // Default to 'development' env
+            // Note that this file is _optional_
+            .add_source(File::with_name(&format!("{run_mode}")).required(false))
+            // Add the testnet in
+            .add_source(File::with_name(&format!("test")).required(false))
+            // Add the mainnet in
+            .add_source(File::with_name(&format!("main")).required(false))
+            // Add in a local configuration file
+            // This file shouldn't be checked in to git
+            .add_source(File::with_name("patch").required(false))
+            // Add in settings from the environment
+            .add_source(Environment::with_prefix("XBI_CLIENT"))
+            .build()
+            .unwrap();
+
+        s.try_deserialize().unwrap()
+    }
+
+    pub fn apply_cli_args(mut self) -> Self {
+        let cli = CliConfig::parse();
+        if let Some(debug) = cli.debug {
+            self.debug = debug;
+        }
+        if let Some(nodes) = cli.nodes {
+            self.nodes = nodes;
+        }
+        if let Some(subscribers) = cli.subscribers {
+            self.subscribers = subscribers;
+        }
+        if self.debug {
+            env::set_var(
+                "RUST_LOG",
+                // "substrate_api_client=none,xbi_client_channel_example=debug",
+                "substrate_api_client=error,xbi_client_channel_example=info,xbi_client_channel_example::http=debug",
+            );
+        }
+        self
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Subscribers(pub Vec<SubscriberConfig>);
+
+impl FromStr for Subscribers {
+    type Err = serde_json::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        serde_json::from_str(s)
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Nodes(pub Vec<NodeConfig>);
+
+impl FromStr for Nodes {
+    type Err = serde_json::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        serde_json::from_str(s)
+    }
 }

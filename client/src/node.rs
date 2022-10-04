@@ -21,7 +21,7 @@ pub enum Command {
     UpdateRelayChain(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct NodeConfig {
     pub parachain_id: u32,
     pub host: String,

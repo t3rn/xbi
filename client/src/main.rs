@@ -3,10 +3,9 @@ extern crate core;
 use crate::config::Config;
 use crate::manager::MessageManager;
 use crate::node::{Command, NodeConfig};
-use crate::subscriber::SubscriberNodeConfig;
+use crate::subscriber::SubscriberConfig;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use structopt::StructOpt;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::{Receiver, Sender};
 
@@ -17,58 +16,33 @@ mod http;
 mod manager;
 mod node;
 mod subscriber;
+
 #[derive(Debug, Clone)]
 pub enum Message {
     PrimaryNode(Command),
     SecondaryNode(Command),
+    NNode(usize, Command),
     SubscriberEvent(subscriber::SubscriberEvent),
 }
 
 // #[tokio::main(flavor = "multi_thread")]
 #[tokio::main]
 async fn main() {
-    let config = Config::from_args();
-    // TODO: overwrite initial config with args
-    if config.debug {
-        std::env::set_var(
-            "RUST_LOG",
-            // "substrate_api_client=none,xbi_client_channel_example=debug",
-            "substrate_api_client=error,xbi_client_channel_example=info,xbi_client_channel_example::http=debug",
-        );
-    }
+    let config = Config::new().apply_cli_args();
     env_logger::init();
 
     // Setup dispatch channel
     let (global_tx, mut global_rx): (Sender<Message>, Receiver<Message>) = mpsc::channel(256);
 
-    // Setup primary node channel
-    let (node_tx, node_rx) = mpsc::channel(256);
-    NodeConfig::new(
-        config.primary_parachain_id,
-        config.primary_node_host,
-        None,
-        config.primary_node_seed,
-    )
-    .start(node_rx, global_tx.clone());
-
-    // Setup secondary node channel
-    let mut secondary_node_tx = None;
-    if let Some(secondary_node_host) = config.secondary_node_host {
+    let mut node_transmitters = vec![];
+    for node in config.nodes.0 {
         let (node_tx, node_rx) = mpsc::channel(256);
-        NodeConfig::new(
-            config.secondary_parachain_id,
-            secondary_node_host,
-            None,
-            config.secondary_node_seed,
-        )
-        .start(node_rx, global_tx.clone());
-        secondary_node_tx = Some(node_tx);
-    };
+        node.start(node_rx, global_tx.clone());
+        node_transmitters.push(node_tx);
+    }
 
     // Setup each subscriber
-    let subscribers: Vec<SubscriberNodeConfig> =
-        serde_json::from_str(&config.subscribers).unwrap_or_default();
-    for subscriber in subscribers {
+    for subscriber in config.subscribers.0 {
         // Dummy channel since each subscriber doesnt handle messages, only send to the global dispatch.
         let (_dummy_tx, dummy_rx): (Sender<()>, Receiver<()>) = mpsc::channel(1);
         subscriber.start(dummy_rx, global_tx.clone())
@@ -89,13 +63,21 @@ async fn main() {
             }
             match msg {
                 Message::PrimaryNode(req) => {
-                    let _ = node_tx
+                    let _ = node_transmitters[0]
                         .send(req)
                         .await
                         .map_err(|e| log::error!("Failed to send command {}", e));
                 }
                 Message::SecondaryNode(req) => {
-                    if let Some(node_tx) = &secondary_node_tx {
+                    if let Some(node_tx) = node_transmitters.get(1) {
+                        let _ = node_tx
+                            .send(req)
+                            .await
+                            .map_err(|e| log::error!("Failed to send command {}", e));
+                    }
+                }
+                Message::NNode(index, req) => {
+                    if let Some(node_tx) = node_transmitters.get(index) {
                         let _ = node_tx
                             .send(req)
                             .await

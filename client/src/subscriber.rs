@@ -1,7 +1,7 @@
 use crate::manager::MessageManager;
 use crate::Message;
 use hex::FromHex;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sp_core::sr25519;
 use substrate_api_client::rpc::WsRpcClient;
 use substrate_api_client::{Api, EventsDecoder, Metadata, PlainTipExtrinsicParams, Raw, RawEvent};
@@ -20,23 +20,23 @@ impl SubscriberEvent {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ListenerEvent {
     pub module: String,
     pub variant: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-pub struct SubscriberNodeConfig {
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct SubscriberConfig {
     pub id: u64,
     pub host: String,
     pub sleep_time_secs: u64,
     pub listener_events: Vec<ListenerEvent>,
 }
 
-impl SubscriberNodeConfig {}
+impl SubscriberConfig {}
 
-impl MessageManager<()> for SubscriberNodeConfig {
+impl MessageManager<()> for SubscriberConfig {
     fn start(&self, mut _rx: Receiver<()>, tx: Sender<Message>) {
         log::info!(
             "Starting subscriber manager for id {} at {} on events {:?}",
