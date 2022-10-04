@@ -28,7 +28,7 @@ pub struct ListenerEvent {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SubscriberConfig {
-    pub id: u64,
+    pub parachain_id: u64,
     pub host: String,
     pub sleep_time_secs: u64,
     pub listener_events: Vec<ListenerEvent>,
@@ -40,12 +40,12 @@ impl MessageManager<()> for SubscriberConfig {
     fn start(&self, mut _rx: Receiver<()>, tx: Sender<Message>) {
         log::info!(
             "Starting subscriber manager for id {} at {} on events {:?}",
-            self.id,
+            self.parachain_id,
             self.host,
             self.listener_events
         );
 
-        let id_shadow = self.id;
+        let id_shadow = self.parachain_id;
         let host_shadow = self.host.clone();
         let sleep_shadow = self.sleep_time_secs;
         let listener_events_shadow = self.listener_events.clone();

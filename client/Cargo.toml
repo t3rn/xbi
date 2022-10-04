@@ -9,8 +9,7 @@ repository  = "https://github.com/t3rn/xbi/"
 version     = "0.1.0"
 
 [dependencies]
-ctrlc = "3.2.3"
-env_logger = "0.9.0"
+pretty_env_logger = "0.4.0"
 log = { version = "0.4.14" }
 thiserror = { version = "1.0.30" }
 anyhow = { version = "1.0.65" }
@@ -33,9 +32,12 @@ sp-core = { version = "6.0.0", features = ["full_crypto"], git = "https://github
 xcm = { git = "https://github.com/paritytech/polkadot.git", branch = "release-v0.9.27" }
 
 # Transport
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time", "rt"] }
+tokio = { version = "1", features = ["full"] }
 substrate-api-client = { git = "https://github.com/scs/substrate-api-client.git", branch = "polkadot-v0.9.27", features = ["std"] }
 actix-web = { version = "4", optional = true }
+signal-hook-tokio = { version = "0.3.1", features = ["futures-v0_3"] }
+signal-hook = "0.3.14"
+futures = "0.3.24"
 
 [features]
 default = ["webapi"]

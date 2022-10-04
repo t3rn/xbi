@@ -11,9 +11,9 @@ pub struct Config {
     /// Activate debug mode
     pub debug: bool,
 
-    pub nodes: Nodes,
+    pub nodes: Vec<NodeConfig>,
 
-    pub subscribers: Subscribers,
+    pub subscribers: Vec<SubscriberConfig>,
 }
 
 #[derive(Parser, Debug)]
@@ -62,16 +62,16 @@ impl Config {
             self.debug = debug;
         }
         if let Some(nodes) = cli.nodes {
-            self.nodes = nodes;
+            self.nodes = nodes.0;
         }
         if let Some(subscribers) = cli.subscribers {
-            self.subscribers = subscribers;
+            self.subscribers = subscribers.0;
         }
         if self.debug {
             env::set_var(
                 "RUST_LOG",
                 // "substrate_api_client=none,xbi_client_channel_example=debug",
-                "substrate_api_client=error,xbi_client_channel_example=info,xbi_client_channel_example::http=debug",
+                "error,xbi_client=info,xbi_client::http=debug",
             );
         }
         self

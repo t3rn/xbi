@@ -1,3 +1,24 @@
 debug = true
-nodes = []
-subscribers = []
+
+[[nodes]]
+parachain_id = 3333
+host = "wss://dev.net.t3rn.io"
+sleep_time_secs = 1
+
+[[subscribers]]
+parachain_id = 3333
+host = "wss://dev.net.t3rn.io"
+sleep_time_secs = 5
+
+[[subscribers.listener_events]]
+module = "System"
+variant = "ExtrinsicFailed"
+
+[[subscribers]]
+parachain_id = 1
+host = "wss://rococo-rpc.polkadot.io"
+sleep_time_secs = 5
+
+[[subscribers.listener_events]]
+module = "Ump"
+variant = "ExecutedUpward"
