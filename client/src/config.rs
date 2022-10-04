@@ -38,14 +38,14 @@ impl Config {
             // Start off by merging in the "default" configuration file
             .add_source(File::with_name("default"))
             // Add in the current environment file
-            // Default to 'development' env
+            // Default to 'local' env
             // Note that this file is _optional_
-            .add_source(File::with_name(&format!("{run_mode}")).required(false))
+            .add_source(File::with_name(&run_mode).required(false))
             // Add the testnet in
-            .add_source(File::with_name(&format!("test")).required(false))
+            .add_source(File::with_name("test").required(false))
             // Add the mainnet in
-            .add_source(File::with_name(&format!("main")).required(false))
-            // Add in a local configuration file
+            .add_source(File::with_name("main").required(false))
+            // Add in a local patch file
             // This file shouldn't be checked in to git
             .add_source(File::with_name("patch").required(false))
             // Add in settings from the environment
@@ -68,11 +68,7 @@ impl Config {
             self.subscribers = subscribers.0;
         }
         if self.debug {
-            env::set_var(
-                "RUST_LOG",
-                // "substrate_api_client=none,xbi_client_channel_example=debug",
-                "error,xbi_client=info,xbi_client::http=debug",
-            );
+            env::set_var("RUST_LOG", "error,xbi_client=info,xbi_client::http=debug");
         }
         self
     }

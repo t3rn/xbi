@@ -1,13 +1,17 @@
 use crate::manager::MessageManager;
 use crate::Message;
+use anyhow::Context;
 use hex::FromHex;
 use serde::{Deserialize, Serialize};
 use sp_core::sr25519;
 use substrate_api_client::rpc::WsRpcClient;
-use substrate_api_client::{Api, EventsDecoder, Metadata, PlainTipExtrinsicParams, Raw, RawEvent};
+use substrate_api_client::{
+    Api, EventsDecoder, Metadata, Phase, PlainTipExtrinsicParams, Raw, RawEvent,
+};
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
 
+// Unused for now, useful when we start to actually action the events, not just log
 #[derive(Debug, Clone)]
 pub struct SubscriberEvent {
     id: u64,
@@ -21,7 +25,7 @@ impl SubscriberEvent {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct ListenerEvent {
+pub struct Subscription {
     pub module: String,
     pub variant: String,
 }
@@ -31,13 +35,11 @@ pub struct SubscriberConfig {
     pub parachain_id: u64,
     pub host: String,
     pub sleep_time_secs: u64,
-    pub listener_events: Vec<ListenerEvent>,
+    pub listener_events: Vec<Subscription>,
 }
 
-impl SubscriberConfig {}
-
 impl MessageManager<()> for SubscriberConfig {
-    fn start(&self, mut _rx: Receiver<()>, tx: Sender<Message>) {
+    // Since subscriber is pull, it doesnt handle requests
         log::info!(
             "Starting subscriber manager for id {} at {} on events {:?}",
             self.parachain_id,
@@ -50,9 +52,8 @@ impl MessageManager<()> for SubscriberConfig {
         let sleep_shadow = self.sleep_time_secs;
         let listener_events_shadow = self.listener_events.clone();
 
-        // If we want to listen to events, we spawn a listener for each event
         if !listener_events_shadow.is_empty() {
-            let _ = tokio::spawn(async move {
+            tokio::spawn(async move {
                 let client = WsRpcClient::new(&host_shadow);
                 let api = Api::<sr25519::Pair, _, PlainTipExtrinsicParams>::new(client).unwrap();
                 let event_decoder = EventsDecoder::new(api.metadata.clone());
@@ -135,7 +136,7 @@ impl MessageManager<()> for SubscriberConfig {
                 });
             });
         } else {
-            log::info!("No listener events configured, stopping..")
+            log::info!("{host_shadow} No listener events configured, stopping..")
         }
     }
 }

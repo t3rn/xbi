@@ -30,7 +30,7 @@ pub struct NodeConfig {
 }
 
 impl NodeConfig {
-    pub fn new(
+    pub fn _new(
         parachain_id: u32,
         host: String,
         sleep_time_secs: Option<u64>,
@@ -48,9 +48,7 @@ impl NodeConfig {
         self.key_seed
             .clone()
             .and_then(|path| std::fs::read_to_string(path).ok())
-            .and_then(|contents| {
-                Pair::from_string(&contents.replace(' ', "/").trim().to_string(), None).ok()
-            })
+            .and_then(|contents| Pair::from_string(&contents.replace(' ', "/").trim(), None).ok())
             .unwrap_or_else(|| AccountKeyring::Alice.pair())
     }
 }

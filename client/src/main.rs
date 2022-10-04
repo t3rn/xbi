@@ -87,6 +87,7 @@ async fn main() {
                     }
                 }
                 Message::SubscriberEvent(event) => {
+                    // Currently noop, should broadcast to all nodes
                     log::trace!("Watched event from subscriber: {:?}", event);
                 }
                 Message::Kill => {

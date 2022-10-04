@@ -158,17 +158,18 @@ pub mod hrmp {
     use substrate_api_client::rpc::WsRpcClient;
     use substrate_api_client::{Api, Metadata, PlainTipExtrinsicParams};
 
-    const HRMP_PALLET: &'static str = "Hrmp";
-    const HRMP_INIT_CHANNEL: &'static str = "hrmp_init_open_channel";
-    const HRMP_ACCEPT_CHANNEL: &'static str = "hrmp_accept_open_channel";
+    const HRMP_PALLET: &str = "Hrmp";
+    const HRMP_INIT_CHANNEL: &str = "hrmp_init_open_channel";
+    const HRMP_ACCEPT_CHANNEL: &str = "hrmp_accept_open_channel";
 
-    const ROCOCO_RELAYCHAIN_OFFICIAL_HOST: &'static str = "wss://rococo-rpc.polkadot.io";
+    const ROCOCO_RELAYCHAIN_OFFICIAL_HOST: &str = "wss://rococo-rpc.polkadot.io";
 
     #[memoize::memoize]
     pub fn get_relaychain_metadata(host: Option<String>) -> Metadata {
         let pair = AccountKeyring::Alice.pair();
 
-        let client = WsRpcClient::new(&host.unwrap_or(ROCOCO_RELAYCHAIN_OFFICIAL_HOST.to_string()));
+        let client =
+            WsRpcClient::new(&host.unwrap_or_else(|| ROCOCO_RELAYCHAIN_OFFICIAL_HOST.to_string()));
         let api = Api::<Pair, _, PlainTipExtrinsicParams>::new(client)
             .map(|api| api.set_signer(pair))
             .expect("Failed to initiate the rpc client");
@@ -251,6 +252,6 @@ pub fn index_from_metadata(metadata: Metadata, pallet: String, call: String) -> 
         pallet
             .calls
             .get(&call)
-            .and_then(|call_index| Some((pallet.index, *call_index)))
+            .map(|call_index| (pallet.index, *call_index))
     })
 }
