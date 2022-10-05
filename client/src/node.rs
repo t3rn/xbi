@@ -54,7 +54,7 @@ impl NodeConfig {
 }
 
 impl MessageManager<Command> for NodeConfig {
-    fn start(&self, mut rx: Receiver<Command>, _tx: Sender<Message>) {
+    fn start(&self, mut rx: Receiver<Command>, _tx: Sender<Message>) -> anyhow::Result<()> {
         log::info!("Starting node manager for host {}", self.host);
 
         let host_shadow = self.host.clone();
@@ -188,5 +188,6 @@ impl MessageManager<Command> for NodeConfig {
                 tokio::time::sleep(tokio::time::Duration::from_secs(sleep_shadow)).await;
             }
         });
+        Ok(())
     }
 }

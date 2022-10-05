@@ -51,7 +51,7 @@ async fn main() {
     for subscriber in config.subscribers {
         // Dummy channel since each subscriber doesnt handle messages, only send to the global dispatch.
         let (_dummy_tx, dummy_rx): (Sender<()>, Receiver<()>) = mpsc::channel(1);
-        subscriber.start(dummy_rx, global_tx.clone())
+        subscriber.start(dummy_rx, global_tx.clone());
     }
 
     let global_tx = Arc::new(global_tx.clone());
