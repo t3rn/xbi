@@ -168,8 +168,8 @@ pub mod hrmp {
     pub fn get_relaychain_metadata(host: Option<String>) -> Metadata {
         let pair = AccountKeyring::Alice.pair();
 
-        let client =
-            WsRpcClient::new(&host.unwrap_or_else(|| ROCOCO_RELAYCHAIN_OFFICIAL_HOST.to_string()));
+        let host = host.unwrap_or_else(|| ROCOCO_RELAYCHAIN_OFFICIAL_HOST.to_string());
+        let client = WsRpcClient::new(&host);
         let api = Api::<Pair, _, PlainTipExtrinsicParams>::new(client)
             .map(|api| api.set_signer(pair))
             .expect("Failed to initiate the rpc client");

@@ -68,7 +68,10 @@ impl Config {
             self.subscribers = subscribers.0;
         }
         if self.debug {
-            env::set_var("RUST_LOG", "error,xbi_client=info,xbi_client::http=debug");
+            env::set_var(
+                "RUST_LOG",
+                "error,xbi_client=info,xbi_client::http=debug,xbi_client::node=debug",
+            );
         }
         self
     }

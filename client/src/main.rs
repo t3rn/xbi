@@ -43,7 +43,10 @@ async fn main() {
     let mut node_transmitters = vec![];
     for node in config.nodes {
         let (node_tx, node_rx) = mpsc::channel(256);
-        node.start(node_rx, global_tx.clone());
+        if let Err(e) = node.start(node_rx, global_tx.clone()) {
+            // TODO[optimisation]: use future-retry
+            log::error!("Failed to start node: {}", e);
+        }
         node_transmitters.push(node_tx);
     }
 
@@ -51,10 +54,14 @@ async fn main() {
     for subscriber in config.subscribers {
         // Dummy channel since each subscriber doesnt handle messages, only send to the global dispatch.
         let (_dummy_tx, dummy_rx): (Sender<()>, Receiver<()>) = mpsc::channel(1);
-        subscriber.start(dummy_rx, global_tx.clone());
+        if let Err(e) = subscriber.start(dummy_rx, global_tx.clone()) {
+            // TODO[optimisation]: use future-retry
+            log::error!("Failed to start subscriber: {}", e);
+        }
     }
 
     let global_tx = Arc::new(global_tx.clone());
+
     #[cfg(feature = "webapi")]
     http::setup_http_pipeline(global_tx.clone());
 
@@ -107,8 +114,8 @@ async fn handle_signals(global_tx: Arc<Sender<Message>>, mut signals: Signals, h
     while let Some(signal) = signals.next().await {
         match signal {
             SIGHUP => {
-                // Reload configuration
-                // Reopen the log file
+                // TODO: Reload configuration
+                // TODO: Reopen the log file
             }
             SIGTERM | SIGINT | SIGQUIT => {
                 log::debug!("Received exit signal: {:?}, sending kill message", signal);
