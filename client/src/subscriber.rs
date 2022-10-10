@@ -5,13 +5,12 @@ use hex::FromHex;
 use serde::{Deserialize, Serialize};
 use sp_core::sr25519;
 use substrate_api_client::rpc::WsRpcClient;
-use substrate_api_client::{
-    Api, EventsDecoder, Metadata, Phase, PlainTipExtrinsicParams, Raw, RawEvent,
-};
+use substrate_api_client::{Api, EventsDecoder, Metadata, PlainTipExtrinsicParams, Raw, RawEvent};
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
 
 // Unused for now, useful when we start to actually action the events, not just log
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct SubscriberEvent {
     id: u64,
@@ -103,8 +102,7 @@ impl MessageManager<()> for SubscriberConfig {
                                         );
                                         let _ = tx_shadow
                                             .send(Message::SubscriberEvent(SubscriberEvent::new(
-                                                id_shadow.clone(),
-                                                raw,
+                                                id_shadow, raw,
                                             )))
                                             .await;
                                     }

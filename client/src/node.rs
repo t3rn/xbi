@@ -48,7 +48,7 @@ impl NodeConfig {
         self.key_seed
             .clone()
             .and_then(|path| std::fs::read_to_string(path).ok())
-            .and_then(|contents| Pair::from_string(&contents.replace(' ', "/").trim(), None).ok())
+            .and_then(|contents| Pair::from_string(contents.replace(' ', "/").trim(), None).ok())
             .unwrap_or_else(|| AccountKeyring::Alice.pair())
     }
 }
