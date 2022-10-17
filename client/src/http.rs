@@ -49,40 +49,11 @@ async fn node_message(global_sender: Data<Arc<Sender<Message>>>, body: web::Byte
         }
     }
     match serde_json::from_slice::<EncodedCodecMessage>(body.as_ref()) {
-        Ok(msg) => match msg.kind.get_command() {
-            Command::Sudo(bytes) => {
-                log::debug!("Sending {:?} for dispatch", msg);
-                global_sender
-                    .send(insert_command(Command::Sudo(bytes.to_owned()), msg.kind))
-                    .await
-                    .map(|_| HttpResponse::Ok())
-                    .unwrap_or_else(|_| HttpResponse::InternalServerError())
-            }
-            Command::HrmpInitChannel(parachain) => global_sender
-                .send(insert_command(
-                    Command::HrmpInitChannel(*parachain),
-                    msg.kind,
-                ))
-                .await
-                .map(|_| HttpResponse::Ok())
-                .unwrap_or_else(|_| HttpResponse::InternalServerError()),
-            Command::HrmpAcceptChannel(parachain) => global_sender
-                .send(insert_command(
-                    Command::HrmpAcceptChannel(*parachain),
-                    msg.kind,
-                ))
-                .await
-                .map(|_| HttpResponse::Ok())
-                .unwrap_or_else(|_| HttpResponse::InternalServerError()),
-            Command::UpdateRelayChain(new_host) => global_sender
-                .send(insert_command(
-                    Command::UpdateRelayChain(new_host.to_string()),
-                    msg.kind,
-                ))
-                .await
-                .map(|_| HttpResponse::Ok())
-                .unwrap_or_else(|_| HttpResponse::InternalServerError()),
-        },
+        Ok(msg) => global_sender
+            .send(insert_command(msg.kind.get_command().clone(), msg.kind))
+            .await
+            .map(|_| HttpResponse::Ok())
+            .unwrap_or_else(|_| HttpResponse::InternalServerError()),
         Err(_) => HttpResponse::BadRequest(),
     }
     .finish()
