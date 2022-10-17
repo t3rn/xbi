@@ -39,18 +39,21 @@ pub mod sudo {
 
 pub mod xcm {
     use super::*;
+    use ::xcm::latest::NetworkId;
     use ::xcm::latest::{
         AssetId, Instruction, Junction, Junctions, MultiAsset, MultiAssetFilter, MultiAssets,
-        MultiLocation, OriginKind, WeightLimit, WildMultiAsset, Xcm,
+        MultiLocation, OriginKind, WeightLimit, Xcm,
     };
+    use ::xcm::prelude::All;
     use ::xcm::prelude::Fungible;
     use ::xcm::{DoubleEncoded, VersionedMultiLocation, VersionedXcm};
+    use codec::{Codec, Decode, Encode};
     use substrate_api_client::compose_call;
 
     pub const XCM_MODULE: &str = "PolkadotXcm";
     pub const XCM_SEND: &str = "send";
 
-    pub fn xcm_send<P, Client, Params>(
+    pub fn xcm_compose<P, Client, Params>(
         api: Api<P, Client, Params>,
         dest: VersionedMultiLocation,
         msg: VersionedXcm<Vec<u8>>,
@@ -65,57 +68,278 @@ pub mod xcm {
         compose_call!(api.metadata, XCM_MODULE, XCM_SEND, dest, msg)
     }
 
-    pub struct XcmBuilder {
-        inner: Xcm<Vec<u8>>,
+    pub fn xcm_send<P, Client, Params>(
+        api: Api<P, Client, Params>,
+        dest: VersionedMultiLocation,
+        msg: VersionedXcm<Vec<u8>>,
+    ) -> UncheckedExtrinsicV4<
+        ([u8; 2], VersionedMultiLocation, VersionedXcm<Vec<u8>>),
+        <Params as ExtrinsicParams>::SignedExtra,
+    >
+    where
+        P: Pair,
+        MultiSignature: From<P::Signature>,
+        MultiSigner: From<P::Public>,
+        Client: RpcClient,
+        Params: ExtrinsicParams,
+    {
+        compose_extrinsic!(api, XCM_MODULE, XCM_SEND, dest, msg)
     }
 
-    impl Default for XcmBuilder {
+    pub struct MultiLocationBuilder {
+        inner: MultiLocation,
+    }
+
+    impl Default for MultiLocationBuilder {
+        fn default() -> Self {
+            Self {
+                inner: Default::default(),
+            }
+        }
+    }
+
+    impl MultiLocationBuilder {
+        pub fn get_relaychain_dest() -> VersionedMultiLocation {
+            VersionedMultiLocation::V1(MultiLocationBuilder::new_native(Some(1)).build())
+        }
+
+        pub fn new_native(parent: Option<u8>) -> Self {
+            Self {
+                inner: MultiLocation {
+                    parents: parent.unwrap_or_default(),
+                    interior: Junctions::Here,
+                },
+            }
+        }
+
+        pub fn new_parachain(parent: Option<u8>, parachain: u32) -> Self {
+            Self {
+                inner: MultiLocation {
+                    parents: parent.unwrap_or_default(),
+                    interior: Junctions::X1(Junction::Parachain(parachain)),
+                },
+            }
+        }
+
+        pub fn new_account(parent: Option<u8>, account: [u8; 32]) -> Self {
+            Self {
+                inner: MultiLocation {
+                    parents: parent.unwrap_or_default(),
+                    interior: Junctions::X1(Junction::AccountId32 {
+                        network: NetworkId::Any,
+                        id: account,
+                    }),
+                },
+            }
+        }
+
+        pub fn with_junction(mut self, jnc: Junction) -> Self {
+            match self.inner.interior {
+                Junctions::X8(t, u, v, w, x, y, z, _a) => {
+                    self.inner.interior = Junctions::X8(t, u, v, w, x, y, z, jnc);
+                }
+                _ => {
+                    self.inner.push_interior(jnc);
+                } // Overwrite the last action
+            }
+            self
+        }
+
+        pub fn build(self) -> MultiLocation {
+            self.inner
+        }
+    }
+    pub struct XcmBuilder<T> {
+        inner: Xcm<T>,
+    }
+
+    impl<T> Default for XcmBuilder<T> {
         fn default() -> Self {
             Self { inner: Xcm::new() }
         }
     }
-    impl XcmBuilder {
-        pub fn get_relaychain_dest() -> VersionedMultiLocation {
-            VersionedMultiLocation::V1(MultiLocation {
-                parents: 1,
-                interior: Junctions::Here,
-            })
+
+    impl<T: Codec> XcmBuilder<T> {
+        pub fn with_transfer_self_reserve(
+            mut self,
+            assets: MultiAssets,
+            fee: u128,
+            dest: MultiLocation,
+            recipient: MultiLocation,
+            weight_limit: Option<u64>,
+        ) -> Self {
+            let reserve_xcm = XcmBuilder::default()
+                .with_buy_execution(dest.clone(), fee, weight_limit.map(WeightLimit::Limited))
+                .with_deposit_asset(recipient, assets.len() as u32)
+                .build();
+            self.inner.0.push(Instruction::TransferReserveAsset {
+                assets,
+                dest,
+                // This is injected and called by the dest (self)
+                xcm: reserve_xcm,
+            });
+            self
         }
 
-        pub fn with_withdraw_asset(mut self, concrete_parent: Option<u8>, amt: u128) -> XcmBuilder {
+        pub fn with_transfer_reserve_to_reserve(
+            mut self,
+            assets: MultiAssets,
+            fee: u128,
+            reserve: MultiLocation,
+            recipient: MultiLocation,
+            weight_limit: Option<u64>,
+        ) -> Self {
+            let injected_xcm = XcmBuilder::default()
+                .with_buy_execution(reserve.clone(), fee, weight_limit.map(WeightLimit::Limited))
+                .with_deposit_asset(recipient, assets.len() as u32)
+                .build();
+            self.inner.0.push(Instruction::InitiateReserveWithdraw {
+                assets: MultiAssetFilter::Wild(All),
+                reserve,
+                // This is injected and called by the reserve(target)
+                xcm: injected_xcm,
+            });
+            self
+        }
+
+        pub fn with_transfer(
+            mut self,
+            assets: MultiAssets,
+            execution_fee: u128,
+            reserve: MultiLocation,
+            dest: MultiLocation,
+            recipient: MultiLocation,
+            weight_limit: Option<u64>,
+            // Whether the reserve can teleport the transfer
+            should_teleport: bool,
+        ) -> Self {
+            let mut reanchored_dest = dest.clone();
+            if reserve == MultiLocation::parent() {
+                match dest {
+                    MultiLocation {
+                        parents,
+                        interior: Junctions::X1(Junction::Parachain(id)),
+                    } if parents == 1 => {
+                        reanchored_dest = Junction::Parachain(id).into();
+                    }
+                    _ => {}
+                }
+            }
+
+            self.inner
+                .0
+                .push(Instruction::WithdrawAsset(assets.clone()));
+
+            self.inner.0.push(Instruction::InitiateReserveWithdraw {
+                assets: MultiAssetFilter::Wild(All),
+                reserve: reserve.clone(),
+                xcm: if should_teleport {
+                    XcmBuilder::default()
+                        .with_buy_execution(
+                            reserve,
+                            execution_fee / 2,
+                            weight_limit.map(WeightLimit::Limited),
+                        )
+                        .with_initiate_teleport(
+                            reanchored_dest,
+                            recipient,
+                            execution_fee / 2,
+                            weight_limit,
+                            assets,
+                        )
+                        .build()
+                } else {
+                    XcmBuilder::default()
+                        .with_buy_execution(
+                            reserve,
+                            execution_fee / 2,
+                            weight_limit.map(WeightLimit::Limited),
+                        )
+                        .with_deposit_reserve_asset(
+                            reanchored_dest,
+                            recipient,
+                            execution_fee / 2,
+                            weight_limit,
+                            assets,
+                        )
+                        .build()
+                },
+            });
+            self
+        }
+
+        pub fn with_initiate_teleport(
+            mut self,
+            dest: MultiLocation,
+            recipient: MultiLocation,
+            execution_fee: u128,
+            weight_limit: Option<u64>,
+            assets: MultiAssets,
+        ) -> XcmBuilder<T> {
+            self.inner.0.push(Instruction::InitiateTeleport {
+                assets: MultiAssetFilter::Wild(All),
+                dest: dest.clone(),
+                xcm: XcmBuilder::default()
+                    .with_buy_execution(dest, execution_fee, weight_limit.map(WeightLimit::Limited))
+                    .with_deposit_asset(recipient, assets.len() as u32)
+                    .build(),
+            });
+            self
+        }
+
+        pub fn with_deposit_reserve_asset(
+            mut self,
+            dest: MultiLocation,
+            recipient: MultiLocation,
+            execution_fee: u128,
+            weight_limit: Option<u64>,
+            assets: MultiAssets,
+        ) -> XcmBuilder<T> {
+            self.inner.0.push(Instruction::DepositReserveAsset {
+                assets: MultiAssetFilter::Wild(All),
+                max_assets: assets.len() as u32,
+                dest: dest.clone(),
+                xcm: XcmBuilder::default()
+                    .with_buy_execution(dest, execution_fee, weight_limit.map(WeightLimit::Limited))
+                    .with_deposit_asset(recipient, assets.len() as u32)
+                    .build(),
+            });
+            self
+        }
+
+        pub fn with_withdraw_asset(mut self, asset: MultiLocation, amt: u128) -> XcmBuilder<T> {
             self.inner
                 .0
                 .push(Instruction::WithdrawAsset(MultiAssets::from(vec![
                     MultiAsset {
-                        id: AssetId::Concrete(MultiLocation {
-                            parents: concrete_parent.unwrap_or(0),
-                            interior: Junctions::Here,
-                        }),
+                        id: AssetId::Concrete(asset),
                         fun: Fungible(amt),
                     },
                 ])));
             self
         }
 
-        pub fn with_buy_execution(mut self, concrete_parent: Option<u8>, amt: u128) -> XcmBuilder {
+        pub fn with_buy_execution(
+            mut self,
+            asset: MultiLocation,
+            amt: u128,
+            weight_limit: Option<WeightLimit>,
+        ) -> XcmBuilder<T> {
             self.inner.0.push(Instruction::BuyExecution {
                 fees: MultiAsset {
-                    id: AssetId::Concrete(MultiLocation {
-                        parents: concrete_parent.unwrap_or(0),
-                        interior: Junctions::Here,
-                    }),
+                    id: AssetId::Concrete(asset),
                     fun: Fungible(amt),
                 },
-                weight_limit: WeightLimit::Unlimited,
+                weight_limit: weight_limit.unwrap_or(WeightLimit::Unlimited),
             });
             self
         }
 
-        pub fn with_transact(mut self, max_weight: Option<u64>, call_hex: Vec<u8>) -> XcmBuilder {
-            let call: DoubleEncoded<Vec<u8>> = <DoubleEncoded<_> as From<Vec<u8>>>::from(call_hex);
+        pub fn with_transact(mut self, max_weight: Option<u64>, call_hex: T) -> XcmBuilder<T> {
+            let call: DoubleEncoded<T> = Encode::encode(&call_hex).into();
             self.inner.0.push(Instruction::Transact {
                 origin_type: OriginKind::Native,
-                require_weight_at_most: max_weight.unwrap_or(1000000000),
+                require_weight_at_most: max_weight.unwrap_or(1_000_000_000),
                 call,
             });
             self
@@ -123,27 +347,23 @@ pub mod xcm {
 
         pub fn with_deposit_asset(
             mut self,
-            from_parent: Option<u8>,
+            beneficiary: MultiLocation,
             max_assets: u32,
-            parachain: u32,
-        ) -> XcmBuilder {
+        ) -> XcmBuilder<T> {
             self.inner.0.push(Instruction::DepositAsset {
-                assets: MultiAssetFilter::Wild(WildMultiAsset::All),
+                assets: MultiAssetFilter::Wild(All),
                 max_assets,
-                beneficiary: MultiLocation {
-                    parents: from_parent.unwrap_or(0),
-                    interior: Junctions::X1(Junction::Parachain(parachain)),
-                },
+                beneficiary,
             });
             self
         }
 
-        pub fn with_refund_surplus(mut self) -> XcmBuilder {
+        pub fn with_refund_surplus(mut self) -> XcmBuilder<T> {
             self.inner.0.push(Instruction::RefundSurplus);
             self
         }
 
-        pub fn build(self) -> Xcm<Vec<u8>> {
+        pub fn build(self) -> Xcm<T> {
             self.inner
         }
     }

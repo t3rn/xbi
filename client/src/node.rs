@@ -1,5 +1,5 @@
 use crate::extrinsic::hrmp::{accept_channel_req, get_relaychain_metadata, init_open_channel_req};
-use crate::extrinsic::xcm::XcmBuilder;
+use crate::extrinsic::xcm::{MultiLocationBuilder, XcmBuilder};
 use crate::manager::MessageManager;
 use crate::{catch_panicable, Message};
 use sp_core::crypto::Pair as PairExt;
@@ -10,6 +10,7 @@ use substrate_api_client::rpc::WsRpcClient;
 use substrate_api_client::{Api, Metadata, PlainTipExtrinsicParams, XtStatus};
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
+use xcm::latest::{Junction, MultiAsset, MultiAssets, MultiLocation};
 use xcm::VersionedXcm;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -19,6 +20,22 @@ pub enum Command {
     HrmpInitChannel(u32),
     HrmpAcceptChannel(u32),
     UpdateRelayChain(String),
+    TransferReserve {
+        reserve_is_self: bool,
+        asset: u64,
+        amount: u128,
+        dest_parachain: u32,
+        recipient: String,
+    },
+    TopupSelfReserve {
+        asset: u64,
+        amount: u128,
+    },
+    Teleport {
+        asset: u64,
+        amount: u128,
+        dest_parachain: u32,
+    },
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -60,7 +77,7 @@ impl MessageManager<Command> for NodeConfig {
         let host_shadow = self.host.clone();
         let sleep_shadow = self.sleep_time_secs;
         let key_pair_shadow = self.read_key_or_alice();
-        let id_shadow = self.parachain_id;
+        let parachain_id_shadow = self.parachain_id;
         let _ = tokio::spawn(async move {
             let client = WsRpcClient::new(&host_shadow);
             let api = Api::<Pair, _, PlainTipExtrinsicParams>::new(client)
@@ -90,9 +107,9 @@ impl MessageManager<Command> for NodeConfig {
                     Sudo(bytes) => {
                         log::info!("sending sudo call {:?}", bytes);
 
-                        if let Some(extrinsic) =
-                            catch_panicable!(crate::extrinsic::sudo::wrap_sudo(api.clone(), bytes))
-                        {
+                        if let Some(extrinsic) = catch_panicable!(
+                            crate::extrinsic::sudo::wrap_sudo(api_shadow.clone(), bytes)
+                        ) {
                             tokio::task::spawn_blocking(move || {
                                 let _ = api_shadow
                                     .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
@@ -109,75 +126,189 @@ impl MessageManager<Command> for NodeConfig {
                         let relaychain_meta = get_relaychain_metadata(relaychain_host.clone());
 
                         let call = XcmBuilder::default()
-                            .with_withdraw_asset(Some(0), 1000000000000)
-                            .with_buy_execution(Some(0), 1000000000000)
+                            .with_withdraw_asset(
+                                MultiLocationBuilder::new_native(None).build(),
+                                1_000_000_000_000,
+                            )
+                            .with_buy_execution(
+                                MultiLocationBuilder::new_native(None).build(),
+                                1_000_000_000_000,
+                                None,
+                            )
                             .with_transact(
-                                Some(1000000000),
+                                None,
                                 init_open_channel_req(parachain, None, None, Some(relaychain_meta)),
                             )
                             .with_refund_surplus()
-                            .with_deposit_asset(Some(0), 1, id_shadow)
+                            .with_deposit_asset(
+                                MultiLocationBuilder::new_parachain(None, parachain_id_shadow)
+                                    .build(),
+                                1,
+                            )
                             .build();
 
-                        let call = crate::extrinsic::xcm::xcm_send(
-                            api.clone(),
-                            XcmBuilder::get_relaychain_dest(),
+                        let call = crate::extrinsic::xcm::xcm_compose(
+                            api_shadow.clone(),
+                            MultiLocationBuilder::get_relaychain_dest(),
                             VersionedXcm::V2(call),
                         );
-                        if let Some(extrinsic) =
-                            catch_panicable!(crate::extrinsic::sudo::wrap_sudo(api.clone(), call))
-                        {
-                            tokio::task::spawn_blocking(move || {
-                                let _ = api_shadow
-                                    .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
-                                    .map_err(|err| {
-                                        log::error!(
-                                        "{host_shadow} failed to send init channel request {:?}",
-                                        err
-                                    )
-                                    })
-                                    .map(|ok| {
-                                        log::info!("{host_shadow} completed request {:?}", ok)
-                                    });
-                            });
-                        }
+                        crate::send_sudo_msg!(api_shadow.clone(), call, host_shadow);
                     }
                     HrmpAcceptChannel(parachain) => {
                         let relaychain_meta = get_relaychain_metadata(relaychain_host.clone());
 
                         let call = XcmBuilder::default()
-                            .with_withdraw_asset(Some(0), 1000000000000)
-                            .with_buy_execution(Some(0), 1000000000000)
+                            .with_withdraw_asset(
+                                MultiLocationBuilder::new_native(None).build(),
+                                1_000_000_000_000,
+                            )
+                            .with_buy_execution(
+                                MultiLocationBuilder::new_native(None).build(),
+                                1_000_000_000_000,
+                                None,
+                            )
                             .with_transact(
-                                Some(1000000000),
+                                None,
                                 accept_channel_req(parachain, Some(relaychain_meta)),
                             )
                             .with_refund_surplus()
-                            .with_deposit_asset(Some(0), 1, id_shadow)
+                            .with_deposit_asset(
+                                MultiLocationBuilder::new_parachain(None, parachain_id_shadow)
+                                    .build(),
+                                1,
+                            )
                             .build();
 
-                        let call = crate::extrinsic::xcm::xcm_send(
-                            api.clone(),
-                            XcmBuilder::get_relaychain_dest(),
+                        let call = crate::extrinsic::xcm::xcm_compose(
+                            api_shadow.clone(),
+                            MultiLocationBuilder::get_relaychain_dest(),
                             VersionedXcm::V2(call),
                         );
-                        if let Some(extrinsic) =
-                            catch_panicable!(crate::extrinsic::sudo::wrap_sudo(api.clone(), call))
-                        {
-                            tokio::task::spawn_blocking(move || {
-                                let _ = api_shadow
-                                    .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
-                                    .map_err(|err| {
-                                        log::error!(
-                                            "{host_shadow} failed to send request {:?}",
-                                            err
-                                        )
-                                    })
-                                    .map(|ok| {
-                                        log::info!("{host_shadow} completed request {:?}", ok)
-                                    });
-                            });
-                        }
+                        crate::send_sudo_msg!(api_shadow.clone(), call, host_shadow);
+                    }
+                    TransferReserve {
+                        reserve_is_self,
+                        asset,
+                        amount,
+                        dest_parachain,
+                        recipient,
+                    } => {
+                        let asset = MultiAsset::from((
+                            MultiLocationBuilder::new_native(None)
+                                .with_junction(Junction::GeneralIndex(asset as u128)) // TODO: no
+                                .build(),
+                            amount,
+                        ));
+                        let call = if reserve_is_self {
+                            XcmBuilder::default().with_transfer_self_reserve(
+                                MultiAssets::from(vec![asset]),
+                                1_000_000_000_000,
+                                MultiLocationBuilder::new_parachain(Some(0), dest_parachain)
+                                    .build(),
+                                MultiLocationBuilder::new_parachain(Some(0), dest_parachain)
+                                    .build(),
+                                None,
+                            )
+                        } else {
+                            XcmBuilder::default().with_transfer(
+                                MultiAssets::from(vec![asset]),
+                                1_000_000_000_000,
+                                MultiLocationBuilder::new_parachain(Some(1), 3000).build(),
+                                MultiLocationBuilder::new_parachain(Some(0), dest_parachain)
+                                    .build(),
+                                MultiLocationBuilder::new_native(Some(0)).build(),
+                                None,
+                                false,
+                            )
+                        };
+
+                        let call = crate::extrinsic::xcm::xcm_compose(
+                            api_shadow.clone(),
+                            MultiLocationBuilder::get_relaychain_dest(),
+                            VersionedXcm::V2(call.build()),
+                        );
+                        crate::send_sudo_msg!(api_shadow.clone(), call, host_shadow);
+                    }
+                    TopupSelfReserve { asset, amount } => {
+                        let asset = MultiAsset::from((
+                            MultiLocationBuilder::new_native(None)
+                                // .with_junction(Junction::GeneralIndex(asset as u128)) // TODO: no
+                                .build(),
+                            amount,
+                        ));
+                        let assets = MultiAssets::from(vec![asset]);
+                        let self_location =
+                            MultiLocationBuilder::new_parachain(Some(1), parachain_id_shadow)
+                                .build();
+                        // let call = XcmBuilder::default().with_transfer_reserve_to_reserve(
+                        //     assets,
+                        //     1_000_000_000_000,
+                        //     self_location.clone(),
+                        //     self_location.clone(),
+                        //     None,
+                        // );
+                        // let call = XcmBuilder::default()
+                        //     .with_withdraw_asset(self_location.clone(), 1_000_000_000_000)
+                        //     .with_deposit_reserve_asset(
+                        //         self_location.clone(),
+                        //         self_location.clone(),
+                        //         1_000_000_000_000,
+                        //         None,
+                        //         assets,
+                        //     );
+                        let call = XcmBuilder::default().with_withdraw_asset(
+                            MultiLocationBuilder::new_native(None).build(),
+                            1_000_000_000_000,
+                        );
+                        // .with_deposit_reserve_asset(
+                        //     self_location.clone(),
+                        //     self_location.clone(),
+                        //     1_000_000_000_000,
+                        //     None,
+                        //     assets,
+                        // );
+
+                        let call = crate::extrinsic::xcm::xcm_compose(
+                            api_shadow.clone(),
+                            MultiLocationBuilder::get_relaychain_dest(),
+                            VersionedXcm::V2(call.build()),
+                        );
+                        crate::send_sudo_msg!(api_shadow.clone(), call, host_shadow);
+                    }
+                    Teleport {
+                        asset,
+                        amount,
+                        dest_parachain,
+                    } => {
+                        let asset = MultiAsset::from((
+                            MultiLocationBuilder::new_native(None)
+                                // .with_junction(Junction::GeneralIndex(asset as u128)) // TODO: no
+                                .build(),
+                            amount,
+                        ));
+                        let assets = MultiAssets::from(vec![asset]);
+
+                        let call = XcmBuilder::default()
+                            .with_withdraw_asset(
+                                MultiLocationBuilder::new_native(Some(1)).build(),
+                                amount,
+                            )
+                            .with_initiate_teleport(
+                                MultiLocationBuilder::new_parachain(Some(1), 3).build(),
+                                MultiLocationBuilder::new_parachain(Some(1), 3).build(),
+                                amount / 2,
+                                None,
+                                assets,
+                            );
+
+                        let call = crate::extrinsic::xcm::xcm_send(
+                            api_shadow.clone(),
+                            MultiLocationBuilder::new_parachain(Some(1), 3)
+                                .build()
+                                .into(),
+                            VersionedXcm::V2(call.build()),
+                        );
+                        crate::send_msg!(api_shadow.clone(), call, host_shadow);
                     }
                     UpdateRelayChain(new_host) => {
                         log::info!("{host_shadow} updating relay chain to {new_host}");
@@ -190,4 +321,31 @@ impl MessageManager<Command> for NodeConfig {
         });
         Ok(())
     }
+}
+
+#[macro_export]
+macro_rules! send_sudo_msg {
+    ($api_shadow:expr, $call:tt, $host_shadow:tt) => {{
+        if let Some(extrinsic) =
+            catch_panicable!(crate::extrinsic::sudo::wrap_sudo($api_shadow, $call))
+        {
+            tokio::task::spawn_blocking(move || {
+                let _ = $api_shadow
+                    .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
+                    .map_err(|err| log::error!("{} failed to send request {:?}", $host_shadow, err))
+                    .map(|ok| log::info!("{} completed request {:?}", $host_shadow, ok));
+            });
+        }
+    }};
+}
+#[macro_export]
+macro_rules! send_msg {
+    ($api_shadow:expr, $call:tt, $host_shadow:tt) => {{
+        tokio::task::spawn_blocking(move || {
+            let _ = $api_shadow
+                .send_extrinsic($call.hex_encode(), XtStatus::InBlock)
+                .map_err(|err| log::error!("{} failed to send request {:?}", $host_shadow, err))
+                .map(|ok| log::info!("{} completed request {:?}", $host_shadow, ok));
+        });
+    }};
 }
