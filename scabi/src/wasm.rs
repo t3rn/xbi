@@ -65,3 +65,47 @@ impl TryFrom<CallEvm> for CallWasm {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sp_core::ByteArray;
+
+    fn test_wasm() -> CallWasm {
+        CallWasm::new(
+            AccountId32::from([1_u8; 32]),
+            AccountId32::from([2_u8; 32]),
+            5000,
+            200,
+            None,
+            "hellomynameis".encode(),
+        )
+    }
+
+    #[test]
+    fn try_from_evm() {
+        let wasm = test_wasm();
+        assert_eq!(wasm.origin_source, AccountId32::new([1_u8; 32]));
+        assert_eq!(wasm.dest, AccountId32::new([2_u8; 32]));
+        assert_eq!(wasm.data, "hellomynameis".encode());
+
+        let evm = CallEvm::try_from(test_wasm()).unwrap();
+
+        let wasm = CallWasm::try_from(evm).unwrap();
+        assert_eq!(wasm.data, test_wasm().data);
+        assert_eq!(wasm.value, test_wasm().value);
+        assert_eq!(
+            wasm.storage_deposit_limit,
+            test_wasm().storage_deposit_limit
+        );
+        assert_eq!(wasm.gas_limit, test_wasm().gas_limit);
+        // last 12 are thrown away
+        assert_eq!(
+            wasm.dest.as_slice()[0..20],
+            test_wasm().dest.as_slice()[0..20]
+        );
+        // set to buffer
+        assert_eq!(wasm.dest.as_slice()[20..32], [0_u8; 12]);
+        assert_eq!(wasm.origin_source.as_slice()[20..32], [0_u8; 12]);
+    }
+}
