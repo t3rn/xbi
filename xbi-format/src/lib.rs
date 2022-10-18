@@ -236,11 +236,14 @@ pub struct ActionNotificationTimeouts {
     pub notification: Timeout,
 }
 
+const TIMEOUT_NINETY_SIX_SECONDS: Timeout = 96000;
+const TIMEOUT_TWENTY_FOUR_SECONDS: Timeout = 24000;
+
 impl Default for ActionNotificationTimeouts {
     fn default() -> Self {
         ActionNotificationTimeouts {
-            action: 96000,       // 96 sec
-            notification: 24000, // 24 sec
+            action: TIMEOUT_NINETY_SIX_SECONDS,        // 96 sec
+            notification: TIMEOUT_TWENTY_FOUR_SECONDS, // 24 sec
         }
     }
 }
@@ -344,5 +347,18 @@ impl XBIMetadata {
             actual_aggregated_cost: None,
             maybe_fee_asset_id,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sp_runtime::traits::BlakeTwo256;
+
+    #[test]
+    fn can_hash_id() {
+        let meta = XBIMetadata::default();
+        let hash = meta.id::<BlakeTwo256>();
+        assert_eq!(hash, <BlakeTwo256 as Hasher>::hash(&meta.id.0))
     }
 }
