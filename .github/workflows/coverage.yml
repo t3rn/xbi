@@ -1,9 +1,9 @@
 name: Test Coverage
 
 on:
-#  push:
-#    branches:
-#      - main
+  #  push:
+  #    branches:
+  #      - main
   pull_request:
     types:
       - opened
@@ -11,7 +11,6 @@ on:
     branches:
       - main
       - development
-
 
 jobs:
   check-coverage:
@@ -35,23 +34,21 @@ jobs:
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:
-          version: '0.15.0'
-          args: '-- --test-threads 1'
+          version: "0.15.0"
+          args: "-- --test-threads 1"
 
-# TODO: also display on codecov
-#      - name: Upload to codecov.io
-#        uses: codecov/codecov-action@v1.0.2
-#        with:
-#          token: ${{secrets.CODECOV_TOKEN}}
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v1
         with:
           name: code-coverage-report
           path: cobertura.xml
-
-      - name: Comment coverage results
-        uses: 5monkeys/cobertura-action@master
-        with:
-          path: cobertura.xml
-          minimum_coverage: 70
+#      - name: Comment coverage results
+#        uses: 5monkeys/cobertura-action@master
+#        with:
+#          path: cobertura.xml
+#          minimum_coverage: 70
