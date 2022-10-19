@@ -1,4 +1,5 @@
 # XBI
+[![codecov](https://codecov.io/gh/t3rn/xbi/branch/main/graph/badge.svg?token=PKR69NFU6U)](https://codecov.io/gh/t3rn/xbi)
 
 An XCM-based high-level standard and interface (ABI) for smart contracts.
 
