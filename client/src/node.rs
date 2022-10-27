@@ -126,7 +126,7 @@ impl MessageManager<Command> for NodeConfig {
                         let relaychain_meta = get_relaychain_metadata(relaychain_host.clone());
 
                         let call = XcmBuilder::default()
-                            .with_withdraw_asset(
+                            .with_withdraw_concrete_asset(
                                 MultiLocationBuilder::new_native().build(),
                                 1_000_000_000_000,
                             )
@@ -157,7 +157,7 @@ impl MessageManager<Command> for NodeConfig {
                         let relaychain_meta = get_relaychain_metadata(relaychain_host.clone());
 
                         let call = XcmBuilder::default()
-                            .with_withdraw_asset(
+                            .with_withdraw_concrete_asset(
                                 MultiLocationBuilder::new_native().build(),
                                 1_000_000_000_000,
                             )
@@ -254,7 +254,7 @@ impl MessageManager<Command> for NodeConfig {
                         //         None,
                         //         assets,
                         //     );
-                        let call = XcmBuilder::default().with_withdraw_asset(
+                        let call = XcmBuilder::default().with_withdraw_concrete_asset(
                             MultiLocationBuilder::new_native().build(),
                             1_000_000_000_000,
                         );
@@ -287,7 +287,7 @@ impl MessageManager<Command> for NodeConfig {
                         let assets = MultiAssets::from(vec![asset]);
 
                         let call = XcmBuilder::default()
-                            .with_withdraw_asset(
+                            .with_withdraw_concrete_asset(
                                 MultiLocationBuilder::new_native().with_parents(1).build(),
                                 amount,
                             )
