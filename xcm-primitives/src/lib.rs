@@ -257,9 +257,9 @@ impl<T: Codec> XcmBuilder<T> {
         mut self,
         origin_type: Option<OriginKind>,
         max_weight: Option<u64>,
-        call_hex: T,
+        call: Vec<u8>,
     ) -> XcmBuilder<T> {
-        let call: DoubleEncoded<T> = Encode::encode(&call_hex).into();
+        let call: DoubleEncoded<T> = call.into();
         self.inner.0.push(Transact {
             origin_type: origin_type.unwrap_or(OriginKind::Native),
             require_weight_at_most: max_weight.unwrap_or(1_000_000_000),

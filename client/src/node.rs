@@ -1,6 +1,7 @@
 use crate::extrinsic::hrmp::{accept_channel_req, get_relaychain_metadata, init_open_channel_req};
 use crate::manager::MessageManager;
 use crate::{catch_panicable, Message};
+use codec::Encode;
 use sp_core::crypto::Pair as PairExt;
 use sp_core::sr25519::Pair;
 use sp_keyring::AccountKeyring;
@@ -10,6 +11,7 @@ use substrate_api_client::{Api, Metadata, PlainTipExtrinsicParams, XtStatus};
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
 use xcm::latest::{Junction, MultiAsset, MultiAssets, MultiLocation};
+use xcm::prelude::OriginKind;
 use xcm::VersionedXcm;
 use xcm_primitives::{MultiLocationBuilder, XcmBuilder};
 
@@ -136,8 +138,10 @@ impl MessageManager<Command> for NodeConfig {
                                 None,
                             )
                             .with_transact(
+                                Some(OriginKind::SovereignAccount),
                                 None,
-                                init_open_channel_req(parachain, None, None, Some(relaychain_meta)),
+                                init_open_channel_req(parachain, None, None, Some(relaychain_meta))
+                                    .encode(),
                             )
                             .with_refund_surplus()
                             .with_deposit_asset(
@@ -167,8 +171,9 @@ impl MessageManager<Command> for NodeConfig {
                                 None,
                             )
                             .with_transact(
+                                Some(OriginKind::SovereignAccount),
                                 None,
-                                accept_channel_req(parachain, Some(relaychain_meta)),
+                                accept_channel_req(parachain, Some(relaychain_meta)).encode(),
                             )
                             .with_refund_surplus()
                             .with_deposit_asset(
