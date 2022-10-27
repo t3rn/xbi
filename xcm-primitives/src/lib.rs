@@ -4,6 +4,9 @@ use codec::{Codec, Encode};
 use xcm::prelude::*;
 use xcm::DoubleEncoded;
 
+#[cfg(feature = "frame")]
+pub mod frame_traits;
+
 pub struct MultiLocationBuilder {
     inner: MultiLocation,
 }

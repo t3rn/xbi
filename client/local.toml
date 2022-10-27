@@ -1,38 +1,38 @@
 debug = true
 
 [[nodes]]
-parachain_id = 2
-host = "ws://localhost:2222"
+host            = "ws://localhost:2222"
+parachain_id    = 2
 sleep_time_secs = 1
 
 [[nodes]]
-parachain_id = 3
-host = "ws://localhost:3333"
+host            = "ws://localhost:3333"
+parachain_id    = 3
 sleep_time_secs = 1
 
 [[subscribers]]
-parachain_id = 2
-host = "ws://localhost:2222"
+host            = "ws://localhost:2222"
+parachain_id    = 2
 sleep_time_secs = 5
 
 [[subscribers.listener_events]]
-module = "System"
+module  = "System"
 variant = "ExtrinsicFailed"
 
 [[subscribers]]
-parachain_id = 3
-host = "ws://localhost:3333"
+host            = "ws://localhost:3333"
+parachain_id    = 3
 sleep_time_secs = 5
 
 [[subscribers.listener_events]]
-module = "System"
+module  = "System"
 variant = "ExtrinsicFailed"
 
 [[subscribers]]
-parachain_id = 1
-host = "ws://localhost:9944"
+host            = "ws://localhost:9944"
+parachain_id    = 1
 sleep_time_secs = 5
 
 [[subscribers.listener_events]]
-module = "Ump"
+module  = "Ump"
 variant = "ExecutedUpward"
