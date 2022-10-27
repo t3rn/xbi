@@ -223,7 +223,11 @@ impl<T: Codec> XcmBuilder<T> {
         self
     }
 
-    pub fn with_withdraw_asset(mut self, asset: MultiLocation, amt: u128) -> XcmBuilder<T> {
+    pub fn with_withdraw_concrete_asset(
+        mut self,
+        asset: MultiLocation,
+        amt: u128,
+    ) -> XcmBuilder<T> {
         self.inner
             .0
             .push(WithdrawAsset(MultiAssets::from(vec![MultiAsset {
@@ -249,10 +253,15 @@ impl<T: Codec> XcmBuilder<T> {
         self
     }
 
-    pub fn with_transact(mut self, max_weight: Option<u64>, call_hex: T) -> XcmBuilder<T> {
+    pub fn with_transact(
+        mut self,
+        origin_type: Option<OriginKind>,
+        max_weight: Option<u64>,
+        call_hex: T,
+    ) -> XcmBuilder<T> {
         let call: DoubleEncoded<T> = Encode::encode(&call_hex).into();
         self.inner.0.push(Transact {
-            origin_type: OriginKind::Native,
+            origin_type: origin_type.unwrap_or(OriginKind::Native),
             require_weight_at_most: max_weight.unwrap_or(1_000_000_000),
             call,
         });
