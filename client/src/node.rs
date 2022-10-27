@@ -1,5 +1,4 @@
 use crate::extrinsic::hrmp::{accept_channel_req, get_relaychain_metadata, init_open_channel_req};
-use crate::extrinsic::xcm::{MultiLocationBuilder, XcmBuilder};
 use crate::manager::MessageManager;
 use crate::{catch_panicable, Message};
 use sp_core::crypto::Pair as PairExt;
@@ -12,6 +11,7 @@ use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
 use xcm::latest::{Junction, MultiAsset, MultiAssets, MultiLocation};
 use xcm::VersionedXcm;
+use xcm_primitives::{MultiLocationBuilder, XcmBuilder};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub enum Command {
@@ -127,11 +127,11 @@ impl MessageManager<Command> for NodeConfig {
 
                         let call = XcmBuilder::default()
                             .with_withdraw_asset(
-                                MultiLocationBuilder::new_native(None).build(),
+                                MultiLocationBuilder::new_native().build(),
                                 1_000_000_000_000,
                             )
                             .with_buy_execution(
-                                MultiLocationBuilder::new_native(None).build(),
+                                MultiLocationBuilder::new_native().build(),
                                 1_000_000_000_000,
                                 None,
                             )
@@ -141,8 +141,7 @@ impl MessageManager<Command> for NodeConfig {
                             )
                             .with_refund_surplus()
                             .with_deposit_asset(
-                                MultiLocationBuilder::new_parachain(None, parachain_id_shadow)
-                                    .build(),
+                                MultiLocationBuilder::new_parachain(parachain_id_shadow).build(),
                                 1,
                             )
                             .build();
@@ -159,11 +158,11 @@ impl MessageManager<Command> for NodeConfig {
 
                         let call = XcmBuilder::default()
                             .with_withdraw_asset(
-                                MultiLocationBuilder::new_native(None).build(),
+                                MultiLocationBuilder::new_native().build(),
                                 1_000_000_000_000,
                             )
                             .with_buy_execution(
-                                MultiLocationBuilder::new_native(None).build(),
+                                MultiLocationBuilder::new_native().build(),
                                 1_000_000_000_000,
                                 None,
                             )
@@ -173,8 +172,7 @@ impl MessageManager<Command> for NodeConfig {
                             )
                             .with_refund_surplus()
                             .with_deposit_asset(
-                                MultiLocationBuilder::new_parachain(None, parachain_id_shadow)
-                                    .build(),
+                                MultiLocationBuilder::new_parachain(parachain_id_shadow).build(),
                                 1,
                             )
                             .build();
@@ -194,7 +192,7 @@ impl MessageManager<Command> for NodeConfig {
                         recipient,
                     } => {
                         let asset = MultiAsset::from((
-                            MultiLocationBuilder::new_native(None)
+                            MultiLocationBuilder::new_native()
                                 .with_junction(Junction::GeneralIndex(asset as u128)) // TODO: no
                                 .build(),
                             amount,
@@ -203,20 +201,19 @@ impl MessageManager<Command> for NodeConfig {
                             XcmBuilder::default().with_transfer_self_reserve(
                                 MultiAssets::from(vec![asset]),
                                 1_000_000_000_000,
-                                MultiLocationBuilder::new_parachain(Some(0), dest_parachain)
-                                    .build(),
-                                MultiLocationBuilder::new_parachain(Some(0), dest_parachain)
-                                    .build(),
+                                MultiLocationBuilder::new_parachain(dest_parachain).build(),
+                                MultiLocationBuilder::new_parachain(dest_parachain).build(),
                                 None,
                             )
                         } else {
                             XcmBuilder::default().with_transfer(
                                 MultiAssets::from(vec![asset]),
                                 1_000_000_000_000,
-                                MultiLocationBuilder::new_parachain(Some(1), 3000).build(),
-                                MultiLocationBuilder::new_parachain(Some(0), dest_parachain)
+                                MultiLocationBuilder::new_parachain(3000)
+                                    .with_parents(1)
                                     .build(),
-                                MultiLocationBuilder::new_native(Some(0)).build(),
+                                MultiLocationBuilder::new_parachain(dest_parachain).build(),
+                                MultiLocationBuilder::new_native().build(),
                                 None,
                                 false,
                             )
@@ -231,14 +228,15 @@ impl MessageManager<Command> for NodeConfig {
                     }
                     TopupSelfReserve { asset, amount } => {
                         let asset = MultiAsset::from((
-                            MultiLocationBuilder::new_native(None)
+                            MultiLocationBuilder::new_native()
                                 // .with_junction(Junction::GeneralIndex(asset as u128)) // TODO: no
                                 .build(),
                             amount,
                         ));
                         let assets = MultiAssets::from(vec![asset]);
                         let self_location =
-                            MultiLocationBuilder::new_parachain(Some(1), parachain_id_shadow)
+                            MultiLocationBuilder::new_parachain(parachain_id_shadow)
+                                .with_parents(1)
                                 .build();
                         // let call = XcmBuilder::default().with_transfer_reserve_to_reserve(
                         //     assets,
@@ -257,7 +255,7 @@ impl MessageManager<Command> for NodeConfig {
                         //         assets,
                         //     );
                         let call = XcmBuilder::default().with_withdraw_asset(
-                            MultiLocationBuilder::new_native(None).build(),
+                            MultiLocationBuilder::new_native().build(),
                             1_000_000_000_000,
                         );
                         // .with_deposit_reserve_asset(
@@ -281,7 +279,7 @@ impl MessageManager<Command> for NodeConfig {
                         dest_parachain,
                     } => {
                         let asset = MultiAsset::from((
-                            MultiLocationBuilder::new_native(None)
+                            MultiLocationBuilder::new_native()
                                 // .with_junction(Junction::GeneralIndex(asset as u128)) // TODO: no
                                 .build(),
                             amount,
@@ -290,12 +288,16 @@ impl MessageManager<Command> for NodeConfig {
 
                         let call = XcmBuilder::default()
                             .with_withdraw_asset(
-                                MultiLocationBuilder::new_native(Some(1)).build(),
+                                MultiLocationBuilder::new_native().with_parents(1).build(),
                                 amount,
                             )
                             .with_initiate_teleport(
-                                MultiLocationBuilder::new_parachain(Some(1), 3).build(),
-                                MultiLocationBuilder::new_parachain(Some(1), 3).build(),
+                                MultiLocationBuilder::new_parachain(3)
+                                    .with_parents(1)
+                                    .build(),
+                                MultiLocationBuilder::new_parachain(3)
+                                    .with_parents(1)
+                                    .build(),
                                 amount / 2,
                                 None,
                                 assets,
@@ -303,7 +305,8 @@ impl MessageManager<Command> for NodeConfig {
 
                         let call = crate::extrinsic::xcm::xcm_send(
                             api_shadow.clone(),
-                            MultiLocationBuilder::new_parachain(Some(1), 3)
+                            MultiLocationBuilder::new_parachain(3)
+                                .with_parents(1)
                                 .build()
                                 .into(),
                             VersionedXcm::V2(call.build()),
