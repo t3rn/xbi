@@ -1,15 +1,16 @@
 [package]
-name = "t3rn-xcm-primitives"
-version = "0.1.0"
 edition = "2021"
+name    = "t3rn-xcm-primitives"
+version = "0.1.0"
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false, features = ['derive'] }
-xcm = { git = "https://github.com/paritytech/polkadot.git", branch = "release-v0.9.27", default-features = false }
+codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false, features = [ 'derive' ] }
+xcm   = { git = "https://github.com/paritytech/polkadot.git", branch = "release-v0.9.27", default-features = false }
+
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", optional = true }
 
 [features]
-default = [ "std" ]
-std = [
-    "xcm/std",
-    "codec/std",
-]
+default   = [ "std", "frame-std" ]
+frame     = [ "sp-runtime" ]
+frame-std = [ "sp-runtime/std" ]
+std       = [ "xcm/std", "codec/std" ]

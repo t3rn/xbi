@@ -9,39 +9,39 @@ repository  = "https://github.com/t3rn/xbi/"
 version     = "0.1.0"
 
 [dependencies]
+anyhow            = { version = "1.0.65" }
+log               = { version = "0.4.14" }
+memoize           = "0.3.1"
 pretty_env_logger = "0.4.0"
-log = { version = "0.4.14" }
-thiserror = { version = "1.0.30" }
-anyhow = { version = "1.0.65" }
-memoize = "0.3.1"
+thiserror         = { version = "1.0.30" }
 
-clap = { version = "4.0.9", features = [ "derive"] }
+clap   = { version = "4.0.9", features = [ "derive" ] }
 config = "0.13.2"
 
 # Codec
-serde = { version = "1.0.136",  features = ["derive"] }
-serde_json = { version = "1.0.79"}
-hex = { version = "0.4.3", features = ["serde"] }
-codec = { package = "parity-scale-codec", version = "3.1.5", features = ['derive'] }
-scale-info = { version = "2.1.2", features = ["derive"] }
+codec      = { package = "parity-scale-codec", version = "3.1.5", features = [ 'derive' ] }
+hex        = { version = "0.4.3", features = [ "serde" ] }
+scale-info = { version = "2.1.2", features = [ "derive" ] }
+serde      = { version = "1.0.136", features = [ "derive" ] }
+serde_json = { version = "1.0.79" }
 
 # Substrate
-sp-runtime = { version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
+sp-core    = { version = "6.0.0", features = [ "full_crypto" ], git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
 sp-keyring = { version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
-sp-core = { version = "6.0.0", features = ["full_crypto"], git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
-xcm = { git = "https://github.com/paritytech/polkadot.git", branch = "release-v0.9.27" }
+sp-runtime = { version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
+xcm        = { git = "https://github.com/paritytech/polkadot.git", branch = "release-v0.9.27" }
 
 # Transport
-tokio = { version = "1", features = ["full"] }
-substrate-api-client = { git = "https://github.com/scs/substrate-api-client.git", branch = "polkadot-v0.9.27", features = ["std"] }
-actix-web = { version = "4", optional = true }
-signal-hook-tokio = { version = "0.3.1", features = ["futures-v0_3"] }
-signal-hook = "0.3.14"
-futures = "0.3.24"
+actix-web            = { version = "4", optional = true }
+futures              = "0.3.24"
+signal-hook          = "0.3.14"
+signal-hook-tokio    = { version = "0.3.1", features = [ "futures-v0_3" ] }
+substrate-api-client = { git = "https://github.com/scs/substrate-api-client.git", branch = "polkadot-v0.9.27", features = [ "std" ] }
+tokio                = { version = "1", features = [ "full" ] }
 
 # XBI
 xcm-primitives = { path = "../xcm-primitives", package = "t3rn-xcm-primitives" }
 
 [features]
-default = ["webapi"]
-webapi = ["actix-web"]
+default = [ "webapi" ]
+webapi  = [ "actix-web" ]
