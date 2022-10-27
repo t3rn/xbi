@@ -22,8 +22,8 @@ config = "0.13.2"
 serde = { version = "1.0.136",  features = ["derive"] }
 serde_json = { version = "1.0.79"}
 hex = { version = "0.4.3", features = ["serde"] }
-codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false, features = ['derive'] }
-scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "3.1.5", features = ['derive'] }
+scale-info = { version = "2.1.2", features = ["derive"] }
 
 # Substrate
 sp-runtime = { version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
@@ -38,6 +38,9 @@ actix-web = { version = "4", optional = true }
 signal-hook-tokio = { version = "0.3.1", features = ["futures-v0_3"] }
 signal-hook = "0.3.14"
 futures = "0.3.24"
+
+# XBI
+xcm-primitives = { path = "../xcm-primitives", package = "t3rn-xcm-primitives" }
 
 [features]
 default = ["webapi"]

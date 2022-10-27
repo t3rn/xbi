@@ -1,3 +1,5 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+
 use crate::error::Error;
 use crate::evm::CallEvm;
 use crate::wasm::CallWasm;
