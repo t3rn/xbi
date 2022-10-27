@@ -42,7 +42,7 @@ async fn main() {
 
     let mut node_transmitters = vec![];
     for node in config.nodes {
-        let (node_tx, node_rx) = mpsc::channel(256);
+        let (node_tx, node_rx) = mpsc::channel(128);
         if let Err(e) = node.start(node_rx, global_tx.clone()) {
             // TODO[optimisation]: use future-retry
             log::error!("Failed to start node: {}", e);
@@ -72,10 +72,12 @@ async fn main() {
         while let Some(msg) = global_rx.recv().await {
             match msg {
                 Message::PrimaryNode(req) => {
-                    let _ = node_transmitters[0]
-                        .send(req)
-                        .await
-                        .map_err(|e| log::error!("Failed to send command {}", e));
+                    if let Some(node_tx) = node_transmitters.first() {
+                        let _ = node_tx
+                            .send(req)
+                            .await
+                            .map_err(|e| log::error!("Failed to send command {}", e));
+                    }
                 }
                 Message::SecondaryNode(req) => {
                     if let Some(node_tx) = node_transmitters.get(1) {
