@@ -61,6 +61,7 @@ pub struct XBICheckOut {
 
 impl XBICheckOut {
     pub fn new<T: frame_system::Config>(
+        id: T::Hash,
         _delivery_timeout: T::BlockNumber,
         output: Vec<u8>,
         resolution_status: XBICheckOutStatus,
@@ -69,11 +70,12 @@ impl XBICheckOut {
         actual_aggregated_cost: Value,
     ) -> Self {
         XBICheckOut {
-            xbi: XBIInstr::Result {
-                outcome: resolution_status.clone(),
+            xbi: XBIInstr::Result(XbiResult {
+                id: id.encode(),
+                status: resolution_status.clone(),
                 output,
                 witness: vec![],
-            },
+            }),
             resolution_status,
             checkout_timeout: Default::default(),
             // fixme: make below work - casting block no to timeout
@@ -88,16 +90,18 @@ impl XBICheckOut {
 
     /// Instantiate a new checkout with default costs
     pub fn new_ignore_costs<T: frame_system::Config>(
+        id: T::Hash,
         _delivery_timeout: T::BlockNumber,
         output: Vec<u8>,
         resolution_status: XBICheckOutStatus,
     ) -> Self {
         XBICheckOut {
-            xbi: XBIInstr::Result {
-                outcome: resolution_status.clone(),
+            xbi: XBIInstr::Result(XbiResult {
+                id: id.encode(),
+                status: resolution_status.clone(),
                 output,
                 witness: vec![],
-            },
+            }),
             resolution_status,
             checkout_timeout: Default::default(),
             // fixme: make below work - casting block no to timeout
@@ -204,17 +208,22 @@ pub enum XBIInstr {
     },
     /// Provide the result of an XBI instruction
     // TODO: make this a tuple type with a struct XbiResult since this would be easier to send back
-    Result {
-        outcome: XBICheckOutStatus,
-        output: Data,
-        witness: Data,
-    },
+    Result(XbiResult),
 }
 
 impl Default for XBIInstr {
     fn default() -> Self {
         XBIInstr::CallNative { payload: vec![] }
     }
+}
+
+/// A result containing the status of the call
+#[derive(Debug, Clone, Eq, PartialEq, Encode, Decode, TypeInfo)]
+pub struct XbiResult {
+    pub id: Data, // TODO: maybe make hash
+    pub status: XBICheckOutStatus,
+    pub output: Data,
+    pub witness: Data,
 }
 
 /// A type of notification emitted from XBI
