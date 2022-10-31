@@ -41,7 +41,7 @@ pub type Timeout = u32;
 
 ##### XBI Metadata
 ```rust
-pub struct XBIMetadata {
+pub struct XbiMetadata {
     pub id: Id,
     pub dest_para_id: Target,
     pub src_para_id: Target,
@@ -231,7 +231,7 @@ Gets the price exchanging `amount` of currency A to currency B on Target Paracha
 XBI Result accompanying each XBI Instruction. With XBI, users get the guarantee that each XBI order will be resolved with one of the following outcomes:
 
 ```rust
-pub enum XBICheckOutStatus {
+pub enum XbiCheckOutStatus {
   // Success scenario
   SuccessfullyExecuted,
   
@@ -254,7 +254,7 @@ The future extensions to XBI foresee communication with remote to Polkadot conse
 ```rust
     // 255
     Result {
-        outcome: XBICheckOutStatus,
+        outcome: XbiCheckOutStatus,
         output: Data,
         witness: Data,
         actual_aggregated_costs: Value,
