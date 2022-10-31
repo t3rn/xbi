@@ -14,7 +14,7 @@ pub use xbi_codec::*;
 
 /// A representation of the status of an XBI execution
 #[derive(Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub enum XBICheckOutStatus {
+pub enum XbiCheckOutStatus {
     /// The XBI message was successful
     SuccessfullyExecuted,
     /// Failed to execute an XBI instruction
@@ -33,9 +33,9 @@ pub enum XBICheckOutStatus {
     ErrorExecutionTimeoutExceeded,
 }
 
-impl Default for XBICheckOutStatus {
+impl Default for XbiCheckOutStatus {
     fn default() -> Self {
-        XBICheckOutStatus::SuccessfullyExecuted
+        XbiCheckOutStatus::SuccessfullyExecuted
     }
 }
 
@@ -44,33 +44,33 @@ impl Default for XBICheckOutStatus {
 
 /// A representation of the state of an XBI message, meters relating to cost and any timeouts
 #[derive(Clone, Eq, PartialEq, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
-pub struct XBICheckOut {
+pub struct XbiCheckOut {
     /// The requested instruction
-    pub xbi: XBIInstr, // TODO: XBIInstr::Result(XbiResult { }), then the result can be a struct here
+    pub xbi: XbiInstruction, // TODO: XbiInstruction::Result(XbiResult { }), then the result can be a struct here
     /// The status of the message
-    pub resolution_status: XBICheckOutStatus,
+    pub resolution_status: XbiCheckOutStatus,
     pub checkout_timeout: Timeout,
     /// The metered cost of the message to be handled
     pub actual_execution_cost: Value,
     /// The cost to send the message
     pub actual_delivery_cost: Value,
-    // TODO: this can be calculated by a function on XBICheckout
+    // TODO: this can be calculated by a function on XbiCheckout
     /// The cost of the message with the execution cost
     pub actual_aggregated_cost: Value,
 }
 
-impl XBICheckOut {
+impl XbiCheckOut {
     pub fn new<T: frame_system::Config>(
         id: T::Hash,
         _delivery_timeout: T::BlockNumber,
         output: Vec<u8>,
-        resolution_status: XBICheckOutStatus,
+        resolution_status: XbiCheckOutStatus,
         actual_execution_cost: Value,
         actual_delivery_cost: Value,
         actual_aggregated_cost: Value,
     ) -> Self {
-        XBICheckOut {
-            xbi: XBIInstr::Result(XbiResult {
+        XbiCheckOut {
+            xbi: XbiInstruction::Result(XbiResult {
                 id: id.encode(),
                 status: resolution_status.clone(),
                 output,
@@ -93,10 +93,10 @@ impl XBICheckOut {
         id: T::Hash,
         _delivery_timeout: T::BlockNumber,
         output: Vec<u8>,
-        resolution_status: XBICheckOutStatus,
+        resolution_status: XbiCheckOutStatus,
     ) -> Self {
-        XBICheckOut {
-            xbi: XBIInstr::Result(XbiResult {
+        XbiCheckOut {
+            xbi: XbiInstruction::Result(XbiResult {
                 id: id.encode(),
                 status: resolution_status.clone(),
                 output,
@@ -116,9 +116,9 @@ impl XBICheckOut {
 
 /// An XBI message with additional timeout information
 #[derive(Clone, Eq, PartialEq, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
-pub struct XBICheckIn<BlockNumber> {
+pub struct XbiCheckIn<BlockNumber> {
     /// The XBI message
-    pub xbi: XBIFormat,
+    pub xbi: XbiFormat,
     /// Timeout information for checking the queue
     pub notification_delivery_timeout: BlockNumber,
     /// Timeout information for checking the result of the execution
@@ -127,17 +127,17 @@ pub struct XBICheckIn<BlockNumber> {
 
 /// An XBI message
 #[derive(Clone, Eq, PartialEq, Debug, Default, Encode, Decode, TypeInfo)]
-pub struct XBIFormat {
+pub struct XbiFormat {
     /// The instruction to execute on the target
-    pub instr: XBIInstr,
+    pub instr: XbiInstruction,
     /// Additional information about the target, costs and any user defined timeouts relating to the message
-    pub metadata: XBIMetadata,
+    pub metadata: XbiMetadata,
 }
 
 // TODO: implement into<usize> to specify custom, versioned byte representations. E.g Result = 255
 /// The instruction to execute on the target
 #[derive(Clone, Eq, PartialEq, Debug, TypeInfo)]
-pub enum XBIInstr {
+pub enum XbiInstruction {
     /// An opaque message providing the instruction identifier and some bytes
     Unknown { identifier: u8, params: Vec<u8> },
     /// A call native to the parachain, this is also opaque and can be custom
@@ -211,9 +211,9 @@ pub enum XBIInstr {
     Result(XbiResult),
 }
 
-impl Default for XBIInstr {
+impl Default for XbiInstruction {
     fn default() -> Self {
-        XBIInstr::CallNative { payload: vec![] }
+        XbiInstruction::CallNative { payload: vec![] }
     }
 }
 
@@ -221,7 +221,7 @@ impl Default for XBIInstr {
 #[derive(Debug, Clone, Eq, PartialEq, Encode, Decode, TypeInfo)]
 pub struct XbiResult {
     pub id: Data, // TODO: maybe make hash
-    pub status: XBICheckOutStatus,
+    pub status: XbiCheckOutStatus,
     pub output: Data,
     pub witness: Data,
 }
@@ -256,7 +256,7 @@ impl Default for ActionNotificationTimeouts {
 
 /// Additional information about the target, costs and any user defined timeouts relating to the message
 #[derive(Clone, Eq, PartialEq, Debug, Default, Encode, Decode, TypeInfo)]
-pub struct XBIMetadata {
+pub struct XbiMetadata {
     /// The XBI identifier
     pub id: sp_core::H256,
     /// The destination parachain
@@ -287,7 +287,7 @@ pub struct XBIMetadata {
 /// max_exec_cost -> exec_in_credit
 /// max_exec_cost -> exec_in_credit -> max execution cost (EVM/WASM::max_gas_fees)
 // TODO: implement builders for XBI metadata fields
-impl XBIMetadata {
+impl XbiMetadata {
     // TODO: feature flag for this, uncouple, just pass traits
     // pub fn to_exec_in_credit<T: crate::Config, Balance: Encode + Decode + Clone>(
     //     &self,
@@ -316,7 +316,7 @@ impl XBIMetadata {
         maybe_known_origin: Option<AccountId32>,
         maybe_fee_asset_id: Option<AssetId>,
     ) -> Self {
-        XBIMetadata {
+        XbiMetadata {
             id,
             dest_para_id,
             src_para_id,
@@ -340,7 +340,7 @@ impl XBIMetadata {
         maybe_known_origin: Option<AccountId32>,
         maybe_fee_asset_id: Option<AssetId>,
     ) -> Self {
-        XBIMetadata {
+        XbiMetadata {
             id,
             dest_para_id,
             src_para_id,

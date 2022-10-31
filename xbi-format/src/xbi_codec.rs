@@ -3,7 +3,7 @@ use std::process::id;
 
 pub use crate::*;
 
-impl Decode for XBIInstr {
+impl Decode for XbiInstruction {
     fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
         let b = input.read_byte()?;
 
@@ -13,7 +13,7 @@ impl Decode for XBIInstr {
                 Some(remaining_len) => {
                     let mut payload = vec![0u8; remaining_len];
                     input.read(&mut payload[..])?;
-                    Ok(XBIInstr::CallNative { payload })
+                    Ok(XbiInstruction::CallNative { payload })
                 }
                 None => Err("Wrong XBI Order length".into()),
             },
@@ -62,7 +62,7 @@ impl Decode for XBIInstr {
                 let mut data = vec![0u8; data_len as usize];
                 input.read(&mut data[..])?;
 
-                Ok(XBIInstr::CallEvm {
+                Ok(XbiInstruction::CallEvm {
                     source: AccountId20::from(source),
                     target: AccountId20::from(dest),
                     value: Decode::decode(&mut &value[..])?,
@@ -104,7 +104,7 @@ impl Decode for XBIInstr {
                 let mut data = vec![0u8; data_len as usize];
                 input.read(&mut data[..])?;
 
-                Ok(XBIInstr::CallWasm {
+                Ok(XbiInstruction::CallWasm {
                     dest: Decode::decode(&mut &dest[..])?,
                     value: Decode::decode(&mut &value[..])?,
                     gas_limit: Decode::decode(&mut &gas[..])?,
@@ -141,7 +141,7 @@ impl Decode for XBIInstr {
                 let mut additional_params = vec![0u8; additional_params_len as usize];
                 input.read(&mut additional_params[..])?;
 
-                Ok(XBIInstr::CallCustom {
+                Ok(XbiInstruction::CallCustom {
                     caller: Decode::decode(&mut &caller[..])?,
                     dest: Decode::decode(&mut &dest[..])?,
                     value: Decode::decode(&mut &value[..])?,
@@ -166,7 +166,7 @@ impl Decode for XBIInstr {
                 input.read(&mut dest[..])?;
                 input.read(&mut value[..])?;
 
-                Ok(XBIInstr::Transfer {
+                Ok(XbiInstruction::Transfer {
                     dest: Decode::decode(&mut &dest[..])?,
                     value: Decode::decode(&mut &value[..])?,
                 })
@@ -189,7 +189,7 @@ impl Decode for XBIInstr {
                 input.read(&mut dest[..])?;
                 input.read(&mut value[..])?;
 
-                Ok(XBIInstr::TransferAssets {
+                Ok(XbiInstruction::TransferAssets {
                     currency_id: Decode::decode(&mut &currency_id[..])?,
                     dest: Decode::decode(&mut &dest[..])?,
                     value: Decode::decode(&mut &value[..])?,
@@ -218,7 +218,7 @@ impl Decode for XBIInstr {
                 input.read(&mut max_limit[..])?;
                 input.read(&mut discount[..])?;
 
-                Ok(XBIInstr::Swap {
+                Ok(XbiInstruction::Swap {
                     asset_out: Decode::decode(&mut &asset_out[..])?,
                     asset_in: Decode::decode(&mut &asset_in[..])?,
                     amount: Decode::decode(&mut &amount[..])?,
@@ -247,7 +247,7 @@ impl Decode for XBIInstr {
                 input.read(&mut amount_a[..])?;
                 input.read(&mut amount_b_max_limit[..])?;
 
-                Ok(XBIInstr::AddLiquidity {
+                Ok(XbiInstruction::AddLiquidity {
                     asset_a: Decode::decode(&mut &asset_a[..])?,
                     asset_b: Decode::decode(&mut &asset_b[..])?,
                     amount_a: Decode::decode(&mut &amount_a[..])?,
@@ -273,7 +273,7 @@ impl Decode for XBIInstr {
                 input.read(&mut asset_b[..])?;
                 input.read(&mut liquidity_amount[..])?;
 
-                Ok(XBIInstr::RemoveLiquidity {
+                Ok(XbiInstruction::RemoveLiquidity {
                     asset_a: Decode::decode(&mut &asset_a[..])?,
                     asset_b: Decode::decode(&mut &asset_b[..])?,
                     liquidity_amount: Decode::decode(&mut &liquidity_amount[..])?,
@@ -299,7 +299,7 @@ impl Decode for XBIInstr {
                 input.read(&mut asset_b[..])?;
                 input.read(&mut amount[..])?;
 
-                Ok(XBIInstr::GetPrice {
+                Ok(XbiInstruction::GetPrice {
                     asset_a: Decode::decode(&mut &asset_a[..])?,
                     asset_b: Decode::decode(&mut &asset_b[..])?,
                     amount: Decode::decode(&mut &amount[..])?,
@@ -321,7 +321,7 @@ impl Decode for XBIInstr {
                 let mut witness = vec![0u8; witness_len as usize];
                 input.read(&mut witness[..])?;
 
-                Ok(XBIInstr::Result(XbiResult {
+                Ok(XbiInstruction::Result(XbiResult {
                     id: Decode::decode(&mut &id[..])?,
                     status: Decode::decode(&mut &outcome[..])?,
                     output: Decode::decode(&mut &output[..])?,
@@ -339,18 +339,18 @@ impl Decode for XBIInstr {
  *  (extended-identifier) - u16 // optional, only read if `identifier==255`
  *  scale-encoded params // bytes
  */
-impl Encode for XBIInstr {
+impl Encode for XbiInstruction {
     fn encode_to<T: Output + ?Sized>(&self, dest_bytes: &mut T) {
         match self {
-            XBIInstr::Unknown { identifier, params } => {
+            XbiInstruction::Unknown { identifier, params } => {
                 dest_bytes.push_byte(*identifier);
                 params.encode_to(dest_bytes);
             }
-            XBIInstr::CallNative { payload } => {
+            XbiInstruction::CallNative { payload } => {
                 dest_bytes.push_byte(1);
                 payload.encode_to(dest_bytes);
             }
-            XBIInstr::CallEvm {
+            XbiInstruction::CallEvm {
                 source,
                 target,
                 value,
@@ -376,7 +376,7 @@ impl Encode for XBIInstr {
                 dest_bytes.push_byte(input.encode().len() as u8);
                 input.encode_to(dest_bytes);
             }
-            XBIInstr::CallWasm {
+            XbiInstruction::CallWasm {
                 dest,
                 value,
                 gas_limit,
@@ -392,7 +392,7 @@ impl Encode for XBIInstr {
                 dest_bytes.push_byte(data.encode().len() as u8);
                 data.encode_to(dest_bytes);
             }
-            XBIInstr::CallCustom {
+            XbiInstruction::CallCustom {
                 caller,
                 dest,
                 value,
@@ -410,12 +410,12 @@ impl Encode for XBIInstr {
                 dest_bytes.push_byte(additional_params.encode().len() as u8);
                 additional_params.encode_to(dest_bytes);
             }
-            XBIInstr::Transfer { dest, value } => {
+            XbiInstruction::Transfer { dest, value } => {
                 dest_bytes.push_byte(5);
                 dest.encode_to(dest_bytes);
                 value.encode_to(dest_bytes);
             }
-            XBIInstr::TransferAssets {
+            XbiInstruction::TransferAssets {
                 currency_id,
                 dest,
                 value,
@@ -425,7 +425,7 @@ impl Encode for XBIInstr {
                 dest.encode_to(dest_bytes);
                 value.encode_to(dest_bytes);
             }
-            XBIInstr::Swap {
+            XbiInstruction::Swap {
                 asset_out,
                 asset_in,
                 amount,
@@ -439,7 +439,7 @@ impl Encode for XBIInstr {
                 max_limit.encode_to(dest_bytes);
                 discount.encode_to(dest_bytes);
             }
-            XBIInstr::AddLiquidity {
+            XbiInstruction::AddLiquidity {
                 asset_a,
                 asset_b,
                 amount_a,
@@ -451,7 +451,7 @@ impl Encode for XBIInstr {
                 amount_a.encode_to(dest_bytes);
                 amount_b_max_limit.encode_to(dest_bytes);
             }
-            XBIInstr::RemoveLiquidity {
+            XbiInstruction::RemoveLiquidity {
                 asset_a,
                 asset_b,
                 liquidity_amount,
@@ -461,7 +461,7 @@ impl Encode for XBIInstr {
                 asset_b.encode_to(dest_bytes);
                 liquidity_amount.encode_to(dest_bytes);
             }
-            XBIInstr::GetPrice {
+            XbiInstruction::GetPrice {
                 asset_a,
                 asset_b,
                 amount,
@@ -471,7 +471,7 @@ impl Encode for XBIInstr {
                 asset_b.encode_to(dest_bytes);
                 amount.encode_to(dest_bytes);
             }
-            XBIInstr::Result(XbiResult {
+            XbiInstruction::Result(XbiResult {
                 id,
                 status,
                 output,
@@ -498,14 +498,14 @@ impl Encode for XBIInstr {
 mod tests {
     use super::*;
 
-    use crate::{ActionNotificationTimeouts, XBIFormat, XBIMetadata};
-    use crate::{XBICheckOutStatus, XBIInstr};
+    use crate::{ActionNotificationTimeouts, XbiFormat, XbiMetadata};
+    use crate::{XbiCheckOutStatus, XbiInstruction};
     use codec::{Decode, Encode};
     use frame_support::{Blake2_256, StorageHasher};
 
     #[test]
     fn custom_encodes_decodes_xbi_evm() {
-        let xbi_evm = XBIInstr::CallEvm {
+        let xbi_evm = XbiInstruction::CallEvm {
             source: AccountId20::repeat_byte(3),
             target: AccountId20::repeat_byte(2),
             value: sp_core::U256([1, 0, 0, 0]),
@@ -517,15 +517,15 @@ mod tests {
             access_list: vec![],
         };
 
-        let decoded_xbi_evm: XBIInstr = Decode::decode(&mut &xbi_evm.encode()[..]).unwrap();
+        let decoded_xbi_evm: XbiInstruction = Decode::decode(&mut &xbi_evm.encode()[..]).unwrap();
         assert_eq!(decoded_xbi_evm.encode(), xbi_evm.encode());
         assert_eq!(xbi_evm, decoded_xbi_evm);
     }
 
     #[test]
     fn custom_encodes_decodes_xbi_evm_and_metadata() {
-        let xbi_evm_format = XBIFormat {
-            instr: XBIInstr::CallEvm {
+        let xbi_evm_format = XbiFormat {
+            instr: XbiInstruction::CallEvm {
                 source: AccountId20::repeat_byte(3),
                 target: AccountId20::repeat_byte(2),
                 value: sp_core::U256([1, 0, 0, 0]),
@@ -536,7 +536,7 @@ mod tests {
                 nonce: Some(sp_core::U256([3, 4, 6, 7])),
                 access_list: vec![],
             },
-            metadata: XBIMetadata {
+            metadata: XbiMetadata {
                 id: sp_core::H256::repeat_byte(2),
                 dest_para_id: 3u32,
                 src_para_id: 4u32,
@@ -560,14 +560,14 @@ mod tests {
             },
         };
 
-        let decoded_xbi_evm: XBIFormat = Decode::decode(&mut &xbi_evm_format.encode()[..]).unwrap();
+        let decoded_xbi_evm: XbiFormat = Decode::decode(&mut &xbi_evm_format.encode()[..]).unwrap();
         assert_eq!(decoded_xbi_evm.encode(), xbi_evm_format.encode());
         assert_eq!(xbi_evm_format, decoded_xbi_evm);
     }
 
     #[test]
     fn custom_encodes_decodes_empty_xbi_evm() {
-        let xbi_evm = XBIInstr::CallEvm {
+        let xbi_evm = XbiInstruction::CallEvm {
             source: AccountId20::repeat_byte(3),
             target: AccountId20::repeat_byte(2),
             value: sp_core::U256([1, 0, 0, 0]),
@@ -579,7 +579,7 @@ mod tests {
             access_list: vec![],
         };
 
-        let decoded_xbi_evm: XBIInstr = Decode::decode(&mut &xbi_evm.encode()[..]).unwrap();
+        let decoded_xbi_evm: XbiInstruction = Decode::decode(&mut &xbi_evm.encode()[..]).unwrap();
         assert_eq!(decoded_xbi_evm.encode(), xbi_evm.encode());
         assert_eq!(xbi_evm, decoded_xbi_evm);
         assert_eq!(xbi_evm.encode().len(), 121);
@@ -587,7 +587,7 @@ mod tests {
 
     #[test]
     fn custom_encodes_decodes_xbi_wasm() {
-        let xbi_wasm = XBIInstr::CallWasm {
+        let xbi_wasm = XbiInstruction::CallWasm {
             dest: AccountId32::new([
                 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
                 2, 2, 2, 2,
@@ -598,14 +598,14 @@ mod tests {
             data: vec![8, 9],
         };
 
-        let decoded_xbi_wasm: XBIInstr = Decode::decode(&mut &xbi_wasm.encode()[..]).unwrap();
+        let decoded_xbi_wasm: XbiInstruction = Decode::decode(&mut &xbi_wasm.encode()[..]).unwrap();
         assert_eq!(decoded_xbi_wasm.encode(), xbi_wasm.encode());
         assert_eq!(xbi_wasm, decoded_xbi_wasm);
     }
 
     #[test]
     fn custom_encodes_decodes_empty_xbi_wasm() {
-        let xbi_wasm = XBIInstr::CallWasm {
+        let xbi_wasm = XbiInstruction::CallWasm {
             dest: AccountId32::new([
                 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
                 2, 2, 2, 2,
@@ -616,7 +616,7 @@ mod tests {
             data: vec![],
         };
 
-        let decoded_xbi_wasm: XBIInstr = Decode::decode(&mut &xbi_wasm.encode()[..]).unwrap();
+        let decoded_xbi_wasm: XbiInstruction = Decode::decode(&mut &xbi_wasm.encode()[..]).unwrap();
         assert_eq!(decoded_xbi_wasm.encode(), xbi_wasm.encode());
         assert_eq!(xbi_wasm, decoded_xbi_wasm);
 
@@ -626,7 +626,7 @@ mod tests {
 
     #[test]
     fn custom_encodes_decodes_xbi_call_custom() {
-        let xbi_call_custom = XBIInstr::CallCustom {
+        let xbi_call_custom = XbiInstruction::CallCustom {
             caller: AccountId32::new([
                 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
                 2, 2, 2, 2,
@@ -641,7 +641,7 @@ mod tests {
             additional_params: vec![10u8, 11u8],
         };
 
-        let decoded_xbi_call_custom: XBIInstr =
+        let decoded_xbi_call_custom: XbiInstruction =
             Decode::decode(&mut &xbi_call_custom.encode()[..]).unwrap();
         assert_eq!(decoded_xbi_call_custom.encode(), xbi_call_custom.encode());
         assert_eq!(xbi_call_custom, decoded_xbi_call_custom);
@@ -649,7 +649,7 @@ mod tests {
 
     #[test]
     fn custom_encodes_decodes_empty_xbi_call_custom() {
-        let xbi_call_custom = XBIInstr::CallCustom {
+        let xbi_call_custom = XbiInstruction::CallCustom {
             caller: AccountId32::new([
                 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
                 2, 2, 2, 2,
@@ -664,7 +664,7 @@ mod tests {
             additional_params: vec![],
         };
 
-        let decoded_xbi_call_custom: XBIInstr =
+        let decoded_xbi_call_custom: XbiInstruction =
             Decode::decode(&mut &xbi_call_custom.encode()[..]).unwrap();
         assert_eq!(decoded_xbi_call_custom.encode(), xbi_call_custom.encode());
         assert_eq!(xbi_call_custom, decoded_xbi_call_custom);
@@ -673,7 +673,7 @@ mod tests {
 
     #[test]
     fn custom_encodes_decodes_xbi_transfer() {
-        let xbi_transfer = XBIInstr::Transfer {
+        let xbi_transfer = XbiInstruction::Transfer {
             dest: AccountId32::new([
                 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
                 2, 2, 2, 2,
@@ -681,7 +681,7 @@ mod tests {
             value: 1,
         };
 
-        let decoded_xbi_transfer: XBIInstr =
+        let decoded_xbi_transfer: XbiInstruction =
             Decode::decode(&mut &xbi_transfer.encode()[..]).unwrap();
         assert_eq!(decoded_xbi_transfer.encode(), xbi_transfer.encode());
         assert_eq!(xbi_transfer, decoded_xbi_transfer);
@@ -690,7 +690,7 @@ mod tests {
 
     #[test]
     fn custom_encodes_decodes_xbi_transfer_assets() {
-        let xbi_transfer_assets = XBIInstr::TransferAssets {
+        let xbi_transfer_assets = XbiInstruction::TransferAssets {
             currency_id: 1u32,
             dest: AccountId32::new([
                 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
@@ -699,7 +699,7 @@ mod tests {
             value: 1,
         };
 
-        let decoded_xbi_transfer_assets: XBIInstr =
+        let decoded_xbi_transfer_assets: XbiInstruction =
             Decode::decode(&mut &xbi_transfer_assets.encode()[..]).unwrap();
         assert_eq!(
             decoded_xbi_transfer_assets.encode(),
@@ -711,14 +711,15 @@ mod tests {
 
     #[test]
     fn custom_encodes_decodes_xbi_results() {
-        let xbi_result = XBIInstr::Result(XbiResult {
+        let xbi_result = XbiInstruction::Result(XbiResult {
             id: Blake2_256::hash("helloworldthisismyid".as_bytes()).encode(),
-            status: XBICheckOutStatus::SuccessfullyExecuted,
+            status: XbiCheckOutStatus::SuccessfullyExecuted,
             output: vec![1, 2, 3],
             witness: vec![4, 5, 6],
         });
 
-        let decoded_xbi_result: XBIInstr = Decode::decode(&mut &xbi_result.encode()[..]).unwrap();
+        let decoded_xbi_result: XbiInstruction =
+            Decode::decode(&mut &xbi_result.encode()[..]).unwrap();
         assert_eq!(decoded_xbi_result.encode(), xbi_result.encode());
         assert_eq!(xbi_result, decoded_xbi_result);
     }
