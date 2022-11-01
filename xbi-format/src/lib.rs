@@ -13,8 +13,9 @@ use sabi::*;
 pub use xbi_codec::*;
 
 /// A representation of the status of an XBI execution
-#[derive(Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum XbiCheckOutStatus {
+    #[default]
     /// The XBI message was successful
     SuccessfullyExecuted,
     /// Failed to execute an XBI instruction
@@ -31,12 +32,6 @@ pub enum XbiCheckOutStatus {
     ErrorDeliveryTimeoutExceeded,
     /// The message timed out before the execution occured on the target
     ErrorExecutionTimeoutExceeded,
-}
-
-impl Default for XbiCheckOutStatus {
-    fn default() -> Self {
-        XbiCheckOutStatus::SuccessfullyExecuted
-    }
 }
 
 // TODO: enrich the dtos in this library with reusable structs, so that the data is not flat.
@@ -218,7 +213,7 @@ impl Default for XbiInstruction {
 }
 
 /// A result containing the status of the call
-#[derive(Debug, Clone, Eq, PartialEq, Encode, Decode, TypeInfo)]
+#[derive(Debug, Clone, Eq, Default, PartialEq, Encode, Decode, TypeInfo)]
 pub struct XbiResult {
     pub id: Data, // TODO: maybe make hash
     pub status: XbiCheckOutStatus,
@@ -277,6 +272,7 @@ pub struct XbiMetadata {
     pub max_notifications_cost: Value,
     /// The cost of execution and notification
     pub actual_aggregated_cost: Option<Value>,
+    // TODO: make this a known field: caller
     /// The optional known caller
     pub maybe_known_origin: Option<AccountId32>,
     /// The optional known caller
