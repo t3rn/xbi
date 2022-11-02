@@ -1,0 +1,38 @@
+debug = true
+
+[[nodes]]
+parachain_id = 2000
+host = "ws://localhost:9847"
+sleep_time_secs = 1
+
+[[nodes]]
+parachain_id = 3000
+host = "ws://localhost:9647"
+sleep_time_secs = 1
+
+[[subscribers]]
+parachain_id = 2000
+host = "ws://localhost:9847"
+sleep_time_secs = 5
+
+[[subscribers.listener_events]]
+module = "System"
+variant = "ExtrinsicFailed"
+
+[[subscribers]]
+parachain_id = 3000
+host = "ws://localhost:9847"
+sleep_time_secs = 5
+
+[[subscribers.listener_events]]
+module = "System"
+variant = "ExtrinsicFailed"
+
+[[subscribers]]
+parachain_id = 1
+host = "ws://localhost:9944"
+sleep_time_secs = 5
+
+[[subscribers.listener_events]]
+module = "Ump"
+variant = "ExecutedUpward"

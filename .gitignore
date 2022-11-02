@@ -6,4 +6,6 @@
 **target/
 **.run/
 
+client/patch*
+
 default.profraw
