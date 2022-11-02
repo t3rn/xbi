@@ -249,30 +249,67 @@ impl Default for ActionNotificationTimeouts {
     }
 }
 
-/// Additional information about the target, costs and any user defined timeouts relating to the message
 #[derive(Clone, Eq, PartialEq, Debug, Default, Encode, Decode, TypeInfo)]
-pub struct XbiMetadata {
-    /// The XBI identifier
-    pub id: sp_core::H256,
-    /// The destination parachain
-    pub dest_para_id: u32,
-    /// The src parachain
-    pub src_para_id: u32,
-    // TODO: make this nested in a field: timeouts
+pub struct Timeouts {
     /// Timeouts in relation to when the message should be sent
     pub sent: ActionNotificationTimeouts,
     /// Timeouts in relation to when the message should be delivered
     pub delivered: ActionNotificationTimeouts,
     /// Timeouts in relation to when the message should be executed
     pub executed: ActionNotificationTimeouts,
-    // TODO: move this to field: costs
+    /// Timeouts in relation to when the message should be responded
+    pub responded: ActionNotificationTimeouts,
+}
+
+impl Timeouts {
+    pub fn new(
+        sent: Option<ActionNotificationTimeouts>,
+        delivered: Option<ActionNotificationTimeouts>,
+        executed: Option<ActionNotificationTimeouts>,
+        responded: Option<ActionNotificationTimeouts>,
+    ) -> Self {
+        Self {
+            sent: sent.unwrap_or_default(),
+            delivered: delivered.unwrap_or_default(),
+            executed: executed.unwrap_or_default(),
+            responded: responded.unwrap_or_default(),
+        }
+    }
+}
+
+#[derive(Clone, Eq, PartialEq, Debug, Default, Encode, Decode, TypeInfo)]
+pub struct CostLimits {
     /// The maximum cost of the execution of the message
     pub max_exec_cost: Value,
     /// The maximum cost of sending any notifications
     pub max_notifications_cost: Value,
     /// The cost of execution and notification
     pub actual_aggregated_cost: Option<Value>,
-    // TODO: make this a known field: caller
+}
+
+impl CostLimits {
+    pub fn new(max_exec_cost: Option<Value>, max_notifications_cost: Option<Value>) -> Self {
+        CostLimits {
+            max_exec_cost: max_exec_cost.unwrap_or_default(),
+            max_notifications_cost: max_notifications_cost.unwrap_or_default(),
+            actual_aggregated_cost: None,
+        }
+    }
+}
+
+/// Additional information about the target, costs and any user defined timeouts relating to the message
+#[derive(Clone, Eq, PartialEq, Debug, Default, Encode, Decode, TypeInfo)]
+pub struct XBIMetadata {
+    /// The XBI identifier
+    pub id: sp_core::H256,
+    /// The destination parachain
+    pub dest_para_id: u32,
+    /// The src parachain
+    pub src_para_id: u32,
+    /// User provided timeouts
+    pub timeouts: Timeouts,
+    /// User provided cost limits
+    pub costs: CostLimits,
     /// The optional known caller
     pub maybe_known_origin: Option<AccountId32>,
     /// The optional known caller
@@ -304,11 +341,8 @@ impl XbiMetadata {
         id: sp_core::H256,
         dest_para_id: u32,
         src_para_id: u32,
-        sent: ActionNotificationTimeouts,
-        delivered: ActionNotificationTimeouts,
-        executed: ActionNotificationTimeouts,
-        max_exec_cost: Value,
-        max_notifications_cost: Value,
+        timeouts: Timeouts,
+        costs: CostLimits,
         maybe_known_origin: Option<AccountId32>,
         maybe_fee_asset_id: Option<AssetId>,
     ) -> Self {
@@ -316,13 +350,9 @@ impl XbiMetadata {
             id,
             dest_para_id,
             src_para_id,
-            sent,
-            delivered,
-            executed,
-            max_exec_cost,
-            max_notifications_cost,
+            timeouts,
+            costs,
             maybe_known_origin,
-            actual_aggregated_cost: None,
             maybe_fee_asset_id,
         }
     }
@@ -331,8 +361,7 @@ impl XbiMetadata {
         id: sp_core::H256,
         dest_para_id: u32,
         src_para_id: u32,
-        max_exec_cost: Value,
-        max_notifications_cost: Value,
+        costs: CostLimits,
         maybe_known_origin: Option<AccountId32>,
         maybe_fee_asset_id: Option<AssetId>,
     ) -> Self {
@@ -340,13 +369,9 @@ impl XbiMetadata {
             id,
             dest_para_id,
             src_para_id,
-            sent: ActionNotificationTimeouts::default(),
-            delivered: ActionNotificationTimeouts::default(),
-            executed: ActionNotificationTimeouts::default(),
-            max_exec_cost,
-            max_notifications_cost,
+            timeouts: Timeouts::default(),
+            costs,
             maybe_known_origin,
-            actual_aggregated_cost: None,
             maybe_fee_asset_id,
         }
     }
