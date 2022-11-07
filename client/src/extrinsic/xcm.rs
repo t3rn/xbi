@@ -1,13 +1,5 @@
 use super::*;
-use ::xcm::latest::NetworkId;
-use ::xcm::latest::{
-    AssetId, Instruction, Junction, Junctions, MultiAsset, MultiAssetFilter, MultiAssets,
-    MultiLocation, OriginKind, WeightLimit, Xcm,
-};
-use ::xcm::prelude::All;
-use ::xcm::prelude::Fungible;
-use ::xcm::{DoubleEncoded, VersionedMultiLocation, VersionedXcm};
-use codec::{Codec, Decode, Encode};
+use ::xcm::prelude::*;
 use substrate_api_client::compose_call;
 
 pub const XCM_MODULE: &str = "PolkadotXcm";
@@ -28,6 +20,7 @@ where
     compose_call!(api.metadata, XCM_MODULE, XCM_SEND, dest, msg)
 }
 
+#[allow(clippy::type_complexity)] // It's simply complex
 pub fn xcm_send<P, Client, Params>(
     api: Api<P, Client, Params>,
     dest: VersionedMultiLocation,

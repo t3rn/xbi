@@ -1,4 +1,4 @@
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, FullCodec};
 use core::fmt::Debug;
 use frame_support::RuntimeDebug;
 use scale_info::TypeInfo;
@@ -300,9 +300,53 @@ impl CostLimits {
     }
 }
 
+/// Timesheet Analogous to XbiMetadata::timeouts but tracked onchain
+///
+/// Utilised by the queue to determine when to stop progressing an item
+#[derive(Debug, Clone, PartialEq, Default, Eq, Encode, Decode, TypeInfo)]
+pub struct XbiTimeSheet<BlockNumber: FullCodec + TypeInfo> {
+    /// At the time of user submission
+    pub submitted: Option<BlockNumber>,
+    /// When sent over xcm
+    pub sent: Option<BlockNumber>,
+    /// When received by the receiver
+    pub delivered: Option<BlockNumber>,
+    /// When executed
+    pub executed: Option<BlockNumber>,
+    /// When the response was received
+    pub responded: Option<BlockNumber>,
+}
+
+impl<BlockNumber: FullCodec + TypeInfo> XbiTimeSheet<BlockNumber> {
+    pub fn new() -> Self {
+        XbiTimeSheet {
+            submitted: None,
+            sent: None,
+            delivered: None,
+            executed: None,
+            responded: None,
+        }
+    }
+
+    pub fn progress(&mut self, block_number: BlockNumber) -> &mut Self {
+        if self.submitted.is_none() {
+            self.submitted = Some(block_number)
+        } else if self.sent.is_none() {
+            self.sent = Some(block_number);
+        } else if self.delivered.is_none() {
+            self.delivered = Some(block_number);
+        } else if self.executed.is_none() {
+            self.executed = Some(block_number);
+        } else if self.responded.is_none() {
+            self.responded = Some(block_number);
+        }
+        self
+    }
+}
+
 /// Additional information about the target, costs and any user defined timeouts relating to the message
 #[derive(Clone, Eq, PartialEq, Debug, Default, Encode, Decode, TypeInfo)]
-pub struct XBIMetadata {
+pub struct XbiMetadata {
     /// The XBI identifier
     pub id: sp_core::H256,
     /// The destination parachain
@@ -311,6 +355,8 @@ pub struct XBIMetadata {
     pub src_para_id: u32,
     /// User provided timeouts
     pub timeouts: Timeouts,
+    /// The time sheet providing timestamps to each of the xbi progression
+    pub timesheet: XbiTimeSheet<u32>, // TODO: assume u32 is block number
     /// User provided cost limits
     pub costs: CostLimits,
     /// The optional known caller
@@ -354,6 +400,7 @@ impl XbiMetadata {
             dest_para_id,
             src_para_id,
             timeouts,
+            timesheet: Default::default(),
             costs,
             maybe_known_origin,
             maybe_fee_asset_id,
@@ -373,6 +420,7 @@ impl XbiMetadata {
             dest_para_id,
             src_para_id,
             timeouts: Timeouts::default(),
+            timesheet: Default::default(),
             costs,
             maybe_known_origin,
             maybe_fee_asset_id,
@@ -387,8 +435,48 @@ mod tests {
 
     #[test]
     fn can_hash_id() {
-        let meta = XBIMetadata::default();
+        let meta = XbiMetadata::default();
         let hash = meta.id::<BlakeTwo256>();
         assert_eq!(hash, <BlakeTwo256 as Hasher>::hash(&meta.id.0))
+    }
+
+    #[test]
+    fn timesheet_can_progress() {
+        let mut timesheet = XbiTimeSheet::<u32>::new();
+
+        timesheet.progress(1);
+        timesheet.progress(2);
+        assert_eq!(timesheet.submitted, Some(1));
+        assert_eq!(timesheet.sent, Some(2));
+
+        timesheet.progress(3);
+        assert_eq!(timesheet.submitted, Some(1));
+        assert_eq!(timesheet.sent, Some(2));
+        assert_eq!(timesheet.delivered, Some(3));
+
+        timesheet.progress(4);
+        assert_eq!(timesheet.submitted, Some(1));
+        assert_eq!(timesheet.sent, Some(2));
+        assert_eq!(timesheet.delivered, Some(3));
+        assert_eq!(timesheet.executed, Some(4));
+
+        timesheet.progress(5);
+        assert_eq!(timesheet.submitted, Some(1));
+        assert_eq!(timesheet.sent, Some(2));
+        assert_eq!(timesheet.delivered, Some(3));
+        assert_eq!(timesheet.executed, Some(4));
+        assert_eq!(timesheet.responded, Some(5));
+
+        // Timesheet progress after complete is noop
+        timesheet.progress(6);
+        timesheet.progress(7);
+        timesheet.progress(8);
+        timesheet.progress(9);
+        timesheet.progress(10);
+        assert_eq!(timesheet.submitted, Some(1));
+        assert_eq!(timesheet.sent, Some(2));
+        assert_eq!(timesheet.delivered, Some(3));
+        assert_eq!(timesheet.executed, Some(4));
+        assert_eq!(timesheet.responded, Some(5));
     }
 }
