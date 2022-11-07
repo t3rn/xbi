@@ -1,5 +1,4 @@
 use codec::{Decode, Encode, Input, Output};
-use std::process::id;
 
 pub use crate::*;
 
@@ -553,9 +552,19 @@ mod tests {
                         action: 4u32,
                         notification: 5u32,
                     }),
-                    None,
+                    Some(ActionNotificationTimeouts {
+                        action: 6u32,
+                        notification: 7u32,
+                    }),
                 ),
-                costs: CostLimits::new(Some(6u128), Some(8u128)),
+                timesheet: XbiTimeSheet {
+                    submitted: Some(8),
+                    sent: Some(9),
+                    delivered: Some(10),
+                    executed: Some(11),
+                    responded: Some(12),
+                },
+                costs: CostLimits::new(Some(13), Some(14)),
                 maybe_known_origin: None,
                 maybe_fee_asset_id: None,
             },
