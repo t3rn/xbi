@@ -84,8 +84,7 @@ mod tests {
     use crate::SubstrateContractAbiConverter;
     use substrate_abi::AccountId32;
 
-    #[test]
-    fn traverses_from_evm_args_eg_from_precompile_to_call_wasm() {
+    fn test_evm() -> CallEvm {
         let source = AccountId20::repeat_byte(1u8);
         let target = AccountId20::repeat_byte(2u8);
         let value = Value256::from(300);
@@ -96,7 +95,7 @@ mod tests {
         let nonce = None;
         let access_list = vec![];
 
-        let call_evm = CallEvm::new(
+        CallEvm::new(
             source,
             target,
             value,
@@ -106,26 +105,54 @@ mod tests {
             max_priority_fee_per_gas,
             nonce,
             access_list,
-        );
-
-        let call_wasm = SubstrateContractAbiConverter::try_convert(call_evm).unwrap();
-
-        assert_eq!(
-            call_wasm,
-            CallWasm {
-                origin_source: AccountId32::new([
-                    1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8,
-                    1u8, 1u8, 1u8, 1u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8
-                ]),
-                dest: AccountId32::new([
-                    2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8,
-                    2u8, 2u8, 2u8, 2u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8
-                ]),
-                value: 300u128,
-                gas_limit,
-                storage_deposit_limit: None,
-                data: vec![1u8, 2, 3],
-            }
         )
+    }
+
+    #[test]
+    fn traverses_from_evm_args_eg_from_precompile_to_call_wasm() {
+        let call_evm = test_evm();
+
+        let expected = CallWasm {
+            origin_source: AccountId32::new([
+                1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8,
+                1u8, 1u8, 1u8, 1u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+            ]),
+            dest: AccountId32::new([
+                2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8,
+                2u8, 2u8, 2u8, 2u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+            ]),
+            value: 300u128,
+            gas_limit: call_evm.gas_limit,
+            storage_deposit_limit: None,
+            data: vec![1u8, 2, 3],
+        };
+
+        let call_wasm = SubstrateContractAbiConverter::try_convert(call_evm.clone()).unwrap();
+        assert_eq!(call_wasm, expected);
+
+        let call_wasm = CallWasm::try_from(call_evm).unwrap();
+        assert_eq!(call_wasm, expected)
+    }
+
+    #[test]
+    fn try_from_wasm() {
+        let wasm = CallWasm::try_from(test_evm()).unwrap();
+
+        let evm = CallEvm::try_from(wasm).unwrap();
+        assert_eq!(evm.input, test_evm().input);
+        assert_eq!(evm.value, test_evm().value);
+        assert_eq!(evm.access_list, test_evm().access_list);
+        assert_eq!(evm.gas_limit, test_evm().gas_limit);
+        // FIXME: disabled since we have no way for this from wasm calls yet
+        // assert_eq!(evm.max_fee_per_gas, test_evm().max_fee_per_gas);
+        // FIXME: same here for Option::Some(_)
+        assert_eq!(
+            evm.max_priority_fee_per_gas,
+            test_evm().max_priority_fee_per_gas
+        );
+        // FIXME: same here for Option::Some(_)
+        assert_eq!(evm.nonce, test_evm().nonce);
+        assert_eq!(evm.target, test_evm().target);
+        assert_eq!(evm.source, test_evm().source);
     }
 }

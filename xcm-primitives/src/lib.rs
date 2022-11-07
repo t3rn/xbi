@@ -1,22 +1,15 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Codec, Encode};
+use codec::Codec;
 use xcm::prelude::*;
 use xcm::DoubleEncoded;
 
 #[cfg(feature = "frame")]
 pub mod frame_traits;
 
+#[derive(Default)]
 pub struct MultiLocationBuilder {
     inner: MultiLocation,
-}
-
-impl Default for MultiLocationBuilder {
-    fn default() -> Self {
-        Self {
-            inner: Default::default(),
-        }
-    }
 }
 
 impl MultiLocationBuilder {
@@ -61,12 +54,14 @@ impl MultiLocationBuilder {
 
     pub fn with_junction(mut self, jnc: Junction) -> Self {
         match self.inner.interior {
+            // Overwrite the last action
             X8(t, u, v, w, x, y, z, _a) => {
                 self.inner.interior = X8(t, u, v, w, x, y, z, jnc);
             }
             _ => {
-                self.inner.push_interior(jnc);
-            } // Overwrite the last action
+                // We handle the overflow above
+                let _ = self.inner.push_interior(jnc);
+            }
         }
         self
     }
@@ -128,6 +123,8 @@ impl<T: Codec> XcmBuilder<T> {
         self
     }
 
+    // Simply a large function
+    #[allow(clippy::too_many_arguments)]
     pub fn with_transfer(
         mut self,
         assets: MultiAssets,

@@ -10,7 +10,7 @@ use substrate_api_client::rpc::WsRpcClient;
 use substrate_api_client::{Api, Metadata, PlainTipExtrinsicParams, XtStatus};
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
-use xcm::latest::{Junction, MultiAsset, MultiAssets, MultiLocation};
+use xcm::latest::{Junction, MultiAsset, MultiAssets};
 use xcm::prelude::OriginKind;
 use xcm::VersionedXcm;
 use xcm_primitives::{MultiLocationBuilder, XcmBuilder};
@@ -155,7 +155,7 @@ impl MessageManager<Command> for NodeConfig {
                             MultiLocationBuilder::get_relaychain_dest(),
                             VersionedXcm::V2(call),
                         );
-                        crate::send_sudo_msg!(api_shadow.clone(), call, host_shadow);
+                        crate::send_sudo_msg!(api_shadow, call, host_shadow);
                     }
                     HrmpAcceptChannel(parachain) => {
                         let relaychain_meta = get_relaychain_metadata(relaychain_host.clone());
@@ -194,7 +194,7 @@ impl MessageManager<Command> for NodeConfig {
                         asset,
                         amount,
                         dest_parachain,
-                        recipient,
+                        recipient: _,
                     } => {
                         let asset = MultiAsset::from((
                             MultiLocationBuilder::new_native()
@@ -231,15 +231,15 @@ impl MessageManager<Command> for NodeConfig {
                         );
                         crate::send_sudo_msg!(api_shadow.clone(), call, host_shadow);
                     }
-                    TopupSelfReserve { asset, amount } => {
+                    TopupSelfReserve { amount, .. } => {
                         let asset = MultiAsset::from((
                             MultiLocationBuilder::new_native()
                                 // .with_junction(Junction::GeneralIndex(asset as u128)) // TODO: no
                                 .build(),
                             amount,
                         ));
-                        let assets = MultiAssets::from(vec![asset]);
-                        let self_location =
+                        let _assets = MultiAssets::from(vec![asset]);
+                        let _self_location =
                             MultiLocationBuilder::new_parachain(parachain_id_shadow)
                                 .with_parents(1)
                                 .build();
@@ -278,11 +278,7 @@ impl MessageManager<Command> for NodeConfig {
                         );
                         crate::send_sudo_msg!(api_shadow.clone(), call, host_shadow);
                     }
-                    Teleport {
-                        asset,
-                        amount,
-                        dest_parachain,
-                    } => {
+                    Teleport { amount, .. } => {
                         let asset = MultiAsset::from((
                             MultiLocationBuilder::new_native()
                                 // .with_junction(Junction::GeneralIndex(asset as u128)) // TODO: no
@@ -316,7 +312,7 @@ impl MessageManager<Command> for NodeConfig {
                                 .into(),
                             VersionedXcm::V2(call.build()),
                         );
-                        crate::send_msg!(api_shadow.clone(), call, host_shadow);
+                        crate::send_msg!(api_shadow, call, host_shadow);
                     }
                     UpdateRelayChain(new_host) => {
                         log::info!("{host_shadow} updating relay chain to {new_host}");
@@ -334,11 +330,13 @@ impl MessageManager<Command> for NodeConfig {
 #[macro_export]
 macro_rules! send_sudo_msg {
     ($api_shadow:expr, $call:tt, $host_shadow:tt) => {{
+        let shadowed = $api_shadow.clone();
         if let Some(extrinsic) =
-            catch_panicable!(crate::extrinsic::sudo::wrap_sudo($api_shadow, $call))
+            catch_panicable!($crate::extrinsic::sudo::wrap_sudo(shadowed.clone(), $call))
         {
             tokio::task::spawn_blocking(move || {
-                let _ = $api_shadow
+                let _ = shadowed
+                    .clone()
                     .send_extrinsic(extrinsic.hex_encode(), XtStatus::InBlock)
                     .map_err(|err| log::error!("{} failed to send request {:?}", $host_shadow, err))
                     .map(|ok| log::info!("{} completed request {:?}", $host_shadow, ok));
@@ -349,8 +347,10 @@ macro_rules! send_sudo_msg {
 #[macro_export]
 macro_rules! send_msg {
     ($api_shadow:expr, $call:tt, $host_shadow:tt) => {{
+        let shadowed = $api_shadow.clone();
+
         tokio::task::spawn_blocking(move || {
-            let _ = $api_shadow
+            let _ = shadowed
                 .send_extrinsic($call.hex_encode(), XtStatus::InBlock)
                 .map_err(|err| log::error!("{} failed to send request {:?}", $host_shadow, err))
                 .map(|ok| log::info!("{} completed request {:?}", $host_shadow, ok));

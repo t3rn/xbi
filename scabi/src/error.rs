@@ -87,4 +87,18 @@ mod tests {
         // 2 is the index of the error variant for the substrate abi, so we map error[1] to 2.
         assert_eq!(m.error, [1_u8, 2_u8, 0_u8, 0_u8]);
     }
+
+    #[test]
+    fn test_into_str() {
+        let e: &str =
+            Error::SubstrateAbi(substrate_abi::error::Error::FailedToCastBetweenTypesAddresses)
+                .into();
+        assert_eq!(e, "SubstrateAbiFailedToCastBetweenTypesAddresses");
+        let e: &str =
+            Error::SubstrateAbi(substrate_abi::error::Error::FailedToCastBetweenTypesValue).into();
+        assert_eq!(e, "SubstrateAbiFailedToCastBetweenTypesValue");
+        let e: &str =
+            Error::SubstrateAbi(substrate_abi::error::Error::FailedToAssociateTypes).into();
+        assert_eq!(e, "SubstrateAbiFailedToAssociateTypes");
+    }
 }
