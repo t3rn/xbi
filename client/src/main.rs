@@ -142,7 +142,6 @@ fn setup_exit_handler(global_tx: Arc<Sender<Message>>) {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
     #[test]
     fn test() {}
