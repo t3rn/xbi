@@ -9,8 +9,10 @@ xcm   = { git = "https://github.com/paritytech/polkadot.git", branch = "release-
 
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", optional = true }
 
+xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false, optional = true }
+
 [features]
 default   = [ "std", "frame-std" ]
-frame     = [ "sp-runtime" ]
-frame-std = [ "sp-runtime/std" ]
+frame     = [ "sp-runtime", "xcm-executor" ]
+frame-std = [ "sp-runtime/std", "xcm-executor/std" ]
 std       = [ "xcm/std", "codec/std" ]
