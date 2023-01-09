@@ -9,3 +9,5 @@
 client/patch*
 
 default.profraw
+
+.direnv
