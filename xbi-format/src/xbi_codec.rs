@@ -564,9 +564,8 @@ mod tests {
                     executed: Some(11),
                     responded: Some(12),
                 },
-                costs: CostLimits::new(Some(13), Some(14)),
+                fees: Fees::new(Some(13), Some(14), Some(15)),
                 maybe_known_origin: None,
-                maybe_fee_asset_id: None,
             },
         };
 

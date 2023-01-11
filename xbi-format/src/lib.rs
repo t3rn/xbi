@@ -281,7 +281,9 @@ impl Timeouts {
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Default, Encode, Decode, TypeInfo)]
-pub struct CostLimits {
+pub struct Fees {
+    /// The asset to pay the fees in, otherwise native
+    pub asset: Option<AssetId>,
     /// The maximum cost of the execution of the message
     pub max_exec_cost: Value,
     /// The maximum cost of sending any notifications
@@ -290,9 +292,14 @@ pub struct CostLimits {
     pub actual_aggregated_cost: Option<Value>,
 }
 
-impl CostLimits {
-    pub fn new(max_exec_cost: Option<Value>, max_notifications_cost: Option<Value>) -> Self {
-        CostLimits {
+impl Fees {
+    pub fn new(
+        asset: Option<AssetId>,
+        max_exec_cost: Option<Value>,
+        max_notifications_cost: Option<Value>,
+    ) -> Self {
+        Fees {
+            asset,
             max_exec_cost: max_exec_cost.unwrap_or_default(),
             max_notifications_cost: max_notifications_cost.unwrap_or_default(),
             actual_aggregated_cost: None,
@@ -358,11 +365,9 @@ pub struct XbiMetadata {
     /// The time sheet providing timestamps to each of the xbi progression
     pub timesheet: XbiTimeSheet<u32>, // TODO: assume u32 is block number
     /// User provided cost limits
-    pub costs: CostLimits,
+    pub fees: Fees,
     /// The optional known caller
     pub maybe_known_origin: Option<AccountId32>,
-    /// The optional known caller
-    pub maybe_fee_asset_id: Option<AssetId>,
 }
 
 /// max_exec_cost satisfies all of the execution fee requirements while going through XCM execution:
@@ -391,9 +396,8 @@ impl XbiMetadata {
         dest_para_id: u32,
         src_para_id: u32,
         timeouts: Timeouts,
-        costs: CostLimits,
+        fees: Fees,
         maybe_known_origin: Option<AccountId32>,
-        maybe_fee_asset_id: Option<AssetId>,
     ) -> Self {
         XbiMetadata {
             id,
@@ -401,9 +405,8 @@ impl XbiMetadata {
             src_para_id,
             timeouts,
             timesheet: Default::default(),
-            costs,
+            fees,
             maybe_known_origin,
-            maybe_fee_asset_id,
         }
     }
 
@@ -411,9 +414,8 @@ impl XbiMetadata {
         id: sp_core::H256,
         dest_para_id: u32,
         src_para_id: u32,
-        costs: CostLimits,
+        costs: Fees,
         maybe_known_origin: Option<AccountId32>,
-        maybe_fee_asset_id: Option<AssetId>,
     ) -> Self {
         XbiMetadata {
             id,
@@ -421,9 +423,8 @@ impl XbiMetadata {
             src_para_id,
             timeouts: Timeouts::default(),
             timesheet: Default::default(),
-            costs,
+            fees: costs,
             maybe_known_origin,
-            maybe_fee_asset_id,
         }
     }
 }
