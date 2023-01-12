@@ -2,12 +2,12 @@
 
 use codec::{Decode, Encode, FullCodec};
 use core::fmt::Debug;
-use frame_support::RuntimeDebug;
 use scale_info::TypeInfo;
 use sp_core::Hasher;
 use sp_runtime::traits::Hash;
 use sp_runtime::AccountId32;
 use sp_std::prelude::*;
+use sp_std::vec;
 
 pub mod xbi_codec;
 
@@ -15,7 +15,7 @@ use sabi::*;
 pub use xbi_codec::*;
 
 /// A representation of the status of an XBI execution
-#[derive(Clone, Eq, PartialEq, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Eq, PartialEq, Default, Encode, Decode, Debug, TypeInfo)]
 pub enum XbiCheckOutStatus {
     #[default]
     /// The XBI message was successful
@@ -40,7 +40,7 @@ pub enum XbiCheckOutStatus {
 // e.g parachain dest & source are the same, but described by the variable over some dto.
 
 /// A representation of the state of an XBI message, meters relating to cost and any timeouts
-#[derive(Clone, Eq, PartialEq, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Eq, PartialEq, Encode, Decode, Default, Debug, TypeInfo)]
 pub struct XbiCheckOut {
     /// The requested instruction
     pub xbi: XbiInstruction, // TODO: XbiInstruction::Result(XbiResult { }), then the result can be a struct here
@@ -112,7 +112,7 @@ impl XbiCheckOut {
 }
 
 /// An XBI message with additional timeout information
-#[derive(Clone, Eq, PartialEq, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Eq, PartialEq, Encode, Decode, Default, Debug, TypeInfo)]
 pub struct XbiCheckIn<BlockNumber> {
     /// The XBI message
     pub xbi: XbiFormat,

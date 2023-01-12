@@ -6,6 +6,7 @@ use sp_core::U256;
 use sp_runtime::traits::Convert;
 use sp_std::marker::PhantomData;
 use sp_std::prelude::*;
+use sp_std::vec;
 
 /// Global XBI Types.
 pub type Data = Vec<u8>;

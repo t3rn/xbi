@@ -9,8 +9,7 @@ repository  = "https://github.com/t3rn/xbi/"
 version     = "0.1.0"
 
 [dependencies]
-log   = { version = "0.4.14", default-features = false }
-serde = { default-features = false, version = "1.0", optional = true }
+log = { version = "0.4.14", default-features = false }
 
 codec      = { package = "parity-scale-codec", version = "3", default-features = false }
 scale-info = { version = "2.1.1", default-features = false, features = [ "derive" ] }
@@ -23,4 +22,4 @@ substrate-abi = { path = "../sabi", default-features = false }
 
 [features]
 default = [ "std" ]
-std     = [ "sp-std/std", "sp-core/std", "sp-runtime/std", "substrate-abi/std", "scale-info/std", "serde/std", "codec/std", "log/std" ]
+std     = [ "sp-std/std", "sp-core/std", "sp-runtime/std", "substrate-abi/std", "scale-info/std", "codec/std", "log/std" ]

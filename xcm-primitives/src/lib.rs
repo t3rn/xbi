@@ -1,6 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::Codec;
+use sp_std::prelude::*;
+use sp_std::vec;
 use xcm::prelude::*;
 use xcm::DoubleEncoded;
 
