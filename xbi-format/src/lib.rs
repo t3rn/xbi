@@ -1,3 +1,5 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+
 use codec::{Decode, Encode, FullCodec};
 use core::fmt::Debug;
 use frame_support::RuntimeDebug;
