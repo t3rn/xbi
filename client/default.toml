@@ -1,12 +1,12 @@
 debug = true
 
 [[nodes]]
-host            = "wss://dev.net.t3rn.io"
+host            = "wss://ws.t0rn.io"
 parachain_id    = 3333
 sleep_time_secs = 1
 
 [[subscribers]]
-host            = "wss://dev.net.t3rn.io"
+host            = "wss://ws.t0rn.io"
 parachain_id    = 3333
 sleep_time_secs = 5
 
