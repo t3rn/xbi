@@ -309,6 +309,7 @@ impl Fees {
     }
 }
 
+// TODO: use enum instead
 /// Timesheet Analogous to XbiMetadata::timeouts but tracked onchain
 ///
 /// Utilised by the queue to determine when to stop progressing an item
@@ -337,6 +338,7 @@ impl<BlockNumber: FullCodec + TypeInfo> XbiTimeSheet<BlockNumber> {
         }
     }
 
+    // TODO: use enum instead
     pub fn progress(&mut self, block_number: BlockNumber) -> &mut Self {
         if self.submitted.is_none() {
             self.submitted = Some(block_number)

@@ -1,2 +1,2 @@
 [workspace]
-members = [ 'sabi', 'scabi', 'xbi-format', 'client', "xcm-primitives" ]
+members = [ "crates/*", 'client' ]
