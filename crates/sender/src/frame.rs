@@ -85,7 +85,7 @@ where
                     Some(id) => {
                         let id: AssetId = id.into();
                         AssetLookup::reverse_ref(&id).map_err(|_| DispatchError::CannotLookup)?
-                    },
+                    }
                     None => MultiLocationBuilder::new_native().build(),
                 };
 
@@ -123,7 +123,7 @@ where
                         log::error!(target: "xbi-sender", "Failed to send xcm request: {:?}", e);
                         DispatchError::Other("Failed to send xcm request")
                     })
-            },
+            }
             Message::Response(result, metadata) => {
                 // Progress the delivered timestamp
                 metadata.timesheet.progress(current_block);
@@ -143,7 +143,7 @@ where
                     Some(id) => {
                         let id: AssetId = id.into();
                         AssetLookup::reverse_ref(&id).map_err(|_| DispatchError::CannotLookup)?
-                    },
+                    }
                     None => MultiLocationBuilder::new_native().build(),
                 };
 
@@ -165,7 +165,7 @@ where
                         log::error!(target: "xbi-sender", "Failed to send xcm request: {:?}", e);
                         DispatchError::Other("Failed to send xcm request")
                     })
-            },
+            }
         }
     }
 }

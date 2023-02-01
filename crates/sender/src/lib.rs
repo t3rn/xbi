@@ -161,11 +161,11 @@ mod tests {
                     assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 1000);
 
                     Ok(x)
-                },
+                }
                 Err(e) => {
                     QUEUE.lock().unwrap().insert(1_u8, 0);
                     Err(e)
-                },
+                }
             }),
         )
         .unwrap();
@@ -188,11 +188,11 @@ mod tests {
                         QUEUE.lock().unwrap().insert(1_u8, new_x);
                         assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 1000); // x + x
                         DummySender::resolve(new_x + new_x, Box::new(|result| result))
-                    },
+                    }
                     Err(e) => {
                         QUEUE.lock().unwrap().insert(1_u8, 0);
                         Err(e)
-                    },
+                    }
                 }
             }),
         )

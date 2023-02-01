@@ -345,7 +345,7 @@ pub mod pallet {
                     > frame_system::Pallet::<T>::block_number()
                 {
                     if timeout_counter > T::TimeoutChecksLimit::get() {
-                        break
+                        break;
                     }
                     // XBI Result didn't arrive in expected time.
                     <XbiCheckInsQueued<T>>::remove(xbi_id);
@@ -367,7 +367,7 @@ pub mod pallet {
                     > frame_system::Pallet::<T>::block_number()
                 {
                     if timeout_counter > T::TimeoutChecksLimit::get() {
-                        break
+                        break;
                     }
                     // XBI Result didn't arrive in expected time.
                     <XbiCheckInsPending<T>>::remove(xbi_id);
@@ -517,7 +517,7 @@ pub mod pallet {
                                     log::warn!("Duplicate request: {:?}", req);
                                 }
                             }
-                        },
+                        }
                         QueueSignal::XcmSendError => {
                             if let Message::Request(req) = msg {
                                 let key = T::Hash::decode(&mut &req.metadata.id[..]).unwrap(); // TODO: remove unwrap
@@ -534,7 +534,7 @@ pub mod pallet {
                                     log::warn!("Duplicate response: {:?}", result);
                                 }
                             }
-                        },
+                        }
                         QueueSignal::ResponseReceived => {
                             if let Message::Response(resp, meta) = msg {
                                 let key = T::Hash::decode(&mut &meta.id[..]).unwrap(); // TODO: remove unwrap
@@ -547,7 +547,7 @@ pub mod pallet {
                                     log::warn!("Duplicate response: {:?}", resp);
                                 }
                             }
-                        },
+                        }
                     }
                 }
             }
@@ -566,7 +566,7 @@ pub mod pallet {
             if frame_system::Pallet::<T>::block_number() % T::CheckInterval::get()
                 == T::BlockNumber::from(0u8)
             {
-                return Some(Call::cleanup {})
+                return Some(Call::cleanup {});
             }
             None
         }
@@ -861,13 +861,13 @@ impl<T: Config> ChannelProgressionEmitter for Pallet<T> {
                     request: Some(x.clone()),
                     response: None,
                 });
-            },
+            }
             Either::Right(x) => {
                 Self::deposit_event(XbiMessageReceived {
                     request: None,
                     response: Some(x.clone()),
                 });
-            },
+            }
         }
     }
 
@@ -953,7 +953,7 @@ impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
                         },
                         error: e,
                     })
-            },
+            }
             XbiInstruction::CallEvm {
                 source,
                 target,
@@ -991,7 +991,7 @@ impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
                         },
                         error: e,
                     })
-            },
+            }
             XbiInstruction::Swap { .. }
             | XbiInstruction::AddLiquidity { .. }
             | XbiInstruction::RemoveLiquidity { .. }
@@ -1020,11 +1020,11 @@ impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
                 )
                 .map(|_| Default::default())
                 .map_err(|_| Error::<T>::TransferFailed.into())
-            },
+            }
             ref x => {
                 log::debug!(target: "xbi", "unhandled instruction: {:?}", x);
                 Ok(Default::default())
-            },
+            }
         }
     }
 }

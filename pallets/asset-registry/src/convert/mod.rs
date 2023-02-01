@@ -55,7 +55,7 @@ mod tests {
         new_test_ext().execute_with(|| {
             let (location, _asset) = store_asset_one_for_alice();
 
-            assert_ok!(crate::pallet::Pallet::<Test>::convert_ref(&location));
+            assert_ok!(crate::pallet::Pallet::<Test>::convert_ref(location));
         });
     }
 
@@ -74,14 +74,14 @@ mod tests {
         new_test_ext().execute_with(|| {
             let (_location, asset) = store_asset_one_for_alice();
 
-            assert_ok!(crate::pallet::Pallet::<Test>::reverse_ref(&asset));
+            assert_ok!(crate::pallet::Pallet::<Test>::reverse_ref(asset));
         });
     }
 
     #[test]
     fn cant_lookup_non_existent_asset_ref() {
         new_test_ext().execute_with(|| {
-            assert_err!(crate::pallet::Pallet::<Test>::reverse_ref(&5555), ());
+            assert_err!(crate::pallet::Pallet::<Test>::reverse_ref(5555), ());
         });
     }
 }

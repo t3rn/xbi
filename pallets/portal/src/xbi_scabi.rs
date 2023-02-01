@@ -182,7 +182,7 @@ impl<T: crate::Config + frame_system::Config> Scabi<T> for XbiAbi<T> {
             if let Some(v) = actual_delivery_cost.checked_add(actual_delivery_cost) {
                 v
             } else {
-                return Err(Error::ArithmeticErrorOverflow)
+                return Err(Error::ArithmeticErrorOverflow);
             };
         Ok(XbiCheckOut::new::<T>(
             id,

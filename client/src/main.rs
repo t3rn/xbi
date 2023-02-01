@@ -134,7 +134,7 @@ async fn handle_signals(global_tx: Arc<Sender<Message>>, mut signals: Signals, h
 }
 
 fn setup_exit_handler(global_tx: Arc<Sender<Message>>) {
-    let signals = Signals::new(&[SIGHUP, SIGTERM, SIGINT, SIGQUIT]).unwrap();
+    let signals = Signals::new([SIGHUP, SIGTERM, SIGINT, SIGQUIT]).unwrap();
     let handle = signals.handle();
 
     tokio::spawn(handle_signals(global_tx, signals, handle));
