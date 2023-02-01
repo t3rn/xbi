@@ -1,0 +1,62 @@
+[package]
+authors     = [ "t3rn <team@t3rn.io>" ]
+description = "An asset registry providing asset capabilities for t3rn"
+edition     = "2021"
+name        = "pallet-asset-registry"
+version     = "4.0.0-dev"
+
+[package.metadata.docs.rs]
+targets = [ "x86_64-unknown-linux-gnu" ]
+
+[dependencies]
+codec      = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [ "derive" ] }
+log        = "0.4.17"
+scale-info = { version = "2.3.0", default-features = false, features = [ "derive" ] }
+
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
+sp-std     = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
+
+frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
+frame-system  = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
+
+# Optional
+frame-benchmarking = { default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
+
+xcm          = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false }
+xcm-builder  = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false }
+
+# TODO: MOVE ME FROM HERE
+xbi-channel-primitives = { path = "../../crates/channel-primitives", default-features = false, features = [ "frame" ] }
+xcm-primitives         = { git = "https://github.com/t3rn/xbi.git", default-features = false, features = [ "frame" ], package = "t3rn-xcm-primitives" }
+
+t3rn-primitives = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development" }
+
+[dev-dependencies]
+sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
+sp-io   = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
+
+pallet-assets   = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
+
+[features]
+default = [ "std" ]
+runtime-benchmarks = [ "frame-benchmarking/runtime-benchmarks" ]
+std = [
+  "codec/std",
+  "log/std",
+  "frame-support/std",
+  "frame-system/std",
+  "scale-info/std",
+  "sp-runtime/std",
+  "sp-std/std",
+  "xcm/std",
+  "xcm-executor/std",
+  "xcm-builder/std",
+  "xbi-channel-primitives/frame-std",
+  "xcm-primitives/frame-std",
+  "xcm-primitives/std",
+  "xbi-channel-primitives/std",
+  "t3rn-primitives/std",
+]
+try-runtime = [ "frame-support/try-runtime" ]

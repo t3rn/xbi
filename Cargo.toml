@@ -1,2 +1,2 @@
 [workspace]
-members = [ "crates/*", 'client' ]
+members = [ "crates/*", 'client', "integration-test", 'pallets/portal', 'pallets/asset-registry' ]

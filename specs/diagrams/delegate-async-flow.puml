@@ -1,0 +1,10 @@
+@startuml Synchronous send Parachain A -> Parachain B
+entity ContractA
+participant TxA
+queue Queue
+participant RxA
+participant RxB
+participant TxB
+participant EVM
+
+@enduml

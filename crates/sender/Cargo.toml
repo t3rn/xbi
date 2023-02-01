@@ -1,0 +1,28 @@
+[package]
+edition = "2021"
+name    = "xbi-sender"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = { version = "0.4.14", default-features = false }
+
+sp-runtime             = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+xbi-channel-primitives = { path = "../../crates/channel-primitives", default-features = false }
+
+# Optional frame specific deps
+frame-support  = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true }
+frame-system   = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true }
+xcm            = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false, optional = true }
+xcm-primitives = { git = "https://github.com/t3rn/xbi.git", default-features = false, features = [ "frame" ], optional = true, package = "t3rn-xcm-primitives" }
+
+[dev-dependencies]
+lazy_static = "1.4.0"
+serial_test = "*"
+
+[features]
+default   = [ "std", "frame-std" ]
+frame     = [ "frame-support", "frame-system", "xcm-primitives", "xcm" ]
+frame-std = [ "frame-support/std", "frame-system/std", "xcm-primitives/std", "xcm-primitives/frame-std", "xcm/std" ]
+std       = [ "sp-runtime/std", "xbi-channel-primitives/std", "xcm-primitives/std", "log/std" ]
