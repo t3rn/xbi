@@ -31,6 +31,9 @@ jobs:
           components: clippy
           override: true
 
+      - name: Cache rust
+        uses: Swatinem/rust-cache@v2
+
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:
@@ -47,8 +50,3 @@ jobs:
         with:
           name: code-coverage-report
           path: cobertura.xml
-#      - name: Comment coverage results
-#        uses: 5monkeys/cobertura-action@master
-#        with:
-#          path: cobertura.xml
-#          minimum_coverage: 70
