@@ -80,7 +80,7 @@ impl MessageManager<Command> for NodeConfig {
         let sleep_shadow = self.sleep_time_secs;
         let key_pair_shadow = self.read_key_or_alice();
         let parachain_id_shadow = self.parachain_id;
-        let _ = tokio::spawn(async move {
+        tokio::spawn(async move {
             let client = WsRpcClient::new(&host_shadow);
             let api = Api::<Pair, _, PlainTipExtrinsicParams>::new(client)
                 .map(|api| api.set_signer(key_pair_shadow))

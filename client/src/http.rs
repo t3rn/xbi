@@ -70,8 +70,8 @@ mod tests {
 
         let p = serde_json::to_string(&EncodedCodecMessage { kind: p }).unwrap();
         let s = serde_json::to_string(&EncodedCodecMessage { kind: s }).unwrap();
-        println!("{:?}", p);
-        println!("{:?}", s);
+        println!("{p:?}");
+        println!("{s:?}");
         assert_ne!(p, s);
     }
 }

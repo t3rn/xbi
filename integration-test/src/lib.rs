@@ -48,13 +48,13 @@ pub fn para_id_to_account(para: ParaKind) -> AccountId32 {
             let para_bytes = hex::decode(para_bytes).unwrap();
             para_bytes.as_slice().copy_to_slice(&mut bytes[0..4]);
             id.to_le_bytes().as_slice().copy_to_slice(&mut bytes[4..8]);
-        },
+        }
         ParaKind::Sibling(id) => {
             let sibl_bytes: String = b"sibl".encode_hex();
             let sibl_bytes = hex::decode(sibl_bytes).unwrap();
             sibl_bytes.as_slice().copy_to_slice(&mut bytes[0..4]);
             id.to_le_bytes().as_slice().copy_to_slice(&mut bytes[4..8]);
-        },
+        }
     }
     let acc = AccountId32::new(bytes);
 

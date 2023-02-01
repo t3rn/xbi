@@ -145,9 +145,9 @@ mod tests {
     fn setup_default_assets() {
         let initial_balance = 100_000_000_000_000; // 100 ROC
         let large_sovereign: sp_runtime::AccountId32 =
-            crate::para_id_to_account(ParaKind::Child(LARGE_PARA_ID)).into();
+            crate::para_id_to_account(ParaKind::Child(LARGE_PARA_ID));
         let slim_sovereign: sp_runtime::AccountId32 =
-            crate::para_id_to_account(ParaKind::Child(SLIM_PARA_ID)).into();
+            crate::para_id_to_account(ParaKind::Child(SLIM_PARA_ID));
 
         transfer_to(large_sovereign, initial_balance);
         transfer_to(slim_sovereign, initial_balance);
@@ -336,7 +336,7 @@ mod tests {
 
         // transfer roc to sovereign for this chain
         transfer_to(
-            crate::para_id_to_account(ParaKind::Child(LARGE_PARA_ID)).into(),
+            crate::para_id_to_account(ParaKind::Child(LARGE_PARA_ID)),
             large_initial_balance,
         );
 

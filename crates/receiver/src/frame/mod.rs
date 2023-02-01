@@ -77,7 +77,6 @@ pub(crate) fn handler_to_dispatch_info(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
     #[test]
     fn xbi_handler_maps_to_result_correctly() {}
