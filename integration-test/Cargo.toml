@@ -1,0 +1,50 @@
+[package]
+authors = [ "t3rn" ]
+edition = "2021"
+license = "Apache-2.0"
+name    = "xbi-integration-tests"
+version = "0.1.0"
+
+[dependencies]
+bytes         = "1.2.1"
+hex           = "0.4.3"
+hex-literal   = "0.3.4"
+log           = "*"
+proc-macro2   = "1.0.40"
+simple_logger = "*"
+wat           = "1"
+
+codec      = { package = "parity-scale-codec", version = "3", default-features = false }
+scale-info = { version = "2.1.2", default-features = false }
+serde      = { version = "1.0.144", optional = true }
+
+frame-support   = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
+frame-system    = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
+pallet-assets   = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
+sp-io           = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
+sp-runtime      = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
+
+cumulus-pallet-xcmp-queue = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.27" }
+cumulus-primitives-core   = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.27" }
+parachain-info            = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.27" }
+
+pallet-xcm                  = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27" }
+polkadot-parachain          = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27" }
+polkadot-primitives         = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27" }
+polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27" }
+rococo-runtime              = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27" }
+
+substrate-abi           = { git = "https://github.com/t3rn/xbi.git" }
+substrate-contracts-abi = { git = "https://github.com/t3rn/xbi.git" }
+xcm                     = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27" }
+xcm-emulator            = { git = "https://github.com/AwesomeIbex/xcm-simulator.git", branch = "polkadot-v0.9.27" }
+xcm-primitives          = { git = "https://github.com/t3rn/xbi.git", package = "t3rn-xcm-primitives" }
+
+large                 = { path = "large" }
+pallet-asset-registry = { path = "../pallets/asset-registry" }
+pallet-xbi-portal     = { path = "../pallets/portal" }
+slim                  = { path = "slim" }
+xbi-format            = { git = "https://github.com/t3rn/xbi.git" }
+
+[dev-dependencies]

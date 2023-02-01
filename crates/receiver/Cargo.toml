@@ -1,0 +1,42 @@
+[package]
+edition = "2021"
+name    = "xbi-receiver"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+codec      = { package = "parity-scale-codec", version = "3", default-features = false }
+log        = { version = "*", default-features = false }
+scale-info = { version = "2.1.1", default-features = false, features = [ "derive" ] }
+
+sp-core    = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-io      = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-std     = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true }
+frame-system  = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true }
+
+xbi-channel-primitives = { path = "../../crates/channel-primitives", default-features = false }
+xbi-format             = { git = "https://github.com/t3rn/xbi.git", default-features = false }
+xbi-sender             = { path = "../../crates/sender", default-features = false }
+
+[features]
+default = [ "std", "frame-std" ]
+frame = [ "frame-support", "frame-system" ]
+frame-std = [ "frame-support/std", "frame-system/std" ]
+requests = [  ]
+responses = [  ]
+std = [
+    "log/std",
+    "codec/std",
+    "scale-info/std",
+    "xbi-format/std",
+    "xbi-sender/std",
+    "sp-std/std",
+    "sp-io/std",
+    "sp-core/std",
+    "sp-runtime/std",
+    "xbi-channel-primitives/std",
+]

@@ -1,0 +1,107 @@
+[package]
+authors     = [ "t3rn" ]
+description = "A slim runtime for cross-chain messages tests."
+edition     = "2021"
+license     = "Apache-2.0"
+name        = "large"
+version     = "0.1.0"
+
+[dependencies]
+codec      = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
+log        = { version = "0.4.14" }
+scale-info = { version = "2.1", default-features = false, features = [ "derive" ] }
+serde      = { version = "1.0.137", optional = true }
+
+frame-support = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.27" }
+frame-system  = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.27" }
+
+sp-core    = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.27" }
+sp-io      = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.27" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.27" }
+sp-std     = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.27" }
+
+cumulus-pallet-dmp-queue        = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v0.9.27" }
+cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v0.9.27" }
+cumulus-pallet-xcm              = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v0.9.27" }
+cumulus-pallet-xcmp-queue       = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v0.9.27" }
+cumulus-parachains-common       = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v0.9.27", package = "parachains-common" }
+cumulus-primitives-utility      = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v0.9.27" }
+parachain-info                  = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v0.9.27" }
+
+pallet-assets                     = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.27" }
+pallet-aura                       = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.27" }
+pallet-balances                   = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.27" }
+pallet-randomness-collective-flip = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.27" }
+pallet-timestamp                  = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.27" }
+pallet-transaction-payment        = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.27" }
+pallet-xcm                        = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.27" }
+polkadot-parachain                = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.27" }
+polkadot-primitives               = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.27" }
+polkadot-runtime-parachains       = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.27" }
+xcm                               = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.27" }
+xcm-builder                       = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.27" }
+xcm-executor                      = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.27" }
+
+# XBI
+pallet-asset-registry = { path = "../../pallets/asset-registry", default-features = false }
+pallet-xbi-portal     = { path = "../../pallets/portal", default-features = false }
+
+evm-precompile-util             = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "feature/xbi-expose", package = "precompile-util" }
+pallet-3vm                      = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "feature/xbi-expose", package = "pallet-3vm" }
+pallet-3vm-contracts            = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "feature/xbi-expose", package = "pallet-contracts" }
+pallet-3vm-contracts-primitives = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "feature/xbi-expose", package = "pallet-contracts-primitives" }
+pallet-3vm-evm                  = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "feature/xbi-expose", package = "pallet-evm" }
+pallet-3vm-evm-primitives       = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "feature/xbi-expose", package = "fp-evm" }
+t3rn-primitives                 = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "feature/xbi-expose" }
+
+# evm-precompile-util             = { path = "../../../../3vm/pallets/evm/precompile/util", package = "precompile-util" }
+# pallet-3vm                      = { path = "../../../../3vm/pallets/3vm" }
+# pallet-3vm-contracts            = { path = "../../../../3vm/pallets/contracts", package = "pallet-contracts" }
+# pallet-3vm-contracts-primitives = { path = "../../../../3vm/primitives/contracts", package = "pallet-contracts-primitives" }
+# pallet-3vm-evm                  = { path = "../../../../3vm/pallets/evm", package = "pallet-evm" }
+# pallet-3vm-evm-primitives       = { path = "../../../../3vm/primitives/evm", package = "fp-evm" }
+
+[features]
+default = [ "std" ]
+no_std = [  ]
+std = [
+  "serde/std",
+  "codec/std",
+  "scale-info/std",
+
+  "sp-runtime/std",
+  "sp-io/std",
+  "sp-std/std",
+  "sp-core/std",
+  "pallet-balances/std",
+  "frame-support/std",
+  "frame-system/std",
+  "evm-precompile-util/std",
+  "pallet-3vm-contracts/std",
+  "pallet-3vm/std",
+  "pallet-randomness-collective-flip/std",
+  "pallet-3vm-contracts-primitives/std",
+  "pallet-3vm-evm/std",
+  "pallet-3vm-evm-primitives/std",
+  "t3rn-primitives/std",
+  "cumulus-pallet-dmp-queue/std",
+  "cumulus-pallet-xcmp-queue/std",
+  "cumulus-pallet-xcm/std",
+  "cumulus-pallet-parachain-system/std",
+  "cumulus-parachains-common/std",
+  "parachain-info/std",
+  "cumulus-primitives-utility/std",
+  "xcm/std",
+  "xcm-executor/std",
+  "polkadot-parachain/std",
+  "xcm-builder/std",
+  "pallet-xcm/std",
+  "pallet-aura/std",
+  "polkadot-runtime-parachains/std",
+  "pallet-assets/std",
+  "pallet-timestamp/std",
+  "pallet-3vm/std",
+  "pallet-transaction-payment/std",
+  "pallet-xbi-portal/std",
+  "pallet-asset-registry/std",
+]
