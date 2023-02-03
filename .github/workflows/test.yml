@@ -39,7 +39,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install nextest
-        uses: taiki-e/install-action@nextest
+        uses: baptiste0928/cargo-install@v1
+        with:
+          crate: cargo-nextest
 
       - name: 📑 Test workspace
         uses: actions-rs/cargo@v1
