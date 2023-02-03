@@ -1,13 +1,15 @@
 [package]
-edition = "2021"
-name    = "xbi-channel-primitives"
-version = "0.1.0"
+authors     = [ "t3rn <team@t3rn.io>" ]
+description = "Primitives to support XBI channel"
+edition     = "2021"
+name        = "xbi-channel-primitives"
+version     = "0.1.0"
 
 [dependencies]
 codec      = { package = "parity-scale-codec", version = "3", default-features = false }
 scale-info = { version = "2.1.1", default-features = false, features = [ "derive" ] }
 
-xbi-format = { git = "https://github.com/t3rn/xbi.git", default-features = false }
+xbi-format = { path = "../xbi-format", default-features = false }
 
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
 sp-std     = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }

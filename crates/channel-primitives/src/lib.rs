@@ -50,12 +50,16 @@ impl Message {
     }
 }
 
+/// A trait to allow emitting events or handling of events along the step of a message's lifecycle.
 pub trait ChannelProgressionEmitter {
-    fn emit_request_handled(result: &XbiResult, metadata: &XbiMetadata, weight: &u64);
-    // fn emit_response_handled(event: Event);
-    fn emit_instruction_handled(msg: &XbiFormat, weight: &u64);
+    /// This is emitted after sending the message over the transport protocol
     fn emit_sent(msg: Message);
+    /// Emitted when the message is received on the destination
     fn emit_received(msg: Either<&XbiFormat, &XbiResult>);
+    /// Emitted when the instruction for the message has been complete
+    fn emit_instruction_handled(msg: &XbiFormat, weight: &u64);
+    /// Emitted when the request is handled
+    fn emit_request_handled(result: &XbiResult, metadata: &XbiMetadata, weight: &u64);
 }
 
 // Noop implementation
@@ -64,7 +68,6 @@ impl ChannelProgressionEmitter for () {
 
     fn emit_request_handled(_result: &XbiResult, _metadata: &XbiMetadata, _weight: &u64) {}
 
-    // fn emit_response_handled(event: T) {}
     fn emit_received(_msg: Either<&XbiFormat, &XbiResult>) {}
 
     fn emit_sent(_msg: Message) {}

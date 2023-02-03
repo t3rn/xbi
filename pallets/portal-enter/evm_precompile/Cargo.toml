@@ -19,9 +19,9 @@ pallet-evm        = { git = "https://github.com/paritytech/frontier", branch = "
 pallet-xbi-portal = { path = "../../..", default-features = false }
 pallet-xcm        = { git = "https://github.com/paritytech/polkadot", tag = "v0.9.27", default-features = false }
 
-sabi       = { git = "https://github.com/t3rn/xbi.git", default-features = false, package = "substrate-abi" }
-scabi      = { git = "https://github.com/t3rn/xbi.git", default-features = false, package = "substrate-contracts-abi" }
-xbi-format = { git = "https://github.com/t3rn/xbi.git", default-features = false }
+sabi       = { path = "../../../crates/sabi", default-features = false, package = "substrate-abi" }
+scabi      = { path = "../../../crates/scabi", default-features = false, package = "substrate-contracts-abi" }
+xbi-format = { path = "../../../crates/xbi-format", default-features = false }
 
 [features]
 default = [ "std" ]
