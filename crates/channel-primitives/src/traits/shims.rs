@@ -1,5 +1,6 @@
 use codec::{Decode, EncodeLike, FullCodec, FullEncode};
 use sp_std::prelude::*;
+
 /// A trait for working with macro-generated storage values under the substrate storage API.
 ///
 /// Details on implementation can be found at [`generator::StorageValue`].
