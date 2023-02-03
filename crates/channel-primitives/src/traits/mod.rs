@@ -53,6 +53,12 @@ impl From<(Vec<u8>, Weight)> for HandlerInfo {
     }
 }
 
+/// A simplle trait that allows a parachain to specify how they would handle an xbi instruction.
+///
+/// This is also utilised as a simple gateway for routing messages within a parachain, and could be used for different pallets to contact each other.
+///
+/// Note: This would currently need runtime upgrades to support new/less functionality, however there are plans to make this routing layer on-chain.
+// TODO: a result validator shoulld also allow a sender of a message to validate what they deem as a successful result, otherwise the fallback is on the parachain to prove the message was handled correctly.
 pub trait XbiInstructionHandler<Origin> {
     fn handle(
         origin: &Origin,

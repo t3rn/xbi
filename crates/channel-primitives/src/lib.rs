@@ -1,11 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub use xbi_format::{XbiFormat, XbiMetadata, XbiResult};
+
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_runtime::{sp_std, Either};
 use sp_std::prelude::*;
-
-pub use xbi_format::{XbiFormat, XbiMetadata, XbiResult};
 
 #[cfg(feature = "frame")]
 pub use xcm::{
