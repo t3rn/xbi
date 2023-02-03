@@ -35,16 +35,19 @@ polkadot-primitives         = { git = "https://github.com/paritytech/polkadot", 
 polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27" }
 rococo-runtime              = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27" }
 
-substrate-abi           = { git = "https://github.com/t3rn/xbi.git" }
-substrate-contracts-abi = { git = "https://github.com/t3rn/xbi.git" }
-xcm                     = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27" }
-xcm-emulator            = { git = "https://github.com/AwesomeIbex/xcm-simulator.git", branch = "polkadot-v0.9.27" }
-xcm-primitives          = { git = "https://github.com/t3rn/xbi.git", package = "t3rn-xcm-primitives" }
+# XBI
+pallet-asset-registry   = { path = "../pallets/asset-registry" }
+pallet-xbi-portal       = { path = "../pallets/portal" }
+substrate-abi           = { path = "../crates/sabi" }
+substrate-contracts-abi = { path = "../crates/scabi" }
+xbi-format              = { path = "../crates/xbi-format" }
+xcm-primitives          = { path = "../crates/xcm-primitives", package = "t3rn-xcm-primitives" }
 
-large                 = { path = "large" }
-pallet-asset-registry = { path = "../pallets/asset-registry" }
-pallet-xbi-portal     = { path = "../pallets/portal" }
-slim                  = { path = "slim" }
-xbi-format            = { git = "https://github.com/t3rn/xbi.git" }
+# XCM
+xcm          = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27" }
+xcm-emulator = { git = "https://github.com/AwesomeIbex/xcm-simulator.git", branch = "polkadot-v0.9.27" }
+
+large = { path = "large" }
+slim  = { path = "slim" }
 
 [dev-dependencies]

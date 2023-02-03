@@ -19,7 +19,7 @@ frame-support = { git = "https://github.com/paritytech/substrate", branch = "pol
 frame-system  = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true }
 
 xbi-channel-primitives = { path = "../../crates/channel-primitives", default-features = false }
-xbi-format             = { git = "https://github.com/t3rn/xbi.git", default-features = false }
+xbi-format             = { path = "../../crates/xbi-format", default-features = false }
 xbi-sender             = { path = "../../crates/sender", default-features = false }
 
 [features]

@@ -26,9 +26,8 @@ xcm          = { git = "https://github.com/paritytech/polkadot", branch = "relea
 xcm-builder  = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false }
 xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false }
 
-# TODO: MOVE ME FROM HERE
 xbi-channel-primitives = { path = "../../crates/channel-primitives", default-features = false, features = [ "frame" ] }
-xcm-primitives         = { git = "https://github.com/t3rn/xbi.git", default-features = false, features = [ "frame" ], package = "t3rn-xcm-primitives" }
+xcm-primitives         = { path = "../../crates/xcm-primitives", default-features = false, features = [ "frame" ], package = "t3rn-xcm-primitives" }
 
 t3rn-primitives = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development" }
 
