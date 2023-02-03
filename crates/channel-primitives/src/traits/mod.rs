@@ -1,7 +1,5 @@
 use codec::{Decode, Encode};
-use frame_support::{dispatch::DispatchErrorWithPostInfo, weights::Weight};
 use sp_std::prelude::*;
-use xbi_format::XbiFormat;
 
 /// A set of traits containing some loosely typed shims to storage interactions in substrate.
 ///
@@ -17,7 +15,7 @@ pub mod shims;
 ///
 /// This also adds information about weight used by the instruction handler.
 #[derive(Encode, Decode, Default)]
-pub struct HandlerInfo {
+pub struct HandlerInfo<Weight> {
     // TODO[Optimisation]: We can bound the size, but ideally this should be configured by the user who sends the message.
     // We have ideas on how to specify this in future releases.
     pub output: Vec<u8>,
@@ -25,25 +23,7 @@ pub struct HandlerInfo {
     pub weight: Weight,
 }
 
-impl From<Weight> for HandlerInfo {
-    fn from(i: Weight) -> Self {
-        HandlerInfo {
-            weight: i,
-            ..Default::default()
-        }
-    }
-}
-
-impl From<Vec<u8>> for HandlerInfo {
-    fn from(bytes: Vec<u8>) -> Self {
-        HandlerInfo {
-            output: bytes,
-            ..Default::default()
-        }
-    }
-}
-
-impl From<(Vec<u8>, Weight)> for HandlerInfo {
+impl<Weight> From<(Vec<u8>, Weight)> for HandlerInfo<Weight> {
     fn from(t: (Vec<u8>, Weight)) -> Self {
         let (bytes, i) = t;
         HandlerInfo {
@@ -53,15 +33,19 @@ impl From<(Vec<u8>, Weight)> for HandlerInfo {
     }
 }
 
-/// A simplle trait that allows a parachain to specify how they would handle an xbi instruction.
+/// A simple trait that allows a parachain to specify how they would handle an xbi instruction.
 ///
 /// This is also utilised as a simple gateway for routing messages within a parachain, and could be used for different pallets to contact each other.
 ///
 /// Note: This would currently need runtime upgrades to support new/less functionality, however there are plans to make this routing layer on-chain.
 // TODO: a result validator shoulld also allow a sender of a message to validate what they deem as a successful result, otherwise the fallback is on the parachain to prove the message was handled correctly.
+#[cfg(feature = "frame")]
 pub trait XbiInstructionHandler<Origin> {
     fn handle(
         origin: &Origin,
-        xbi: &mut XbiFormat,
-    ) -> Result<HandlerInfo, DispatchErrorWithPostInfo>;
+        xbi: &mut xbi_format::XbiFormat,
+    ) -> Result<
+        HandlerInfo<frame_support::weights::Weight>,
+        frame_support::dispatch::DispatchErrorWithPostInfo,
+    >;
 }

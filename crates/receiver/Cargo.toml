@@ -1,7 +1,9 @@
 [package]
-edition = "2021"
-name    = "xbi-receiver"
-version = "0.1.0"
+authors     = [ "t3rn <team@t3rn.io>" ]
+description = "A receiver channel part of XBI"
+edition     = "2021"
+name        = "xbi-receiver"
+version     = "0.3.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
