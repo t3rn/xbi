@@ -910,7 +910,10 @@ impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
     fn handle(
         origin: &T::Origin,
         xbi: &mut XbiFormat,
-    ) -> Result<HandlerInfo, DispatchErrorWithPostInfo<PostDispatchInfo>> {
+    ) -> Result<
+        HandlerInfo<frame_support::weights::Weight>,
+        DispatchErrorWithPostInfo<PostDispatchInfo>,
+    > {
         let caller = ensure_signed(origin.clone())?;
 
         log::debug!(target: "xbi", "Handling instruction for caller {:?} and message {:?}", caller, xbi);

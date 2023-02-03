@@ -3,13 +3,11 @@ authors     = [ "t3rn <team@t3rn.io>" ]
 description = "Primitives to support XBI channel"
 edition     = "2021"
 name        = "xbi-channel-primitives"
-version     = "0.1.0"
+version     = "0.3.0"
 
 [dependencies]
 codec      = { package = "parity-scale-codec", version = "3", default-features = false }
 scale-info = { version = "2.1.1", default-features = false, features = [ "derive" ] }
-
-xbi-format = { path = "../xbi-format", default-features = false }
 
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
 sp-std     = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
@@ -19,12 +17,14 @@ frame-support = { git = "https://github.com/paritytech/substrate", branch = "pol
 
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false, optional = true }
 
+xbi-format = { path = "../xbi-format", default-features = false }
+
 [dev-dependencies]
 lazy_static = "1.4.0"
 serial_test = "*"
 
 [features]
-default   = [ "std" ]
+default   = [ "std", "frame", "frame-std" ]
 frame     = [ "frame-support", "xcm" ]
 frame-std = [ "frame-support/std", "xcm/std" ]
 std       = [ "sp-runtime/std", "sp-std/std", "xbi-format/std", "codec/std", "scale-info/std" ]
