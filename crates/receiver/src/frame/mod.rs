@@ -77,9 +77,12 @@ pub(crate) fn handler_to_dispatch_info(
 
 #[cfg(test)]
 mod tests {
+    use crate::frame::instruction_error_to_xbi_result;
+
     use super::{handler_to_xbi_result, invert_destination_from_message};
 
     use codec::Encode;
+    use frame_support::{dispatch::DispatchErrorWithPostInfo, weights::PostDispatchInfo};
     use xbi_channel_primitives::{traits::HandlerInfo, XbiFormat, XbiMetadata};
     use xbi_format::{Fees, XbiCheckOutStatus};
 
@@ -119,5 +122,23 @@ mod tests {
         assert_eq!(msg.metadata.fees.actual_aggregated_cost, Some(100));
         assert_eq!(result.id, id.encode());
         assert_eq!(result.status, XbiCheckOutStatus::SuccessfullyExecuted);
+    }
+
+    #[test]
+    fn xbi_handler_error_maps_to_result_correctly() {
+        let id = b"hello".to_vec();
+
+        let err = DispatchErrorWithPostInfo {
+            post_info: PostDispatchInfo {
+                actual_weight: Some(1000),
+                ..Default::default()
+            },
+            error: sp_runtime::DispatchError::Other("Fail"),
+        };
+        let result = instruction_error_to_xbi_result(&id, &err);
+
+        assert_eq!(result.id, id.encode());
+        assert_eq!(result.status, XbiCheckOutStatus::ErrorFailedExecution);
+        assert_eq!(result.output, err.encode());
     }
 }
