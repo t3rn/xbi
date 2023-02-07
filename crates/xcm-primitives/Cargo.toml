@@ -1,7 +1,10 @@
 [package]
 edition = "2021"
 name    = "t3rn-xcm-primitives"
-version = "0.2.0"
+version = "0.3.0"
+authors     = [ "t3rn <team@t3rn.io>" ]
+repository  = "https://github.com/t3rn/xbi"
+license     = "Apache-2.0"
 
 [dependencies]
 codec  = { package = "parity-scale-codec", version = "3.1.5", default-features = false, features = [ 'derive' ] }
