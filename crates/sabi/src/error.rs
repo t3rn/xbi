@@ -3,11 +3,12 @@ use scale_info::TypeInfo;
 use sp_runtime::{DispatchError, ModuleError};
 use sp_std::fmt::Debug;
 
-/// A wrapper providing nice access to the module INDEX from the runtime. This allows us to generate
+/// A wrapper providing access to the module INDEX from the runtime. This allows us to generate
 /// error functionality for use in DispatchError.
 #[derive(Clone)]
 pub struct ModuleErrorProvider<const IDX: u8>(pub Error);
 
+// TODO: needs improving on names
 #[derive(Clone, Eq, PartialEq, Encode, Decode, Debug, TypeInfo)]
 pub enum Error {
     FailedToCastBetweenTypesAddresses,
@@ -67,7 +68,4 @@ mod tests {
         assert_eq!(m.index, 1);
         assert_eq!(m.error, [2_u8, 0_u8, 0_u8, 0_u8]);
     }
-
-    #[test]
-    fn test_into_module_error() {}
 }

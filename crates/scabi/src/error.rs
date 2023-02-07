@@ -4,7 +4,7 @@ use sp_runtime::DispatchError;
 use sp_runtime::ModuleError;
 use sp_std::fmt::Debug;
 
-/// A wrapper providing nice access to the module INDEX from the runtime. This allows us to generate
+/// A wrapper providing access to the module INDEX from the runtime. This allows us to generate
 /// error functionality for use in DispatchError.
 #[derive(Clone)]
 pub struct ModuleErrorProvider<const IDX: u8>(pub Error);
