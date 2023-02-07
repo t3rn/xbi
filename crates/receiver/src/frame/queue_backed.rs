@@ -1,3 +1,6 @@
+use super::{
+    handler_to_xbi_result, instruction_error_to_xbi_result, invert_destination_from_message,
+};
 use crate::{frame::handler_to_dispatch_info, Receiver as ReceiverExt};
 use codec::Encode;
 use frame_support::pallet_prelude::DispatchResultWithPostInfo;
@@ -11,11 +14,8 @@ use xbi_channel_primitives::{
 };
 use xbi_format::{XbiFormat, XbiMetadata, XbiResult};
 
-use super::{
-    handler_to_xbi_result, instruction_error_to_xbi_result, invert_destination_from_message,
-};
-
-/// This will be the asynchronous queue backed frame receiver, which expects some queue handler to transport the messages back via the transport layer
+/// This is an asynchronous queue backed frame receiver, which expects some queue handler to transport the messages back via the transport layer,
+/// detaching the message handling part with the transport of the message.
 pub struct Receiver<T, Emitter, Queue, InstructionHandler> {
     phantom: PhantomData<(T, Emitter, Queue, InstructionHandler)>,
 }
@@ -26,12 +26,12 @@ where
     T: Config,
     Emitter: ChannelProgressionEmitter,
     Queue: Queueable<(Message, QueueSignal)>,
-    InstructionHandler: XbiInstructionHandler<T::Origin>, // Probably want a queue backed handler too
+    InstructionHandler: XbiInstructionHandler<T::Origin>, 
 {
     type Origin = T::Origin;
     type Outcome = DispatchResultWithPostInfo;
 
-    /// Request should always run the instruction, and product some dispatch info containing meters for the execution
+    /// Request should always run the instruction, and produce some info containing meters for the execution
     fn handle_request(origin: &Self::Origin, msg: &mut XbiFormat) -> DispatchResultWithPostInfo {
         let _who = ensure_signed(origin.clone())?;
         let current_block: u32 = <frame_system::Pallet<T>>::block_number().unique_saturated_into();
@@ -73,7 +73,7 @@ where
         handler_to_dispatch_info(instruction_result)
     }
 
-    /// Response should update the state of the storage checkout queues and notify the sender of completion
+    /// Response should delegate to the queue handler who would know about how to handle the message
     fn handle_response(
         origin: &Self::Origin,
         msg: &XbiResult,
