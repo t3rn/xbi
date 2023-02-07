@@ -31,6 +31,7 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+// TODO
 // #[cfg(feature = "runtime-benchmarks")]
 // mod benchmarking;
 
@@ -40,6 +41,7 @@ t3rn_primitives::reexport_asset_types!();
 #[derive(Encode, Decode, Debug, Clone, PartialEq, Eq, MaxEncodedLen, TypeInfo)]
 pub struct AssetInfo<AssetId, AccountId, Balance> {
     id: AssetId,
+    /// A set of capabilities an asset has
     capabilities: Vec<Capability<AccountId, Balance>>,
     /// The "official" location for the asset, used in reverse lookups
     location: MultiLocation,
@@ -61,11 +63,16 @@ impl<AssetId, AccountId, Balance> AssetInfo<AssetId, AccountId, Balance> {
 
 #[derive(Encode, Decode, Debug, Copy, Clone, PartialEq, Eq, TypeInfo)]
 pub enum Capability<AccountId, Balance> {
+    /// Can the asset be teleported, if so, what is the checking account for it?
     Teleport(Option<AccountId>),
+    /// Can the asset be used as a reserve, if so, what is the checking account for it?
     Reserve(Option<AccountId>),
+    /// Can the asset be used as payment, if so, what is the weight for it?
     Payable { fees_per_weight: Option<Balance> },
 }
 
+// TODO[Style]: needs refactor into Index
+/// The amount of capabilities we have
 pub const CAPABILITY_COUNT: usize = 3;
 
 impl<AccountId, Balance> Capability<AccountId, Balance> {
@@ -370,7 +377,6 @@ pub struct WeightAssetConvert<T: pallet::Config, WeightToFeeConverter> {
 impl<T: Config, WeightToFeeConverter: WeightToFee<Balance = BalanceOf<T>>> WeightTrader
     for WeightAssetConvert<T, WeightToFeeConverter>
 {
-    // I couldnt implement this into the pallet because of this
     fn new() -> Self {
         Self {
             _phantom: PhantomData,
