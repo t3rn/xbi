@@ -10,11 +10,12 @@ use sp_std::vec;
 
 /// Global XBI Types.
 pub type Data = Vec<u8>;
+
 /// A representation of an Asset Id, this is utilised for xbi instructions relating to multiple assets
-pub type AssetId = u32; // Could also be xcm::MultiAsset
+pub type AssetId = u32;
 pub type Gas = u64;
 pub type AccountId32 = sp_runtime::AccountId32;
-pub type AccountId20 = sp_core::H160; // Could also take it from MultiLocation::Junction::AccountKey20 { network: NetworkId, key: [u8; 20] },
+pub type AccountId20 = sp_core::H160;
 
 pub type Value32 = u32;
 pub type Value64 = u64;

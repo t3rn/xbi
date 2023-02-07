@@ -7,6 +7,7 @@ use sp_std::prelude::*;
 use substrate_abi::TryConvert;
 use substrate_abi::{error::Error as SabiError, Data, Gas, SubstrateAbiConverter, Value128};
 
+/// A general call to a WASM runtime
 #[derive(Clone, Eq, PartialEq, Encode, Decode, Debug, TypeInfo)]
 pub struct CallWasm {
     pub origin_source: AccountId32,

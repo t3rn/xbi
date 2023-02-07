@@ -9,6 +9,7 @@ use substrate_abi::{
     error::Error as SabiError, AccountId20, Data, Gas, SubstrateAbiConverter, TryConvert, Value256,
 };
 
+/// A general call to an EVM runtime
 #[derive(Clone, Eq, PartialEq, Encode, Decode, Debug, TypeInfo)]
 pub struct CallEvm {
     pub source: AccountId20, // Could use either [u8; 20] or Junction::AccountKey20

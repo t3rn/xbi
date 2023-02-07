@@ -9,12 +9,14 @@ pub mod error;
 pub mod evm;
 pub mod wasm;
 
+/// Provide the required data type conversions for a converter to be marked as a `SubstrateContractsAbi`.
 pub trait SubstrateContractsAbi:
     TryConvert<CallEvm, Outcome = Result<CallWasm, Error>>
     + TryConvert<CallWasm, Outcome = Result<CallEvm, Error>>
 {
 }
 
+/// Providing access to the SubstrateContractsAbi
 pub struct SubstrateContractAbiConverter;
 
 impl TryConvert<CallEvm> for SubstrateContractAbiConverter {
