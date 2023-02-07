@@ -9,6 +9,7 @@ use xbi_format::{XbiCheckOutStatus, XbiFormat, XbiMetadata, XbiResult};
 pub mod queue_backed;
 pub mod sync;
 
+/// The receiver needs to invert the message src/dest so that it can respond accordingly
 pub(crate) fn invert_destination_from_message(metadata: &mut XbiMetadata) {
     let reply_para = metadata.src_para_id;
     let my_para = metadata.dest_para_id;
@@ -19,6 +20,7 @@ pub(crate) fn invert_destination_from_message(metadata: &mut XbiMetadata) {
 }
 
 // TODO[style]: migrate to `From` for XbiResult
+/// Map a result from an xbi handler to a result
 pub(crate) fn handler_to_xbi_result<Emitter: ChannelProgressionEmitter>(
     xbi_id: &Vec<u8>,
     info: &HandlerInfo<frame_support::weights::Weight>,
@@ -35,24 +37,23 @@ pub(crate) fn handler_to_xbi_result<Emitter: ChannelProgressionEmitter>(
             .unwrap_or(execution_cost),
     );
 
-    if execution_cost > msg.metadata.fees.max_exec_cost {
-        XbiResult {
-            id: xbi_id.encode(),
-            status: XbiCheckOutStatus::ErrorExecutionCostsExceededAllowedMax,
-            output: info.output.clone(),
-            ..Default::default()
-        }
+    let status = if execution_cost > msg.metadata.fees.max_exec_cost {
+        XbiCheckOutStatus::ErrorExecutionCostsExceededAllowedMax
     } else {
-        XbiResult {
-            id: xbi_id.encode(),
-            status: XbiCheckOutStatus::SuccessfullyExecuted,
-            output: info.output.clone(),
-            ..Default::default()
-        }
+        XbiCheckOutStatus::SuccessfullyExecuted
+    };
+    
+    log::debug!(target: "frame-receiver", "XBI handler status: {:?} for id {:?}", status, xbi_id);
+
+    XbiResult {
+        id: xbi_id.encode(),
+        status,
+        output: info.output.clone(),
+        ..Default::default()
     }
 }
 
-// TODO[style]: migrate to `From` for XbiResult
+// TODO[Style]: Move to From implementation
 pub(crate) fn instruction_error_to_xbi_result(
     xbi_id: &Vec<u8>,
     err: &sp_runtime::DispatchErrorWithPostInfo<frame_support::weights::PostDispatchInfo>,
@@ -66,6 +67,7 @@ pub(crate) fn instruction_error_to_xbi_result(
     }
 }
 
+// TODO[style]: migrate to `From` for XbiResult
 pub(crate) fn handler_to_dispatch_info(
     r: Result<HandlerInfo<frame_support::weights::Weight>, DispatchErrorWithPostInfo>,
 ) -> DispatchResultWithPostInfo {
@@ -87,7 +89,7 @@ mod tests {
     use xbi_format::{Fees, XbiCheckOutStatus};
 
     #[test]
-    fn inverting_destination_works_correctly() {
+    fn inverting_destination_works_correctly_when_within_gas() {
         let mut metadata = XbiMetadata {
             src_para_id: 1,
             dest_para_id: 2,
@@ -100,6 +102,30 @@ mod tests {
         assert_eq!(metadata.dest_para_id, 1);
     }
 
+    #[test]
+    fn xbi_handler_maps_to_result_correctly_when_exceeded_gas() {
+        let id = b"hello".to_vec();
+
+        let info = HandlerInfo {
+            weight: 100,
+            output: b"world".to_vec(),
+        };
+
+        let mut msg = XbiFormat {
+            metadata: XbiMetadata {
+                fees: Fees::new(None, Some(1), Some(10_000_000_000)),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let result = handler_to_xbi_result::<()>(&id, &info, &mut msg);
+
+        assert_eq!(msg.metadata.fees.actual_aggregated_cost, Some(100));
+        assert_eq!(result.id, id.encode());
+        assert_eq!(result.status, XbiCheckOutStatus::ErrorExecutionCostsExceededAllowedMax);
+    }
+    
     #[test]
     fn xbi_handler_maps_to_result_correctly() {
         let id = b"hello".to_vec();

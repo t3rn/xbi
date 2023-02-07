@@ -74,22 +74,17 @@ where
         handler_to_dispatch_info(instruction_handle)
     }
 
+    // TODO: this should not have a queue anymore, we should provide some storage interface to write the result and add the cost.
     /// Response should update the state of the storage checkout queues and notify the sender of completion
     fn handle_response(
         origin: &Self::Origin,
         msg: &XbiResult,
-        metadata: &XbiMetadata,
+        _metadata: &XbiMetadata,
     ) -> DispatchResultWithPostInfo {
         let _who = ensure_signed(origin.clone())?;
-
         Emitter::emit_received(Either::Right(msg));
 
-        // TODO: push to queue, queue should then read the id, tell the sender/invoke the callback for the sender and complete
-        Queue::push((
-            Message::Response(msg.clone(), metadata.clone()),
-            QueueSignal::ResponseReceived,
-        ));
-
-        Ok(Default::default()) //TODO: no
+        // TODO: add the cost of handling this response here       
+        Ok(Default::default())
     }
 }
