@@ -8,6 +8,8 @@ name        = "substrate-abi"
 repository  = "https://github.com/t3rn/xbi"
 version     = "0.3.0"
 
+# TODO: share the same crate for sabi/scabi and enable via feature flags
+
 [dependencies]
 codec      = { package = "parity-scale-codec", version = "3", default-features = false }
 log        = { version = "0.4.14", default-features = false }
