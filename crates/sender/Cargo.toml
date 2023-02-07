@@ -1,7 +1,11 @@
 [package]
+authors     = [ "t3rn <team@t3rn.io>" ]
 edition = "2021"
 name    = "xbi-sender"
-version = "0.1.0"
+description = "A sender channel part of XBI"
+version = "0.3.0"
+license     = "Apache-2.0"
+repository  = "https://github.com/t3rn/xbi"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
