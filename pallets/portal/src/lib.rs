@@ -62,7 +62,7 @@ pub mod pallet {
         <Pallet as Store>::QueueItems,
         DefaultIdx,
     >;
-    pub(crate) type Sender<T> = xbi_sender::frame::FrameSender<
+    pub(crate) type Sender<T> = xbi_sender::frame::queue_backed::Sender<
         T,
         Pallet<T>,
         Pallet<T>,
