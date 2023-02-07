@@ -94,7 +94,7 @@ impl<T: frame_system::Config + crate::pallet::Config> DeFi<T> for () {
         _amount_a: BalanceOf<T>,
         _amount_b_max_limit: BalanceOf<T>,
     ) -> DispatchResultWithPostInfo {
-        Err(crate::Error::<T>::NoDeFiSupportedAtDest.into())
+        Err(crate::Error::<T>::DefiUnsupported.into())
     }
 
     fn remove_liquidity(
@@ -103,7 +103,7 @@ impl<T: frame_system::Config + crate::pallet::Config> DeFi<T> for () {
         _asset_b: AssetId,
         _liquidity_amount: BalanceOf<T>,
     ) -> DispatchResultWithPostInfo {
-        Err(crate::Error::<T>::NoDeFiSupportedAtDest.into())
+        Err(crate::Error::<T>::DefiUnsupported.into())
     }
 
     fn swap(
@@ -114,7 +114,7 @@ impl<T: frame_system::Config + crate::pallet::Config> DeFi<T> for () {
         _max_limit: BalanceOf<T>,
         _discount: bool,
     ) -> DispatchResultWithPostInfo {
-        Err(crate::Error::<T>::NoDeFiSupportedAtDest.into())
+        Err(crate::Error::<T>::DefiUnsupported.into())
     }
 
     fn get_price(
@@ -123,6 +123,6 @@ impl<T: frame_system::Config + crate::pallet::Config> DeFi<T> for () {
         _asset_b: AssetId,
         _amount: BalanceOf<T>,
     ) -> DispatchResultWithPostInfo {
-        Err(crate::Error::<T>::NoDeFiSupportedAtDest.into())
+        Err(crate::Error::<T>::DefiUnsupported.into())
     }
 }
