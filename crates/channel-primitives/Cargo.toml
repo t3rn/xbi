@@ -2,11 +2,11 @@
 authors     = [ "t3rn <team@t3rn.io>" ]
 description = "Primitives to support XBI channel"
 edition     = "2021"
-name        = "xbi-channel-primitives"
 license     = "Apache-2.0"
+name        = "xbi-channel-primitives"
 repository  = "https://github.com/t3rn/xbi"
 version     = "0.3.0"
-
+# TODO: reformat all of these primitives to follow the general standard for substrate style primitives, i.e.: xp-channel means (xbi primitives channel)
 [dependencies]
 codec      = { package = "parity-scale-codec", version = "3", default-features = false }
 scale-info = { version = "2.1.1", default-features = false, features = [ "derive" ] }
