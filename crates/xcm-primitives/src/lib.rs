@@ -9,6 +9,7 @@ use xcm::DoubleEncoded;
 #[cfg(feature = "frame")]
 pub mod frame_traits;
 
+/// Builder implementation for XCM multilocations
 #[derive(Default)]
 pub struct MultiLocationBuilder {
     inner: MultiLocation,

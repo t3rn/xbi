@@ -338,7 +338,7 @@ impl<BlockNumber: FullCodec + TypeInfo> XbiTimeSheet<BlockNumber> {
         }
     }
 
-    // TODO: use enum instead
+    // TODO: The current progress field should just be an enum, and we can progress by either providing the enum or the next step.
     pub fn progress(&mut self, block_number: BlockNumber) -> &mut Self {
         if self.submitted.is_none() {
             self.submitted = Some(block_number)
