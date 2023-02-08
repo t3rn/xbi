@@ -30,7 +30,7 @@ use frame_support::{
     codec::Decode,
     dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo},
 };
-
+use sp_std::prelude::*;
 use xbi_format::xbi_codec::{XbiFormat, XbiInstruction, XbiMetadata};
 
 pub struct XBIPortal<T> {

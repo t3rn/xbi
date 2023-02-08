@@ -3,6 +3,7 @@ use frame_support::{
     dispatch::DispatchErrorWithPostInfo, pallet_prelude::DispatchResultWithPostInfo,
     weights::PostDispatchInfo,
 };
+use sp_std::prelude::*;
 use xbi_channel_primitives::{traits::HandlerInfo, ChannelProgressionEmitter};
 use xbi_format::{XbiCheckOutStatus, XbiFormat, XbiMetadata, XbiResult};
 
