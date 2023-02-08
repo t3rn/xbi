@@ -1,4 +1,4 @@
-name: lint project
+name: Lint Project
 
 on:
   pull_request:
