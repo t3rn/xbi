@@ -1,4 +1,4 @@
-name: test project
+name: Test Project
 
 on:
   pull_request:
@@ -48,3 +48,20 @@ jobs:
         with:
           command: nextest
           args: run --workspace --all-features
+
+      - name: Run Coverage tests
+        uses: actions-rs/tarpaulin@v0.1
+        with:
+          version: "0.15.0"
+          args: "-- --test-threads 1"
+
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v1
+        with:
+          name: code-coverage-report
+          path: cobertura.xml

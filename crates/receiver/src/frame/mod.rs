@@ -42,7 +42,7 @@ pub(crate) fn handler_to_xbi_result<Emitter: ChannelProgressionEmitter>(
     } else {
         XbiCheckOutStatus::SuccessfullyExecuted
     };
-    
+
     log::debug!(target: "frame-receiver", "XBI handler status: {:?} for id {:?}", status, xbi_id);
 
     XbiResult {
@@ -123,9 +123,12 @@ mod tests {
 
         assert_eq!(msg.metadata.fees.actual_aggregated_cost, Some(100));
         assert_eq!(result.id, id.encode());
-        assert_eq!(result.status, XbiCheckOutStatus::ErrorExecutionCostsExceededAllowedMax);
+        assert_eq!(
+            result.status,
+            XbiCheckOutStatus::ErrorExecutionCostsExceededAllowedMax
+        );
     }
-    
+
     #[test]
     fn xbi_handler_maps_to_result_correctly() {
         let id = b"hello".to_vec();

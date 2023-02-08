@@ -84,7 +84,7 @@ where
         let _who = ensure_signed(origin.clone())?;
         Emitter::emit_received(Either::Right(msg));
 
-        // TODO: add the cost of handling this response here       
+        // TODO: add the cost of handling this response here
         Ok(Default::default())
     }
 }

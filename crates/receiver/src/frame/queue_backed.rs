@@ -26,7 +26,7 @@ where
     T: Config,
     Emitter: ChannelProgressionEmitter,
     Queue: Queueable<(Message, QueueSignal)>,
-    InstructionHandler: XbiInstructionHandler<T::Origin>, 
+    InstructionHandler: XbiInstructionHandler<T::Origin>,
 {
     type Origin = T::Origin;
     type Outcome = DispatchResultWithPostInfo;
