@@ -1,16 +1,16 @@
 [package]
 authors     = [ "t3rn <team@t3rn.io>" ]
-edition = "2021"
-name    = "xbi-sender"
 description = "A sender channel part of XBI"
-version = "0.3.0"
+edition     = "2021"
 license     = "Apache-2.0"
+name        = "xbi-sender"
 repository  = "https://github.com/t3rn/xbi"
+version     = "0.3.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-log = { version = "0.4.14", default-features = false }
+log = { version = "0.4", default-features = false }
 
 sp-runtime             = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
 xbi-channel-primitives = { path = "../../crates/channel-primitives", default-features = false }

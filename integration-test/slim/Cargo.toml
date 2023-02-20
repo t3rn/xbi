@@ -38,10 +38,10 @@ xcm                         = { git = "https://github.com/paritytech/polkadot", 
 xcm-builder                 = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.27" }
 xcm-executor                = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.27" }
 
-evm-precompile-util       = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "feature/xbi-expose", package = "precompile-util" }
-pallet-3vm-evm            = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "feature/xbi-expose", package = "pallet-evm" }
-pallet-3vm-evm-primitives = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "feature/xbi-expose", package = "fp-evm" }
-t3rn-primitives           = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "feature/xbi-expose" }
+evm-precompile-util       = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development", package = "precompile-util" }
+pallet-3vm-evm            = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development", package = "pallet-evm" }
+pallet-3vm-evm-primitives = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development", package = "fp-evm" }
+t3rn-primitives           = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development" }
 
 # evm-precompile-util       = { path = "../../../../3vm/pallets/evm/precompile/util", package = "precompile-util" }
 # pallet-3vm-evm            = { path = "../../../../3vm/pallets/evm", package = "pallet-evm" }

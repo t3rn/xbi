@@ -9,7 +9,7 @@ repository  = "https://github.com/t3rn/xbi/"
 version     = "0.3.0"
 
 [dependencies]
-log = { version = "0.4.14", default-features = false }
+log = { version = "0.4", default-features = false }
 
 codec      = { package = "parity-scale-codec", version = "3", default-features = false }
 scale-info = { version = "2.1.1", default-features = false, features = [ "derive" ] }

@@ -10,7 +10,7 @@ version     = "0.3.0"
 [dependencies]
 codec                 = { package = "parity-scale-codec", version = "3", default-features = false }
 impl-trait-for-tuples = "0.2.2"
-log                   = { version = "0.4.14", default-features = false }
+log                   = { version = "0.4", default-features = false }
 scale-info            = { version = "2.1.1", default-features = false, features = [ "derive" ] }
 serde                 = { default-features = false, version = "1.0", optional = true }
 
@@ -35,8 +35,8 @@ xcm-primitives          = { path = "../../crates/xcm-primitives", default-featur
 
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false }
 
-contracts-primitives = { git = "https://github.com/t3rn/t3rn", branch = "feature/xbi-expose", default-features = false, package = "pallet-contracts-primitives" }
-evm-primitives       = { git = "https://github.com/t3rn/t3rn", branch = "feature/xbi-expose", default-features = false, package = "fp-evm" }
+contracts-primitives = { git = "https://github.com/t3rn/t3rn", branch = "development", default-features = false, package = "pallet-contracts-primitives" }
+evm-primitives       = { git = "https://github.com/t3rn/t3rn", branch = "development", default-features = false, package = "fp-evm" }
 t3rn-primitives      = { git = "https://github.com/t3rn/t3rn", branch = "development", default-features = false }
 
 [dev-dependencies]

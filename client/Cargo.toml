@@ -10,7 +10,7 @@ version     = "0.1.0"
 
 [dependencies]
 anyhow            = { version = "1.0.65" }
-log               = { version = "0.4.14" }
+log               = { version = "0.4" }
 memoize           = "0.3.1"
 pretty_env_logger = "0.4.0"
 thiserror         = { version = "1.0.30" }
