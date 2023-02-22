@@ -44,7 +44,13 @@ pallet-evm = { git = "https://github.com/paritytech/frontier", branch = "polkado
 
 [features]
 default = [ "std" ]
-runtime-benchmarks = [ "frame-benchmarking/runtime-benchmarks" ]
+runtime-benchmarks = [
+  "frame-benchmarking/runtime-benchmarks",
+  "frame-support/runtime-benchmarks",
+  "frame-system/runtime-benchmarks",
+  "sp-runtime/runtime-benchmarks",
+  "xcm/runtime-benchmarks",
+]
 std = [
   "codec/std",
   "scale-info/std",
