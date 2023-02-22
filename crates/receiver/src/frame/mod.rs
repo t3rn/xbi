@@ -5,7 +5,7 @@ use frame_support::{
 };
 use sp_std::prelude::*;
 use xbi_channel_primitives::{traits::HandlerInfo, ChannelProgressionEmitter};
-use xbi_format::{XbiCheckOutStatus, XbiFormat, XbiMetadata, XbiResult};
+use xbi_format::{Status, XbiFormat, XbiMetadata, XbiResult};
 
 pub mod queue_backed;
 pub mod sync;
@@ -29,20 +29,9 @@ pub(crate) fn handler_to_xbi_result<Emitter: ChannelProgressionEmitter>(
 ) -> XbiResult {
     Emitter::emit_instruction_handled(msg, &info.weight);
 
-    let execution_cost = info.weight.into();
-    msg.metadata.fees.actual_aggregated_cost = Some(
-        msg.metadata
-            .fees
-            .actual_aggregated_cost
-            .map(|c| c.checked_add(execution_cost).unwrap_or(c))
-            .unwrap_or(execution_cost),
-    );
+    msg.metadata.fees.push_aggregate(info.weight.into());
 
-    let status = if execution_cost > msg.metadata.fees.max_exec_cost {
-        XbiCheckOutStatus::ErrorExecutionCostsExceededAllowedMax
-    } else {
-        XbiCheckOutStatus::SuccessfullyExecuted
-    };
+    let status: Status = Status::from(&msg.metadata.fees);
 
     log::debug!(target: "frame-receiver", "XBI handler status: {:?} for id {:?}", status, xbi_id);
 
@@ -62,7 +51,7 @@ pub(crate) fn instruction_error_to_xbi_result(
     log::error!(target: "frame-receiver", "Failed to execute instruction: {:?}", err);
     XbiResult {
         id: xbi_id.encode(),
-        status: XbiCheckOutStatus::ErrorFailedExecution,
+        status: Status::FailedExecution,
         output: err.encode(),
         ..Default::default()
     }
@@ -87,7 +76,7 @@ mod tests {
     use codec::Encode;
     use frame_support::{dispatch::DispatchErrorWithPostInfo, weights::PostDispatchInfo};
     use xbi_channel_primitives::{traits::HandlerInfo, XbiFormat, XbiMetadata};
-    use xbi_format::{Fees, XbiCheckOutStatus};
+    use xbi_format::{Fees, Status};
 
     #[test]
     fn inverting_destination_works_correctly_when_within_gas() {
@@ -122,12 +111,9 @@ mod tests {
 
         let result = handler_to_xbi_result::<()>(&id, &info, &mut msg);
 
-        assert_eq!(msg.metadata.fees.actual_aggregated_cost, Some(100));
+        assert_eq!(msg.metadata.fees.aggregated_cost, 100);
         assert_eq!(result.id, id.encode());
-        assert_eq!(
-            result.status,
-            XbiCheckOutStatus::ErrorExecutionCostsExceededAllowedMax
-        );
+        assert_eq!(result.status, Status::ExecutionLimitExceeded);
     }
 
     #[test]
@@ -149,9 +135,9 @@ mod tests {
 
         let result = handler_to_xbi_result::<()>(&id, &info, &mut msg);
 
-        assert_eq!(msg.metadata.fees.actual_aggregated_cost, Some(100));
+        assert_eq!(msg.metadata.fees.aggregated_cost, 100);
         assert_eq!(result.id, id.encode());
-        assert_eq!(result.status, XbiCheckOutStatus::SuccessfullyExecuted);
+        assert_eq!(result.status, Status::Success);
     }
 
     #[test]
@@ -168,7 +154,7 @@ mod tests {
         let result = instruction_error_to_xbi_result(&id, &err);
 
         assert_eq!(result.id, id.encode());
-        assert_eq!(result.status, XbiCheckOutStatus::ErrorFailedExecution);
+        assert_eq!(result.status, Status::FailedExecution);
         assert_eq!(result.output, err.encode());
     }
 }

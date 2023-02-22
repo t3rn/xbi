@@ -24,7 +24,7 @@ use xbi_channel_primitives::{
     queue::ringbuffer::RingBufferTransient,
     traits::{HandlerInfo, XbiInstructionHandler},
 };
-use xbi_format::{XbiCheckOutStatus, XbiFormat, XbiInstruction, XbiMetadata, XbiResult};
+use xbi_format::{Status, XbiFormat, XbiInstruction, XbiMetadata, XbiResult};
 use xbi_receiver::Receiver as XbiReceiver;
 use xbi_sender::{frame::ReceiveCallProvider, Sender as XbiSender};
 
@@ -304,7 +304,7 @@ pub mod pallet {
 
                                 let result = XbiResult {
                                     id: req.metadata.id.clone().as_bytes().to_vec(),
-                                    status: XbiCheckOutStatus::ErrorFailedOnXCMDispatch,
+                                    status: Status::DispatchFailed,
                                     output: vec![],
                                     witness: vec![],
                                 };

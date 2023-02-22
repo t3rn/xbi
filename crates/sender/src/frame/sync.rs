@@ -56,12 +56,12 @@ where
                 let xbi_format_msg = XcmBuilder::<()>::default()
                     .with_withdraw_concrete_asset(
                         payment_asset.clone(),
-                        format.metadata.fees.max_notifications_cost,
+                        format.metadata.fees.notification_cost_limit,
                     )
                     .with_buy_execution(payment_asset, 1_000_000_000, None) // TODO: same as above
                     .with_transact(
                         Some(OriginKind::SovereignAccount),
-                        Some(metadata.fees.max_notifications_cost as u64),
+                        Some(metadata.fees.execution_cost_limit as u64),
                         CallProvider::provide(format.clone()),
                     )
                     .build();

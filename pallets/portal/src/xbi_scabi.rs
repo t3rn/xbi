@@ -61,7 +61,7 @@ pub trait Scabi<T: pallet::Config> {
         id: T::Hash,
         post_dispatch_info: PostDispatchInfo,
         notification_delivery_timeout: T::BlockNumber,
-        resolution_status: XbiCheckOutStatus,
+        resolution_status: Status,
         actual_delivery_cost: Value,
     ) -> Result<XbiCheckOut, Error<T>>;
 
@@ -168,7 +168,7 @@ impl<T: crate::Config + frame_system::Config> Scabi<T> for XbiAbi<T> {
         id: T::Hash,
         post_dispatch_info: PostDispatchInfo,
         notification_delivery_timeout: T::BlockNumber,
-        resolution_status: XbiCheckOutStatus,
+        resolution_status: Status,
         actual_delivery_cost: Value,
     ) -> Result<XbiCheckOut, Error<T>> {
         let actual_execution_cost =

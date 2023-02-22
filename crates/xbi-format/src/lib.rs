@@ -16,24 +16,36 @@ pub use xbi_codec::*;
 
 /// A representation of the status of an XBI execution
 #[derive(Clone, Eq, PartialEq, Default, Encode, Decode, Debug, TypeInfo)]
-pub enum XbiCheckOutStatus {
+pub enum Status {
     #[default]
     /// The XBI message was successful
-    SuccessfullyExecuted,
+    Success,
     /// Failed to execute an XBI instruction
-    ErrorFailedExecution,
+    FailedExecution,
     /// An error occurred whilst sending the XCM message
-    ErrorFailedOnXCMDispatch,
+    DispatchFailed,
     /// The execution exceeded the maximum cost provided in the message
-    ErrorExecutionCostsExceededAllowedMax,
+    ExecutionLimitExceeded,
     /// The notification cost for the message was exceeded
-    ErrorNotificationsCostsExceededAllowedMax,
+    NotificationLimitExceeded,
     /// The XBI reqeuest timed out when trying to dispatch the message
-    ErrorSentTimeoutExceeded,
+    SendTimeout,
     /// The XBI request timed out before the message was received by the target
-    ErrorDeliveryTimeoutExceeded,
+    DeliveryTimeout,
     /// The message timed out before the execution occured on the target
-    ErrorExecutionTimeoutExceeded,
+    ExecutionTimeout,
+}
+
+impl From<&Fees> for Status {
+    fn from(value: &Fees) -> Self {
+        if value.notification_limit_exceeded() {
+            Status::NotificationLimitExceeded
+        } else if value.execution_limit_exceeded() {
+            Status::ExecutionLimitExceeded
+        } else {
+            Status::Success
+        }
+    }
 }
 
 // TODO: enrich the dtos in this library with reusable structs, so that the data is not flat.
@@ -45,7 +57,7 @@ pub struct XbiCheckOut {
     /// The requested instruction
     pub xbi: XbiInstruction, // TODO: XbiInstruction::Result(XbiResult { }), then the result can be a struct here
     /// The status of the message
-    pub resolution_status: XbiCheckOutStatus,
+    pub resolution_status: Status,
     pub checkout_timeout: Timeout,
     /// The metered cost of the message to be handled
     pub actual_execution_cost: Value,
@@ -61,7 +73,7 @@ impl XbiCheckOut {
         id: T::Hash,
         _delivery_timeout: T::BlockNumber,
         output: Vec<u8>,
-        resolution_status: XbiCheckOutStatus,
+        resolution_status: Status,
         actual_execution_cost: Value,
         actual_delivery_cost: Value,
         actual_aggregated_cost: Value,
@@ -90,7 +102,7 @@ impl XbiCheckOut {
         id: T::Hash,
         _delivery_timeout: T::BlockNumber,
         output: Vec<u8>,
-        resolution_status: XbiCheckOutStatus,
+        resolution_status: Status,
     ) -> Self {
         XbiCheckOut {
             xbi: XbiInstruction::Result(XbiResult {
@@ -218,7 +230,7 @@ impl Default for XbiInstruction {
 #[derive(Debug, Clone, Eq, Default, PartialEq, Encode, Decode, TypeInfo)]
 pub struct XbiResult {
     pub id: Data, // TODO: maybe make hash
-    pub status: XbiCheckOutStatus,
+    pub status: Status,
     pub output: Data,
     pub witness: Data,
 }
@@ -288,11 +300,11 @@ pub struct Fees {
     /// The asset to pay the fees in, otherwise native
     pub asset: Option<AssetId>,
     /// The maximum cost of the execution of the message
-    pub max_exec_cost: Value,
+    pub execution_cost_limit: Value,
     /// The maximum cost of sending any notifications
-    pub max_notifications_cost: Value,
+    pub notification_cost_limit: Value,
     /// The cost of execution and notification
-    pub actual_aggregated_cost: Option<Value>,
+    pub aggregated_cost: Value,
 }
 
 impl Fees {
@@ -303,10 +315,34 @@ impl Fees {
     ) -> Self {
         Fees {
             asset,
-            max_exec_cost: max_exec_cost.unwrap_or_default(),
-            max_notifications_cost: max_notifications_cost.unwrap_or_default(),
-            actual_aggregated_cost: None,
+            execution_cost_limit: max_exec_cost.unwrap_or_default(),
+            notification_cost_limit: max_notifications_cost.unwrap_or_default(),
+            aggregated_cost: Value::default(),
         }
+    }
+
+    pub fn push_aggregate(&mut self, value: Value) {
+        if let Some(new) = self.aggregated_cost.checked_add(value) {
+            self.aggregated_cost = new;
+        } else {
+            log::warn!("Overflow when adding to aggregate cost");
+        }
+    }
+
+    pub fn get_aggregated_limit(&self) -> Value {
+        self.execution_cost_limit + self.notification_cost_limit
+    }
+
+    pub fn limit_exceeded(&self) -> bool {
+        self.aggregated_cost > self.get_aggregated_limit()
+    }
+
+    pub fn execution_limit_exceeded(&self) -> bool {
+        self.aggregated_cost > self.execution_cost_limit
+    }
+
+    pub fn notification_limit_exceeded(&self) -> bool {
+        self.aggregated_cost > self.notification_cost_limit
     }
 }
 
@@ -484,5 +520,36 @@ mod tests {
         assert_eq!(timesheet.delivered, Some(3));
         assert_eq!(timesheet.executed, Some(4));
         assert_eq!(timesheet.responded, Some(5));
+    }
+
+    #[test]
+    fn push_aggregate_works() {
+        let mut fees = Fees {
+            asset: None,
+            execution_cost_limit: 0,
+            notification_cost_limit: 0,
+            aggregated_cost: 0,
+        };
+
+        fees.push_aggregate(100);
+
+        assert_eq!(fees.aggregated_cost, 100);
+    }
+
+    #[test]
+    fn test_status() {
+        let mut fees = Fees {
+            asset: None,
+            execution_cost_limit: 1,
+            notification_cost_limit: 1,
+            aggregated_cost: 1,
+        };
+        assert_eq!(Status::from(&fees), Status::Success);
+
+        fees.execution_cost_limit = 0;
+        assert_eq!(Status::from(&fees), Status::ExecutionLimitExceeded);
+
+        fees.notification_cost_limit = 0;
+        assert_eq!(Status::from(&fees), Status::NotificationLimitExceeded);
     }
 }

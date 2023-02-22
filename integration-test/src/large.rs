@@ -67,7 +67,7 @@ mod tests {
     use polkadot_primitives::v2::Id as ParaId;
     use sp_runtime::traits::{AccountIdConversion, Convert, UniqueSaturatedInto};
     use substrate_abi::{SubstrateAbiConverter, TryConvert};
-    use xbi_format::{Fees, XbiCheckOutStatus, XbiFormat, XbiInstruction, XbiMetadata};
+    use xbi_format::{Fees, Status, XbiFormat, XbiInstruction, XbiMetadata};
     use xcm::{latest::prelude::*, VersionedMultiLocation, VersionedXcm};
     use xcm_emulator::TestExt;
 
@@ -523,7 +523,7 @@ mod tests {
                         SLIM_PARA_ID,
                         LARGE_PARA_ID,
                         Default::default(),
-                        Fees::new(Some(1), Some(100_000_000_000_000), Some(10_000_000_000)),
+                        Fees::new(Some(1), Some(90_000_000_000), Some(10_000_000_000)),
                         None,
                     ),
                 })
@@ -584,7 +584,7 @@ mod tests {
                         LARGE_PARA_ID,
                         SLIM_PARA_ID,
                         Default::default(),
-                        Fees::new(Some(1), Some(100_000_000_000_000), Some(10_000_000_000)),
+                        Fees::new(Some(1), Some(90_000_000_000), Some(10_000_000_000)),
                         None,
                     ),
                 })
@@ -604,9 +604,14 @@ mod tests {
             assert_xbi_instruction_handled!(large);
             assert_xcmp_receipt_success!(large);
             assert_xcmp_sent!(large);
-            assert_xbi_sent!(large, XbiCheckOutStatus::SuccessfullyExecuted);
+            assert_xbi_sent!(large, Status::Success);
             assert_xcmp_receipt_success!(large);
             System::reset_events();
+        });
+
+        Slim::execute_with(|| {
+            crate::slim::log_all_events("Slim");
+            slim::System::reset_events();
         });
     }
 
@@ -651,12 +656,11 @@ mod tests {
                         LARGE_PARA_ID,
                         SLIM_PARA_ID,
                         Default::default(),
-                        Fees::new(Some(1), Some(100_000_000_000_000), Some(10_000_000_000)),
+                        Fees::new(Some(1), Some(90_000_000_000), Some(10_000_000_000)),
                         None,
                     ),
                 })
             ));
-
             crate::slim::log_all_events("Slim");
             assert_xcmp_sent!(slim);
             assert_xbi_sent!(slim);
@@ -671,9 +675,15 @@ mod tests {
             assert_xbi_instruction_handled!(large);
             assert_xcmp_receipt_success!(large);
             assert_xcmp_sent!(large);
-            assert_xbi_sent!(large, XbiCheckOutStatus::SuccessfullyExecuted);
+            assert_xbi_sent!(large, Status::Success);
             assert_xcmp_receipt_success!(large);
             System::reset_events();
+        });
+
+        println!(">>> [Slim] Checking slim events");
+        Slim::execute_with(|| {
+            crate::slim::log_all_events("Slim");
+            slim::System::reset_events();
         });
     }
 
@@ -709,7 +719,7 @@ mod tests {
                         )
                         .into(),
                         value: 0,
-                        gas_limit: 500_000_000_000,
+                        gas_limit: 500_000_000_000, // TODO: decide how we pass this through, really it should come from XBIMetadata
                         storage_deposit_limit: None,
                         data: b"".to_vec()
                     },
@@ -718,7 +728,7 @@ mod tests {
                         LARGE_PARA_ID,
                         SLIM_PARA_ID,
                         Default::default(),
-                        Fees::new(Some(1), Some(100), Some(10_000_000_000)),
+                        Fees::new(Some(1), Some(100_000), Some(10_000_000_000)),
                         None,
                     ),
                 })
@@ -738,12 +748,14 @@ mod tests {
             assert_xbi_instruction_handled!(large);
             assert_xcmp_receipt_success!(large);
             assert_xcmp_sent!(large);
-            assert_xbi_sent!(
-                large,
-                XbiCheckOutStatus::ErrorExecutionCostsExceededAllowedMax
-            );
+            assert_xbi_sent!(large, Status::ExecutionLimitExceeded);
             assert_xcmp_receipt_success!(large);
             System::reset_events();
+        });
+
+        Slim::execute_with(|| {
+            crate::slim::log_all_events("Slim");
+            slim::System::reset_events();
         });
     }
 
