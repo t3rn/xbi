@@ -498,7 +498,7 @@ mod tests {
     use super::*;
 
     use crate::{ActionNotificationTimeouts, XbiFormat, XbiMetadata};
-    use crate::{XbiCheckOutStatus, XbiInstruction};
+    use crate::{Status, XbiInstruction};
     use codec::{Decode, Encode};
     use frame_support::{Blake2_256, StorageHasher};
 
@@ -722,7 +722,7 @@ mod tests {
     fn custom_encodes_decodes_xbi_results() {
         let xbi_result = XbiInstruction::Result(XbiResult {
             id: Blake2_256::hash("helloworldthisismyid".as_bytes()).encode(),
-            status: XbiCheckOutStatus::SuccessfullyExecuted,
+            status: Status::Success,
             output: vec![1, 2, 3],
             witness: vec![4, 5, 6],
         });
