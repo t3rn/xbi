@@ -125,10 +125,13 @@ pub mod pallet {
         >;
         type Assets: Transfer<Self::AccountId>;
         type Currency: ReservableCurrency<Self::AccountId>;
+
         /// Provide access to the asset registry so we can lookup, not really specific to XBI just helps us at this stage
         type AssetRegistry: AssetLookup<u32>; // TODO: this breaks for non-u32 assets
+
         /// Provide access to DeFI
         type DeFi: DeFi<Self>;
+
         // TODO: might not actually need this
         type Callback: XBICallback<Self>;
 

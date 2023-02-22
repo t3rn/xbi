@@ -254,6 +254,7 @@ impl Default for ActionNotificationTimeouts {
     }
 }
 
+// TODO: add requested here so we can time when the message was sent
 #[derive(Clone, Eq, PartialEq, Debug, Default, Encode, Decode, TypeInfo)]
 pub struct Timeouts {
     /// Timeouts in relation to when the message should be sent
