@@ -34,9 +34,10 @@ jobs:
           search_commit_body: false
           user_format_type: "json"
       - name: Comment on PR with version
-        uses: thollander/actions-comment-pull-request@v1
+        uses: mshick/add-pr-comment@v2
         with:
           message: |
             Hey, the version for this pull request will be: ${{ steps.version.outputs.version }}
+          message-id: pr
           reactions: rocket
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
