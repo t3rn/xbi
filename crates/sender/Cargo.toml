@@ -16,9 +16,9 @@ sp-runtime             = { git = "https://github.com/paritytech/substrate", bran
 xbi-channel-primitives = { path = "../../crates/channel-primitives", default-features = false }
 
 # Optional frame specific deps
-frame-support  = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true }
-frame-system   = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true }
-xcm            = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false, optional = true }
+frame-support  = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", version = "4.0.0-dev", default-features = false, optional = true }
+frame-system   = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", version = "4.0.0-dev", default-features = false, optional = true }
+xcm            = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0.9.27", default-features = false, optional = true }
 xcm-primitives = { path = "../xcm-primitives", default-features = false, features = [ "frame" ], optional = true, package = "t3rn-xcm-primitives" }
 
 [dev-dependencies]

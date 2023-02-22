@@ -33,7 +33,7 @@ xbi-receiver            = { path = "../../crates/receiver", default-features = f
 xbi-sender              = { path = "../../crates/sender", default-features = false, features = [ "frame" ] }
 xcm-primitives          = { path = "../../crates/xcm-primitives", default-features = false, package = "t3rn-xcm-primitives", features = [ "frame" ] }
 
-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false }
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0.9.27", default-features = false }
 
 contracts-primitives = { git = "https://github.com/t3rn/t3rn", branch = "development", default-features = false, package = "pallet-contracts-primitives" }
 evm-primitives       = { git = "https://github.com/t3rn/t3rn", branch = "development", default-features = false, package = "fp-evm" }

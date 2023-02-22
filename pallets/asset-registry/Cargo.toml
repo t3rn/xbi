@@ -24,9 +24,9 @@ frame-system  = { default-features = false, git = "https://github.com/paritytech
 # Optional
 frame-benchmarking = { default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
 
-xcm          = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false }
-xcm-builder  = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false }
-xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false }
+xcm          = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0.9.27", default-features = false }
+xcm-builder  = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0.9.27", default-features = false }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0.9.27", default-features = false }
 
 xbi-channel-primitives = { path = "../../crates/channel-primitives", default-features = false, features = [ "frame" ] }
 xcm-primitives         = { path = "../../crates/xcm-primitives", default-features = false, features = [ "frame" ], package = "t3rn-xcm-primitives" }
