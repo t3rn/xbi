@@ -1,9 +1,10 @@
 [package]
-authors     = [ "t3rn" ]
-description = "A slim runtime for cross-chain messages tests."
+authors     = [ "t3rn <team@t3rn.io>" ]
+description = "A large runtime for cross-chain messages tests."
 edition     = "2021"
 license     = "Apache-2.0"
 name        = "large"
+repository  = "https://github.com/t3rn/xbi"
 version     = "0.3.0"
 
 [dependencies]
