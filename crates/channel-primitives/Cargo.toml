@@ -5,7 +5,7 @@ edition     = "2021"
 license     = "Apache-2.0"
 name        = "xbi-channel-primitives"
 repository  = "https://github.com/t3rn/xbi"
-version     = "0.3.1"
+version     = "0.3.2"
 
 # TODO: reformat all of these primitives to follow the general standard for substrate style primitives, i.e.: xp-channel means (xbi primitives channel)
 [dependencies]
@@ -20,7 +20,7 @@ frame-support = { git = "https://github.com/paritytech/substrate", branch = "pol
 
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false, optional = true, version = "0" }
 
-xbi-format = { path = "../xbi-format", default-features = false, version = "0.3.1" }
+xbi-format = { path = "../xbi-format", default-features = false, version = "0.3.2" }
 
 [dev-dependencies]
 lazy_static = "1.4.0"

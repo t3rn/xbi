@@ -5,7 +5,7 @@ edition     = "2021"
 license     = "Apache-2.0"
 name        = "xbi-receiver"
 repository  = "https://github.com/t3rn/xbi"
-version     = "0.3.1"
+version     = "0.3.2"
 
 # TODO: share the same crate for sender/receiver and enable via feature flags
 
