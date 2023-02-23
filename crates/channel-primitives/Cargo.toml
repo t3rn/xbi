@@ -20,11 +20,11 @@ frame-support = { git = "https://github.com/paritytech/substrate", branch = "pol
 
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false, optional = true, version = "0.9.27" }
 
-xbi-format = { path = "../xbi-format", default-features = false }
+xbi-format = { path = "../xbi-format", default-features = false, version = "0.3.0" }
 
 [dev-dependencies]
 lazy_static = "1.4.0"
-serial_test = "*"
+serial_test = "1.0.0"
 
 [features]
 default   = [ "std", "frame", "frame-std" ]
