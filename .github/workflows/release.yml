@@ -32,12 +32,15 @@ jobs:
         uses: baptiste0928/cargo-install@v1
         with:
           crate: cargo-release
-          version: "0.21.4"
+          # version: "0.21.4" Last known release to have --token flag, but doesnt recover already published crates
+
+      - name: Login to cargo registry
+        run: cargo login ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
       # TODO there is some weird compiler bug when publishing the crates, errors exist which don't when building/checking so for now we dont verify
       - name: Release
         id: release
-        run: cargo release --token ${{ secrets.CARGO_REGISTRY_TOKEN }} --execute --no-confirm --no-verify --tag-prefix "" ${{ steps.version.outputs.version }}
+        run: cargo release --execute --no-confirm --no-verify --exclude substrate-abi --tag-prefix "" ${{ steps.version.outputs.version }}
 
       - name: Send telegram message on primitives release failure
         if: failure() && steps.release.outcome == 'failure'
