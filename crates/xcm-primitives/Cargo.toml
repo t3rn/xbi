@@ -14,8 +14,8 @@ codec = { package = "parity-scale-codec", version = "3.1.5", default-features = 
 
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0" }
 
-xcm          = { git = "https://github.com/paritytech/polkadot.git", branch = "release-v0.9.27", version = "0.9.27", default-features = false }
-xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0.9.27", default-features = false, optional = true }
+xcm          = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0", default-features = false }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0", default-features = false, optional = true }
 
 [features]
 default   = [ "std", "frame-std" ]

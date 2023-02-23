@@ -18,7 +18,7 @@ sp-std     = { git = "https://github.com/paritytech/substrate", branch = "polkad
 # Optional frame specific deps
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true, version = "4.0.0-dev" }
 
-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false, optional = true, version = "0.9.27" }
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false, optional = true, version = "0" }
 
 xbi-format = { path = "../xbi-format", default-features = false, version = "0.3.0" }
 

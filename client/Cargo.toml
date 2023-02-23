@@ -30,7 +30,7 @@ sp-core    = { version = "6.0.0", features = [ "full_crypto" ], git = "https://g
 sp-keyring = { version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
 sp-runtime = { version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27" }
 
-xcm = { git = "https://github.com/paritytech/polkadot.git", branch = "release-v0.9.27", version = "0.9.27" }
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0" }
 
 # Transport
 actix-web            = { version = "4", optional = true }
