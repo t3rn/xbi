@@ -1,6 +1,6 @@
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
-use sp_runtime::{DispatchError, ModuleError};
+use sp_runtime::{DispatchError, ModuleError, MAX_MODULE_ERROR_ENCODED_SIZE};
 use sp_std::fmt::Debug;
 
 /// A wrapper providing access to the module INDEX from the runtime. This allows us to generate
@@ -24,8 +24,8 @@ impl<const IDX: u8> Into<DispatchError> for ModuleErrorProvider<IDX> {
 }
 
 #[allow(clippy::from_over_into)]
-impl Into<[u8; 4]> for Error {
-    fn into(self) -> [u8; 4] {
+impl Into<[u8; MAX_MODULE_ERROR_ENCODED_SIZE]> for Error {
+    fn into(self) -> [u8; MAX_MODULE_ERROR_ENCODED_SIZE] {
         match self {
             Error::FailedToCastBetweenTypesAddresses => [1_u8, 0_u8, 0_u8, 0_u8],
             Error::FailedToCastBetweenTypesValue => [2_u8, 0_u8, 0_u8, 0_u8],
@@ -48,7 +48,7 @@ impl Into<&'static str> for Error {
 #[allow(clippy::from_over_into)]
 impl<const IDX: u8> Into<ModuleError> for ModuleErrorProvider<IDX> {
     fn into(self) -> ModuleError {
-        let error: [u8; 4] = self.0.clone().into();
+        let error: [u8; MAX_MODULE_ERROR_ENCODED_SIZE] = self.0.clone().into();
         let msg: &'static str = self.0.into();
         ModuleError {
             index: IDX,
