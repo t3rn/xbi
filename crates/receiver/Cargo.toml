@@ -22,9 +22,9 @@ sp-std     = { git = "https://github.com/paritytech/substrate", branch = "polkad
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true, version = "4.0.0-dev" }
 frame-system  = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true, version = "4.0.0-dev" }
 
-xbi-channel-primitives = { path = "../../crates/channel-primitives", default-features = false }
-xbi-format             = { path = "../../crates/xbi-format", default-features = false }
-xbi-sender             = { path = "../../crates/sender", default-features = false }
+xbi-channel-primitives = { path = "../../crates/channel-primitives", default-features = false, version = "0.3" }
+xbi-format             = { path = "../../crates/xbi-format", default-features = false, version = "0.3" }
+xbi-sender             = { path = "../../crates/sender", default-features = false, version = "0.3" }
 
 [features]
 default = [ "std", "frame-std" ]

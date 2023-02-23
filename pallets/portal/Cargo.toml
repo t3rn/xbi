@@ -14,33 +14,33 @@ log                   = { version = "0.4", default-features = false }
 scale-info            = { version = "2.1.1", default-features = false, features = [ "derive" ] }
 serde                 = { default-features = false, version = "1.0", optional = true }
 
-frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true }
-frame-support      = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
-frame-system       = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true, version = "4.0.0-dev" }
+frame-support      = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0-dev" }
+frame-system       = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0-dev" }
 
-sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
-sp-core       = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
-sp-inherents  = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
-sp-io         = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
-sp-runtime    = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
-sp-std        = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "5.0.0" }
+sp-core       = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "6.0.0" }
+sp-inherents  = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0-dev" }
+sp-io         = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "6.0.0" }
+sp-runtime    = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "6.0.0" }
+sp-std        = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0" }
 
-substrate-abi           = { path = "../../crates/sabi", default-features = false }
-substrate-contracts-abi = { path = "../../crates/scabi", default-features = false }
-xbi-channel-primitives  = { path = "../../crates/channel-primitives", default-features = false, features = [ "frame" ] }
-xbi-format              = { path = "../../crates/xbi-format", default-features = false }
-xbi-receiver            = { path = "../../crates/receiver", default-features = false, features = [ "frame" ] }
-xbi-sender              = { path = "../../crates/sender", default-features = false, features = [ "frame" ] }
-xcm-primitives          = { path = "../../crates/xcm-primitives", default-features = false, package = "t3rn-xcm-primitives", features = [ "frame" ] }
+substrate-abi           = { path = "../../crates/sabi", default-features = false, version = "0.3" }
+substrate-contracts-abi = { path = "../../crates/scabi", default-features = false, version = "0.3" }
+xbi-channel-primitives  = { path = "../../crates/channel-primitives", default-features = false, features = [ "frame" ], version = "0.3" }
+xbi-format              = { path = "../../crates/xbi-format", default-features = false, version = "0.3" }
+xbi-receiver            = { path = "../../crates/receiver", default-features = false, features = [ "frame" ], version = "0.3" }
+xbi-sender              = { path = "../../crates/sender", default-features = false, features = [ "frame" ], version = "0.3" }
+xcm-primitives          = { path = "../../crates/xcm-primitives", default-features = false, package = "t3rn-xcm-primitives", features = [ "frame" ], version = "0.3" }
 
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0.9.27", default-features = false }
 
-contracts-primitives = { git = "https://github.com/t3rn/t3rn", branch = "development", default-features = false, package = "pallet-contracts-primitives" }
-evm-primitives       = { git = "https://github.com/t3rn/t3rn", branch = "development", default-features = false, package = "fp-evm" }
-t3rn-primitives      = { git = "https://github.com/t3rn/t3rn", branch = "development", default-features = false }
+contracts-primitives = { git = "https://github.com/t3rn/t3rn", branch = "development", default-features = false, package = "pallet-contracts-primitives", version = "5" }
+evm-primitives       = { git = "https://github.com/t3rn/t3rn", branch = "development", default-features = false, package = "fp-evm", version = "3.0.0-dev" }
+t3rn-primitives      = { git = "https://github.com/t3rn/t3rn", branch = "development", default-features = false, version = "1.0.0-alpha.1" }
 
 [dev-dependencies]
-pallet-evm = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.27" }
+pallet-evm = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.27", version = "6.0.0-dev" }
 
 [features]
 default = [ "std" ]

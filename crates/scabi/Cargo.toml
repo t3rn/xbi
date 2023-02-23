@@ -18,7 +18,7 @@ sp-core    = { git = "https://github.com/paritytech/substrate", branch = "polkad
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "6.0.0" }
 sp-std     = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0" }
 
-substrate-abi = { path = "../sabi", default-features = false }
+substrate-abi = { path = "../sabi", default-features = false, version = "0.3" }
 
 [features]
 default = [ "std" ]

@@ -13,16 +13,17 @@ codec      = { package = "parity-scale-codec", version = "3", default-features =
 log        = { version = "0.4", default-features = false }
 scale-info = { version = "2.1.1", default-features = false, features = [ "derive" ] }
 
-frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
-sp-core      = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
-sp-runtime   = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
-sp-std       = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0-dev" }
 
-sabi  = { path = "../sabi", default-features = false, package = "substrate-abi" }
-scabi = { path = "../scabi", default-features = false, package = "substrate-contracts-abi" }
+sp-core    = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "6.0.0" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "6.0.0" }
+sp-std     = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0" }
+
+sabi  = { path = "../sabi", default-features = false, package = "substrate-abi", version = "0.3" }
+scabi = { path = "../scabi", default-features = false, package = "substrate-contracts-abi", version = "0.3" }
 
 [dev-dependencies]
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", version = "4.0.0-dev" }
 
 [features]
 default = [ "std" ]
