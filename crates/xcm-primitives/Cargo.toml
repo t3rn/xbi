@@ -5,7 +5,7 @@ edition     = "2021"
 license     = "Apache-2.0"
 name        = "t3rn-xcm-primitives"
 repository  = "https://github.com/t3rn/xbi"
-version     = "0.3.0"
+version     = "0.3.1"
 
 # TODO: determine if we should just move these somewhere. Also rename to xp-xcm (xbi primitives xcm)
 

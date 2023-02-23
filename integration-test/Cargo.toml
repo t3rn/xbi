@@ -5,7 +5,7 @@ edition     = "2021"
 license     = "Apache-2.0"
 name        = "xbi-integration-tests"
 repository  = "https://github.com/t3rn/xbi"
-version     = "0.3.0"
+version     = "0.3.1"
 
 [dependencies]
 bytes         = "1.2.1"
