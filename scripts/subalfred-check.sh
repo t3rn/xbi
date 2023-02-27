@@ -16,13 +16,14 @@ for dir in $(ls pallets); do
     echo pallets/$dir >> list
 done
 
-for dir in $(ls crates); do 
-    if [[ $dir == "mock" ]]; then 
-        continue; 
-    fi;
+# FIXME: reenable crates when we fix false positives
+# for dir in $(ls crates); do 
+#     if [[ $dir == "mock" ]]; then 
+#         continue; 
+#     fi;
 
-    echo crates/$dir >> list
-done
+#     echo crates/$dir >> list
+# done
 
 ERRORS=false
 
