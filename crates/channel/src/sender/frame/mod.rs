@@ -1,4 +1,4 @@
-use crate::Vec;
+use sp_std::prelude::Vec;
 use xp_channel::Message;
 
 pub mod queue_backed;

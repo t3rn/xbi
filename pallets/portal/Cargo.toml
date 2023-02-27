@@ -30,8 +30,7 @@ substrate-contracts-abi = { path = "../../crates/scabi", default-features = fals
 xp-channel              = { path = "../../crates/channel-primitives", default-features = false, features = [ "frame" ], version = "0.3" }
 xp-format               = { path = "../../crates/format", default-features = false, version = "0.3" }
 xp-xcm                  = { path = "../../crates/xcm-primitives", default-features = false, features = [ "frame" ], version = "0.3" }
-xs-receiver             = { path = "../../crates/receiver", default-features = false, features = [ "frame" ], version = "0.3" }
-xs-sender               = { path = "../../crates/sender", default-features = false, features = [ "frame" ], version = "0.3" }
+xs-channel              = { path = "../../crates/channel", default-features = false, features = [ "frame" ], version = "0.3" }
 
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0", default-features = false }
 
@@ -67,15 +66,13 @@ std = [
   "contracts-primitives/std",
   "evm-primitives/std",
   "log/std",
-  "xs-sender/std",
-  "xs-sender/frame-std",
   "xp-channel/std",
   "xp-channel/frame-std",
   "xp-xcm/frame-std",
   "xp-xcm/std",
-  "xs-receiver/std",
   "xp-format/std",
-  "xs-receiver/frame-std",
+  "xs-channel/std",
+  "xs-channel/frame-std",
   "substrate-abi/std",
   "substrate-contracts-abi/std",
   "t3rn-primitives/std",

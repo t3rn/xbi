@@ -1,5 +1,6 @@
 use crate::TypeInfo;
 use codec::{Codec, Decode, Encode, EncodeLike};
+use sp_std::prelude::*;
 
 pub mod ringbuffer;
 

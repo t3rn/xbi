@@ -7,10 +7,8 @@ name        = "xp-xcm"
 repository  = "https://github.com/t3rn/xbi"
 version     = "0.3.2"
 
-# TODO: determine if we should just move these somewhere. Also rename to xp-xcm (xbi primitives xcm)
-
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false, features = [ 'derive' ] }
+codec = { package = "parity-scale-codec", version = "3", default-features = false, features = [ 'derive' ] }
 
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0" }
 
@@ -18,7 +16,7 @@ xcm          = { git = "https://github.com/paritytech/polkadot", branch = "relea
 xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0", default-features = false, optional = true }
 
 [features]
-default   = [ "std", "frame-std" ]
+default   = [ "std", "frame", "frame-std" ]
 frame     = [ "xcm-executor" ]
 frame-std = [ "xcm-executor/std" ]
 std       = [ "xcm/std", "codec/std", "sp-std/std" ]
