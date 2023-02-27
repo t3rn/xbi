@@ -29,7 +29,7 @@ sp-std                  = { git = "https://github.com/paritytech/substrate", bra
 
 [features]
 default = [ "std" ]
-runtime-benchmarks = [ "frame-benchmarking/runtime-benchmarks" ]
+runtime-benchmarks = [ "frame-benchmarking/runtime-benchmarks", "pallet-xbi-portal/runtime-benchmarks", "sp-runtime/runtime-benchmarks" ]
 std = [
   "codec/std",
   "scale-info/std",
