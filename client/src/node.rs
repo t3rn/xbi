@@ -13,7 +13,7 @@ use tokio::sync::mpsc::Sender;
 use xcm::latest::{Junction, MultiAsset, MultiAssets};
 use xcm::prelude::OriginKind;
 use xcm::VersionedXcm;
-use xcm_primitives::{MultiLocationBuilder, XcmBuilder};
+use xp_xcm::{MultiLocationBuilder, XcmBuilder};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub enum Command {

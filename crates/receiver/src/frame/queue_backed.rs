@@ -7,12 +7,12 @@ use frame_support::pallet_prelude::DispatchResultWithPostInfo;
 use frame_system::{ensure_signed, Config};
 use sp_runtime::{traits::UniqueSaturatedInto, Either};
 use sp_std::marker::PhantomData;
-use xbi_channel_primitives::{
+use xp_channel::{
     queue::{QueueSignal, Queueable},
     traits::XbiInstructionHandler,
     ChannelProgressionEmitter, Message,
 };
-use xbi_format::{XbiFormat, XbiMetadata, XbiResult};
+use xp_format::{XbiFormat, XbiMetadata, XbiResult};
 
 /// This is an asynchronous queue backed frame receiver, which expects some queue handler to transport the messages back via the transport layer,
 /// detaching the message handling part with the transport of the message.

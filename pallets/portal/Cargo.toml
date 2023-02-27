@@ -27,11 +27,11 @@ sp-std        = { git = "https://github.com/paritytech/substrate", branch = "pol
 
 substrate-abi           = { path = "../../crates/sabi", default-features = false, version = "0.3" }
 substrate-contracts-abi = { path = "../../crates/scabi", default-features = false, version = "0.3" }
-xbi-channel-primitives  = { path = "../../crates/channel-primitives", default-features = false, features = [ "frame" ], version = "0.3" }
-xbi-format              = { path = "../../crates/xbi-format", default-features = false, version = "0.3" }
-xbi-receiver            = { path = "../../crates/receiver", default-features = false, features = [ "frame" ], version = "0.3" }
-xbi-sender              = { path = "../../crates/sender", default-features = false, features = [ "frame" ], version = "0.3" }
-xcm-primitives          = { path = "../../crates/xcm-primitives", default-features = false, package = "t3rn-xcm-primitives", features = [ "frame" ], version = "0.3" }
+xp-channel              = { path = "../../crates/channel-primitives", default-features = false, features = [ "frame" ], version = "0.3" }
+xp-format               = { path = "../../crates/format", default-features = false, version = "0.3" }
+xp-xcm                  = { path = "../../crates/xcm-primitives", default-features = false, features = [ "frame" ], version = "0.3" }
+xs-receiver             = { path = "../../crates/receiver", default-features = false, features = [ "frame" ], version = "0.3" }
+xs-sender               = { path = "../../crates/sender", default-features = false, features = [ "frame" ], version = "0.3" }
 
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0", default-features = false }
 
@@ -67,15 +67,15 @@ std = [
   "contracts-primitives/std",
   "evm-primitives/std",
   "log/std",
-  "xbi-sender/std",
-  "xbi-sender/frame-std",
-  "xbi-channel-primitives/std",
-  "xbi-channel-primitives/frame-std",
-  "xcm-primitives/frame-std",
-  "xcm-primitives/std",
-  "xbi-receiver/std",
-  "xbi-format/std",
-  "xbi-receiver/frame-std",
+  "xs-sender/std",
+  "xs-sender/frame-std",
+  "xp-channel/std",
+  "xp-channel/frame-std",
+  "xp-xcm/frame-std",
+  "xp-xcm/std",
+  "xs-receiver/std",
+  "xp-format/std",
+  "xs-receiver/frame-std",
   "substrate-abi/std",
   "substrate-contracts-abi/std",
   "t3rn-primitives/std",

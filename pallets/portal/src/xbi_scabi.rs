@@ -6,7 +6,7 @@ use sp_core::{H160, H256, U256};
 use sp_runtime::traits::Convert;
 use sp_std::{vec, vec::Vec};
 use substrate_abi::{SubstrateAbiConverter, TryConvert};
-use xbi_format::*;
+use xp_format::*;
 
 pub trait Scabi<T: pallet::Config> {
     #[allow(clippy::too_many_arguments)] // Simply has a lot of args

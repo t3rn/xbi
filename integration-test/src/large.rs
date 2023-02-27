@@ -67,9 +67,9 @@ mod tests {
     use polkadot_primitives::v2::Id as ParaId;
     use sp_runtime::traits::{AccountIdConversion, Convert, UniqueSaturatedInto};
     use substrate_abi::{SubstrateAbiConverter, TryConvert};
-    use xbi_format::{Fees, Status, XbiFormat, XbiInstruction, XbiMetadata};
     use xcm::{latest::prelude::*, VersionedMultiLocation, VersionedXcm};
     use xcm_emulator::TestExt;
+    use xp_format::{Fees, Status, XbiFormat, XbiInstruction, XbiMetadata};
 
     fn log_all_events() {
         large::System::events()

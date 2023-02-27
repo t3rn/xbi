@@ -4,8 +4,8 @@ use frame_support::{
     weights::PostDispatchInfo,
 };
 use sp_std::prelude::*;
-use xbi_channel_primitives::{traits::HandlerInfo, ChannelProgressionEmitter};
-use xbi_format::{Status, XbiFormat, XbiMetadata, XbiResult};
+use xp_channel::{traits::HandlerInfo, ChannelProgressionEmitter};
+use xp_format::{Status, XbiFormat, XbiMetadata, XbiResult};
 
 pub mod queue_backed;
 pub mod sync;
@@ -75,8 +75,8 @@ mod tests {
 
     use codec::Encode;
     use frame_support::{dispatch::DispatchErrorWithPostInfo, weights::PostDispatchInfo};
-    use xbi_channel_primitives::{traits::HandlerInfo, XbiFormat, XbiMetadata};
-    use xbi_format::{Fees, Status};
+    use xp_channel::{traits::HandlerInfo, XbiFormat, XbiMetadata};
+    use xp_format::{Fees, Status};
 
     #[test]
     fn inverting_destination_works_correctly_when_within_gas() {

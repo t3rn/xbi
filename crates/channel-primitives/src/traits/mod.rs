@@ -43,7 +43,7 @@ impl<Weight> From<(Vec<u8>, Weight)> for HandlerInfo<Weight> {
 pub trait XbiInstructionHandler<Origin> {
     fn handle(
         origin: &Origin,
-        xbi: &mut xbi_format::XbiFormat,
+        xbi: &mut xp_format::XbiFormat,
     ) -> Result<
         HandlerInfo<frame_support::weights::Weight>,
         frame_support::dispatch::DispatchErrorWithPostInfo,

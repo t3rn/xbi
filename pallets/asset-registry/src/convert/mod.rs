@@ -1,4 +1,4 @@
-use xcm_primitives::frame_traits::AssetLookup;
+use xp_xcm::frame_traits::AssetLookup;
 
 use crate::*;
 

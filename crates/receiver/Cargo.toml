@@ -3,7 +3,7 @@ authors     = [ "t3rn <team@t3rn.io>" ]
 description = "A receiver channel part of XBI"
 edition     = "2021"
 license     = "Apache-2.0"
-name        = "xbi-receiver"
+name        = "xs-receiver"
 repository  = "https://github.com/t3rn/xbi"
 version     = "0.3.2"
 
@@ -22,25 +22,14 @@ sp-std     = { git = "https://github.com/paritytech/substrate", branch = "polkad
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true, version = "4.0.0-dev" }
 frame-system  = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true, version = "4.0.0-dev" }
 
-xbi-channel-primitives = { path = "../../crates/channel-primitives", default-features = false, version = "0.3" }
-xbi-format             = { path = "../../crates/xbi-format", default-features = false, version = "0.3" }
-xbi-sender             = { path = "../../crates/sender", default-features = false, version = "0.3" }
+xp-channel = { path = "../../crates/channel-primitives", default-features = false, version = "0.3" }
+xp-format  = { path = "../../crates/format", default-features = false, version = "0.3" }
+xs-sender  = { path = "../../crates/sender", default-features = false, version = "0.3" }
 
 [features]
-default = [ "std", "frame-std" ]
-frame = [ "frame-support", "frame-system" ]
+default   = [ "std", "frame-std" ]
+frame     = [ "frame-support", "frame-system" ]
 frame-std = [ "frame-support/std", "frame-system/std" ]
-requests = [  ]
+requests  = [  ]
 responses = [  ]
-std = [
-    "log/std",
-    "codec/std",
-    "scale-info/std",
-    "xbi-format/std",
-    "xbi-sender/std",
-    "sp-std/std",
-    "sp-io/std",
-    "sp-core/std",
-    "sp-runtime/std",
-    "xbi-channel-primitives/std",
-]
+std       = [ "log/std", "codec/std", "scale-info/std", "xp-format/std", "xs-sender/std", "sp-std/std", "sp-io/std", "sp-core/std", "sp-runtime/std", "xp-channel/std" ]

@@ -7,8 +7,8 @@
 pub use pallet::*;
 pub use substrate_abi;
 pub use substrate_contracts_abi;
-pub use xbi_channel_primitives::{queue::QueueSignal, ChannelProgressionEmitter, Message};
-pub use xbi_format;
+pub use xp_channel::{queue::QueueSignal, ChannelProgressionEmitter, Message};
+pub use xp_format;
 
 use codec::{Decode, Encode};
 use contracts_primitives::traits::Contracts;
@@ -20,13 +20,13 @@ use frame_support::{
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
 use sp_runtime::{traits::UniqueSaturatedInto, AccountId32, DispatchErrorWithPostInfo, Either};
 use sp_std::{default::Default, prelude::*};
-use xbi_channel_primitives::{
+use xp_channel::{
     queue::ringbuffer::RingBufferTransient,
     traits::{HandlerInfo, XbiInstructionHandler},
 };
-use xbi_format::{Status, XbiFormat, XbiInstruction, XbiMetadata, XbiResult};
-use xbi_receiver::Receiver as XbiReceiver;
-use xbi_sender::{frame::ReceiveCallProvider, Sender as XbiSender};
+use xp_format::{Status, XbiFormat, XbiInstruction, XbiMetadata, XbiResult};
+use xs_receiver::Receiver as XbiReceiver;
+use xs_sender::{frame::ReceiveCallProvider, Sender as XbiSender};
 
 #[cfg(test)]
 mod tests;
@@ -50,9 +50,9 @@ pub mod pallet {
         traits::{fungibles::Transfer, ReservableCurrency},
     };
     use frame_system::{offchain::SendTransactionTypes, pallet_prelude::*};
-    use xbi_channel_primitives::queue::{ringbuffer::DefaultIdx, Queue as QueueExt, QueueSignal};
     use xcm::v2::SendXcm;
-    use xcm_primitives::frame_traits::AssetLookup;
+    use xp_channel::queue::{ringbuffer::DefaultIdx, Queue as QueueExt, QueueSignal};
+    use xp_xcm::frame_traits::AssetLookup;
 
     /// A reexport of the Queue backed by a RingBufferTransient
     pub(crate) type Queue<Pallet> = RingBufferTransient<
@@ -63,7 +63,7 @@ pub mod pallet {
     >;
 
     /// A reexport of the Sender backed by the Queue
-    pub(crate) type Sender<T> = xbi_sender::frame::queue_backed::Sender<
+    pub(crate) type Sender<T> = xs_sender::frame::queue_backed::Sender<
         T,
         Pallet<T>,
         Pallet<T>,
@@ -76,7 +76,7 @@ pub mod pallet {
 
     /// A reexport of the Receiver backed by the Queue
     pub(crate) type Receiver<T> =
-        xbi_receiver::frame::sync::Receiver<T, Sender<T>, Pallet<T>, Queue<Pallet<T>>, Pallet<T>>;
+        xs_receiver::frame::sync::Receiver<T, Sender<T>, Pallet<T>, Queue<Pallet<T>>, Pallet<T>>;
 
     // TODO: unify these storage items
     #[pallet::storage]

@@ -10,12 +10,12 @@ use frame_support::pallet_prelude::DispatchResultWithPostInfo;
 use frame_system::{ensure_signed, Config};
 use sp_runtime::{traits::UniqueSaturatedInto, Either};
 use sp_std::marker::PhantomData;
-use xbi_channel_primitives::{
+use xp_channel::{
     queue::{QueueSignal, Queueable},
     traits::XbiInstructionHandler,
     ChannelProgressionEmitter, Message,
 };
-use xbi_format::{XbiFormat, XbiMetadata, XbiResult};
+use xp_format::{XbiFormat, XbiMetadata, XbiResult};
 
 /// This is a synchronous backed Frame receiver
 /// It services the `REQ-REP` side of an async channel, that is to say, it receives a message, handles it, then responds with the result
@@ -29,7 +29,7 @@ impl<T, Sender, Emitter, Queue, InstructionHandler> ReceiverExt
     for Receiver<T, Sender, Emitter, Queue, InstructionHandler>
 where
     T: Config,
-    Sender: xbi_sender::Sender<Message>,
+    Sender: xs_sender::Sender<Message>,
     Emitter: ChannelProgressionEmitter,
     Queue: Queueable<(Message, QueueSignal)>,
     InstructionHandler: XbiInstructionHandler<T::Origin>,
