@@ -10,7 +10,7 @@ on:
       - "**/*.rs"
       - "**/Cargo.toml"
       - "**/Cargo.lock"
-      - .github/workflows/comment_version_to_pr.yml
+      - .github/workflows/comment_version_on_pr.yml
     branches:
       - "main"
 
@@ -27,8 +27,10 @@ jobs:
         uses: paulhatch/semantic-version@v5.0.0-alpha
         with:
           tag_prefix: "v"
-          major_pattern: "feat!:"
-          minor_pattern: "feat:"
+          major_pattern: "/feat!:|refactor!:"
+          major_regexp_flags: "g"
+          minor_pattern: "feat:|refactor:"
+          minor_regexp_flags: "g"
           version_format: "${major}.${minor}.${patch}"
           bump_each_commit: false
           search_commit_body: false
