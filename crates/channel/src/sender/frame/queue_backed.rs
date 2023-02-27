@@ -1,26 +1,39 @@
-use crate::{sp_std::marker::PhantomData, Sender as SenderExt};
+use crate::sender::Sender as SenderExt;
 use frame_system::Config;
 use sp_runtime::{traits::UniqueSaturatedInto, DispatchError, DispatchResult};
-use xcm::prelude::*;
-use xp_channel::{ChannelProgressionEmitter, Message};
+use sp_std::marker::PhantomData;
+use xp_channel::{
+    queue::{QueueSignal, Queueable},
+    ChannelProgressionEmitter, Message, SendXcm,
+};
+use xp_xcm::xcm::prelude::*;
 use xp_xcm::{MultiLocationBuilder, XcmBuilder};
 
 use super::ReceiveCallProvider;
 
-// TODO: currently there is a spike to investigate this via dispatch send round-trip
-/// A synchronous frame-based channel sender part.
-pub struct Sender<T, Emitter, CallProvider, Xcm, Call, AssetRegistry, AssetId> {
+/// An asynchronous frame-based channel sender part. The resolving messages are handled by some Queue implementation.
+pub struct Sender<T, Emitter, CallProvider, Xcm, Call, Queue, AssetRegistry, AssetId> {
     #[allow(clippy::all)]
-    phantom: PhantomData<(T, Emitter, CallProvider, Xcm, Call, AssetRegistry, AssetId)>,
+    phantom: PhantomData<(
+        T,
+        Emitter,
+        CallProvider,
+        Xcm,
+        Call,
+        Queue,
+        AssetRegistry,
+        AssetId,
+    )>,
 }
 
-impl<T, Emitter, CallProvider, Xcm, Call, AssetLookup, AssetId> SenderExt<Message>
-    for Sender<T, Emitter, CallProvider, Xcm, Call, AssetLookup, AssetId>
+impl<T, Emitter, CallProvider, Xcm, Call, Queue, AssetLookup, AssetId> SenderExt<Message>
+    for Sender<T, Emitter, CallProvider, Xcm, Call, Queue, AssetLookup, AssetId>
 where
     T: Config,
     Emitter: ChannelProgressionEmitter,
     CallProvider: ReceiveCallProvider,
     Xcm: SendXcm,
+    Queue: Queueable<(Message, QueueSignal)>,
     AssetLookup: xp_xcm::frame_traits::AssetLookup<AssetId>,
     AssetId: From<u32> + Clone,
 {
@@ -56,9 +69,13 @@ where
                 let xbi_format_msg = XcmBuilder::<()>::default()
                     .with_withdraw_concrete_asset(
                         payment_asset.clone(),
-                        format.metadata.fees.notification_cost_limit,
+                        format.metadata.fees.get_aggregated_limit(),
                     )
-                    .with_buy_execution(payment_asset, 1_000_000_000, None) // TODO: same as above
+                    .with_buy_execution(
+                        payment_asset,
+                        format.metadata.fees.notification_cost_limit,
+                        None,
+                    )
                     .with_transact(
                         Some(OriginKind::SovereignAccount),
                         Some(metadata.fees.execution_cost_limit as u64),
@@ -70,8 +87,11 @@ where
                     .map(|_| {
                         log::trace!(target: "xbi-sender", "Successfully sent xcm message");
                         Emitter::emit_sent(msg.clone());
+                        // Pending result, queue will persist the message
+                        Queue::push((msg.clone(), QueueSignal::PendingResponse));
                     })
                     .map_err(|e| {
+                        Queue::push((msg, QueueSignal::XcmSendError));
                         log::error!(target: "xbi-sender", "Failed to send xcm request: {:?}", e);
                         DispatchError::Other("Failed to send xcm request")
                     })
@@ -80,7 +100,6 @@ where
                 // Progress the delivered timestamp
                 metadata.timesheet.progress(current_block);
 
-                // TODO: Set this and get it from config
                 let require_weight_at_most = 1_000_000_000;
 
                 // NOTE: do we want to allow the user to control what asset we pay for in response?
@@ -94,7 +113,7 @@ where
                 };
 
                 let xbi_format_msg = XcmBuilder::<()>::default()
-                    // TODO: reenable based on above conversations`
+                    // TODO: reenable based on above conversations
                     // .with_withdraw_concrete_asset(payment_asset.clone(), 1_000_000_000_000) // TODO: take amount from new costs field
                     // .with_buy_execution(payment_asset, 1_000_000_000, None) // TODO: same as above
                     .with_transact(
@@ -107,6 +126,7 @@ where
                 Xcm::send_xcm(dest, xbi_format_msg)
                     .map(|_| Emitter::emit_sent(msg.clone()))
                     .map_err(|e| {
+                        Queue::push((msg, QueueSignal::XcmSendError));
                         log::error!(target: "xbi-sender", "Failed to send xcm request: {:?}", e);
                         DispatchError::Other("Failed to send xcm request")
                     })

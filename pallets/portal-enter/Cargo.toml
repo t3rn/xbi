@@ -47,3 +47,5 @@ std = [
   "log/std",
   "t3rn-primitives/std",
 ]
+
+[workspace]

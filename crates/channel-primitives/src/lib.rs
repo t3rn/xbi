@@ -2,16 +2,16 @@
 
 pub use xp_format::{XbiFormat, XbiMetadata, XbiResult};
 
-use codec::{Decode, Encode};
-use scale_info::TypeInfo;
-use sp_runtime::{sp_std, Either};
-use sp_std::prelude::*;
-
 #[cfg(feature = "frame")]
 pub use xcm::{
     latest::{ExecuteXcm, SendXcm},
     prelude::*,
 };
+
+use codec::{Decode, Encode};
+use scale_info::TypeInfo;
+use sp_runtime::{sp_std, Either};
+use sp_std::prelude::*;
 
 pub mod queue;
 pub mod traits;

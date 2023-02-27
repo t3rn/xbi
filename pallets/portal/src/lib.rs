@@ -25,8 +25,8 @@ use xp_channel::{
     traits::{HandlerInfo, XbiInstructionHandler},
 };
 use xp_format::{Status, XbiFormat, XbiInstruction, XbiMetadata, XbiResult};
-use xs_receiver::Receiver as XbiReceiver;
-use xs_sender::{frame::ReceiveCallProvider, Sender as XbiSender};
+use xs_channel::receiver::Receiver as XbiReceiver;
+use xs_channel::sender::{frame::ReceiveCallProvider, Sender as XbiSender};
 
 #[cfg(test)]
 mod tests;
@@ -63,7 +63,7 @@ pub mod pallet {
     >;
 
     /// A reexport of the Sender backed by the Queue
-    pub(crate) type Sender<T> = xs_sender::frame::queue_backed::Sender<
+    pub(crate) type Sender<T> = xs_channel::sender::frame::queue_backed::Sender<
         T,
         Pallet<T>,
         Pallet<T>,
@@ -75,8 +75,13 @@ pub mod pallet {
     >;
 
     /// A reexport of the Receiver backed by the Queue
-    pub(crate) type Receiver<T> =
-        xs_receiver::frame::sync::Receiver<T, Sender<T>, Pallet<T>, Queue<Pallet<T>>, Pallet<T>>;
+    pub(crate) type Receiver<T> = xs_channel::receiver::frame::sync::Receiver<
+        T,
+        Sender<T>,
+        Pallet<T>,
+        Queue<Pallet<T>>,
+        Pallet<T>,
+    >;
 
     // TODO: unify these storage items
     #[pallet::storage]

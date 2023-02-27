@@ -1,13 +1,11 @@
 [package]
 authors     = [ "t3rn <team@t3rn.io>" ]
-description = "A receiver channel part of XBI"
+description = "XBI as a channel"
 edition     = "2021"
 license     = "Apache-2.0"
-name        = "xs-receiver"
+name        = "xs-channel"
 repository  = "https://github.com/t3rn/xbi"
 version     = "0.3.2"
-
-# TODO: share the same crate for sender/receiver and enable via feature flags
 
 [dependencies]
 codec      = { package = "parity-scale-codec", version = "3", default-features = false }
@@ -19,17 +17,20 @@ sp-io      = { git = "https://github.com/paritytech/substrate", branch = "polkad
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "6.0.0" }
 sp-std     = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0" }
 
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true, version = "4.0.0-dev" }
-frame-system  = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true, version = "4.0.0-dev" }
-
 xp-channel = { path = "../../crates/channel-primitives", default-features = false, version = "0.3" }
 xp-format  = { path = "../../crates/format", default-features = false, version = "0.3" }
-xs-sender  = { path = "../../crates/sender", default-features = false, version = "0.3" }
+xp-xcm     = { path = "../xcm-primitives", default-features = false, version = "0.3" }
+
+# Enabled by frame
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0-dev", optional = true }
+frame-system  = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0-dev", optional = true }
+
+[dev-dependencies]
+lazy_static = "1.4.0"
+serial_test = "1.0.0"
 
 [features]
-default   = [ "std", "frame-std" ]
-frame     = [ "frame-support", "frame-system" ]
-frame-std = [ "frame-support/std", "frame-system/std" ]
-requests  = [  ]
-responses = [  ]
-std       = [ "log/std", "codec/std", "scale-info/std", "xp-format/std", "xs-sender/std", "sp-std/std", "sp-io/std", "sp-core/std", "sp-runtime/std", "xp-channel/std" ]
+default   = [ "std", "frame", "frame-std" ]
+frame     = [ "frame-support", "frame-system", "xp-channel/frame", "xp-xcm/frame" ]
+frame-std = [ "frame-support/std", "frame-system/std", "xp-channel/frame-std", "xp-xcm/frame-std" ]
+std       = [ "log/std", "codec/std", "scale-info/std", "sp-runtime/std", "sp-std/std", "xp-channel/std", "sp-io/std", "sp-core/std", "xp-format/std", "xp-xcm/std" ]

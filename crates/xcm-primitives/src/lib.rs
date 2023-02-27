@@ -6,6 +6,8 @@ use sp_std::vec;
 use xcm::prelude::*;
 use xcm::DoubleEncoded;
 
+pub use xcm;
+
 #[cfg(feature = "frame")]
 pub mod frame_traits;
 

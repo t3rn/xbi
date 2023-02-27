@@ -3,7 +3,7 @@ use frame_support::{
     dispatch::DispatchErrorWithPostInfo, pallet_prelude::DispatchResultWithPostInfo,
     weights::PostDispatchInfo,
 };
-use sp_std::prelude::*;
+use sp_runtime::sp_std::prelude::*;
 use xp_channel::{traits::HandlerInfo, ChannelProgressionEmitter};
 use xp_format::{Status, XbiFormat, XbiMetadata, XbiResult};
 
@@ -69,7 +69,7 @@ pub(crate) fn handler_to_dispatch_info(
 
 #[cfg(test)]
 mod tests {
-    use crate::frame::instruction_error_to_xbi_result;
+    use crate::receiver::frame::instruction_error_to_xbi_result;
 
     use super::{handler_to_xbi_result, invert_destination_from_message};
 

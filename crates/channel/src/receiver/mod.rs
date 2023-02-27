@@ -1,5 +1,3 @@
-#![cfg_attr(not(feature = "std"), no_std)]
-
 use xp_channel::Message;
 use xp_format::{XbiFormat, XbiMetadata, XbiResult};
 

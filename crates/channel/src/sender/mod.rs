@@ -1,8 +1,6 @@
-#![feature(box_syntax)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use sp_runtime::{sp_std, traits::Dispatchable, DispatchResultWithInfo};
-use sp_std::prelude::*;
+use sp_runtime::{sp_std::prelude::*, traits::Dispatchable, DispatchResultWithInfo};
 
 #[cfg(feature = "frame")]
 pub mod frame;
