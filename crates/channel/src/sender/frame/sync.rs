@@ -5,6 +5,7 @@ use sp_runtime::{traits::UniqueSaturatedInto, DispatchError, DispatchResult};
 use sp_std::marker::PhantomData;
 use xp_channel::SendXcm;
 use xp_channel::{ChannelProgressionEmitter, Message};
+use xp_format::Timestamp::*;
 use xp_xcm::xcm::prelude::*;
 use xp_xcm::{MultiLocationBuilder, XcmBuilder};
 
@@ -38,11 +39,9 @@ where
 
         match &mut msg {
             Message::Request(format) => {
-                // Progress the submitted timestamp
-                format.metadata.timesheet.progress(current_block);
-
-                // Progress the sent timestamp, in hope of being sent
-                format.metadata.timesheet.progress(current_block);
+                // Progress the timestamps in one go
+                format.metadata.timesheet.progress(Submitted(current_block));
+                format.metadata.timesheet.progress(Sent(current_block));
 
                 // TODO: charge as reserve because we pay as sovereign
                 // TODO: actually reserve fees
@@ -79,7 +78,7 @@ where
             }
             Message::Response(result, metadata) => {
                 // Progress the delivered timestamp
-                metadata.timesheet.progress(current_block);
+                metadata.timesheet.progress(Responded(current_block));
 
                 // TODO: Set this and get it from config
                 let require_weight_at_most = 1_000_000_000;
