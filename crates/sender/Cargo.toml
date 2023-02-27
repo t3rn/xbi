@@ -3,7 +3,7 @@ authors     = [ "t3rn <team@t3rn.io>" ]
 description = "A sender channel part of XBI"
 edition     = "2021"
 license     = "Apache-2.0"
-name        = "xbi-sender"
+name        = "xs-sender"
 repository  = "https://github.com/t3rn/xbi"
 version     = "0.3.2"
 
@@ -14,8 +14,8 @@ log = { version = "0.4", default-features = false }
 
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "6.0.0" }
 
-xbi-channel-primitives = { path = "../../crates/channel-primitives", default-features = false, version = "0.3" }
-xcm-primitives         = { path = "../xcm-primitives", default-features = false, features = [ "frame" ], optional = true, package = "t3rn-xcm-primitives", version = "0.3" }
+xp-channel = { path = "../../crates/channel-primitives", default-features = false, version = "0.3" }
+xp-xcm     = { path = "../xcm-primitives", default-features = false, features = [ "frame" ], optional = true, version = "0.3" }
 
 # Optional frame specific deps
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", version = "4.0.0-dev", default-features = false, optional = true }
@@ -29,6 +29,6 @@ serial_test = "1.0.0"
 
 [features]
 default   = [ "std", "frame-std" ]
-frame     = [ "frame-support", "frame-system", "xcm-primitives", "xcm" ]
-frame-std = [ "frame-support/std", "frame-system/std", "xcm-primitives/std", "xcm-primitives/frame-std", "xcm/std" ]
-std       = [ "sp-runtime/std", "xbi-channel-primitives/std", "xcm-primitives/std", "log/std" ]
+frame     = [ "frame-support", "frame-system", "xp-xcm", "xcm" ]
+frame-std = [ "frame-support/std", "frame-system/std", "xp-xcm/std", "xp-xcm/frame-std", "xcm/std" ]
+std       = [ "sp-runtime/std", "xp-channel/std", "log/std" ]

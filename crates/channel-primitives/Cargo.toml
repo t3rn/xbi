@@ -3,11 +3,10 @@ authors     = [ "t3rn <team@t3rn.io>" ]
 description = "Primitives to support XBI channel"
 edition     = "2021"
 license     = "Apache-2.0"
-name        = "xbi-channel-primitives"
+name        = "xp-channel"
 repository  = "https://github.com/t3rn/xbi"
 version     = "0.3.2"
 
-# TODO: reformat all of these primitives to follow the general standard for substrate style primitives, i.e.: xp-channel means (xbi primitives channel)
 [dependencies]
 codec      = { package = "parity-scale-codec", version = "3", default-features = false }
 scale-info = { version = "2.1.1", default-features = false, features = [ "derive" ] }
@@ -20,7 +19,7 @@ frame-support = { git = "https://github.com/paritytech/substrate", branch = "pol
 
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false, optional = true, version = "0" }
 
-xbi-format = { path = "../xbi-format", default-features = false, version = "0.3.2" }
+xp-format = { path = "../format", default-features = false, version = "0.3.2" }
 
 [dev-dependencies]
 lazy_static = "1.4.0"
@@ -30,4 +29,4 @@ serial_test = "1.0.0"
 default   = [ "std", "frame", "frame-std" ]
 frame     = [ "frame-support", "xcm" ]
 frame-std = [ "frame-support/std", "xcm/std" ]
-std       = [ "sp-runtime/std", "sp-std/std", "xbi-format/std", "codec/std", "scale-info/std" ]
+std       = [ "sp-runtime/std", "sp-std/std", "xp-format/std", "codec/std", "scale-info/std" ]

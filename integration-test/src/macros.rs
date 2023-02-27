@@ -56,7 +56,7 @@ macro_rules! assert_xbi_sent {
         assert!($runtime::System::events().iter().any(|r| matches!(
                     &r.event,
                     $runtime::Event::XbiPortal(pallet_xbi_portal::Event::XbiMessageSent {
-                            msg: Message::Response(xbi_format::XbiResult { status, .. }, _)
+                            msg: Message::Response(xp_format::XbiResult { status, .. }, _)
                         }) if status == &$status
                 )));
     };

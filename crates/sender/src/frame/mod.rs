@@ -1,5 +1,5 @@
 use crate::Vec;
-use xbi_channel_primitives::Message;
+use xp_channel::Message;
 
 pub mod queue_backed;
 pub mod sync;
@@ -13,7 +13,7 @@ pub mod sync;
 ///
 /// ```
 /// # use std::collections::VecDeque;
-/// # pub fn test<T: frame_system::Config>(format: xbi_channel_primitives::XbiFormat) {
+/// # pub fn test<T: frame_system::Config>(format: xp_channel::XbiFormat) {
 ///     //let pallet_index_in_runtime = 200;
 ///     //let mut xbi_call: VecDeque<u8> =
 ///     //   crate::pallet::Call::receive::<T> { msg: format.into() }

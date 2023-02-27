@@ -1,9 +1,9 @@
 use crate::{sp_std::marker::PhantomData, Sender as SenderExt};
 use frame_system::Config;
 use sp_runtime::{traits::UniqueSaturatedInto, DispatchError, DispatchResult};
-use xbi_channel_primitives::{ChannelProgressionEmitter, Message};
 use xcm::prelude::*;
-use xcm_primitives::{MultiLocationBuilder, XcmBuilder};
+use xp_channel::{ChannelProgressionEmitter, Message};
+use xp_xcm::{MultiLocationBuilder, XcmBuilder};
 
 use super::ReceiveCallProvider;
 
@@ -21,7 +21,7 @@ where
     Emitter: ChannelProgressionEmitter,
     CallProvider: ReceiveCallProvider,
     Xcm: SendXcm,
-    AssetLookup: xcm_primitives::frame_traits::AssetLookup<AssetId>,
+    AssetLookup: xp_xcm::frame_traits::AssetLookup<AssetId>,
     AssetId: From<u32> + Clone,
 {
     type Outcome = DispatchResult;

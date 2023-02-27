@@ -31,7 +31,7 @@ use frame_support::{
     dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo},
 };
 use sp_std::prelude::*;
-use xbi_format::xbi_codec::{XbiFormat, XbiInstruction, XbiMetadata};
+use xp_format::xbi_codec::{XbiFormat, XbiInstruction, XbiMetadata};
 
 pub struct XBIPortal<T> {
     _marker: PhantomData<T>,

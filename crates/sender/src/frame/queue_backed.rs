@@ -1,12 +1,12 @@
 use crate::{sp_std::marker::PhantomData, Sender as SenderExt};
 use frame_system::Config;
 use sp_runtime::{traits::UniqueSaturatedInto, DispatchError, DispatchResult};
-use xbi_channel_primitives::{
+use xcm::prelude::*;
+use xp_channel::{
     queue::{QueueSignal, Queueable},
     ChannelProgressionEmitter, Message,
 };
-use xcm::prelude::*;
-use xcm_primitives::{MultiLocationBuilder, XcmBuilder};
+use xp_xcm::{MultiLocationBuilder, XcmBuilder};
 
 use super::ReceiveCallProvider;
 
@@ -33,7 +33,7 @@ where
     CallProvider: ReceiveCallProvider,
     Xcm: SendXcm,
     Queue: Queueable<(Message, QueueSignal)>,
-    AssetLookup: xcm_primitives::frame_traits::AssetLookup<AssetId>,
+    AssetLookup: xp_xcm::frame_traits::AssetLookup<AssetId>,
     AssetId: From<u32> + Clone,
 {
     type Outcome = DispatchResult;

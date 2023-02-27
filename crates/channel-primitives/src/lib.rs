@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub use xbi_format::{XbiFormat, XbiMetadata, XbiResult};
+pub use xp_format::{XbiFormat, XbiMetadata, XbiResult};
 
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;

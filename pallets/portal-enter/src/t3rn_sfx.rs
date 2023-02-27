@@ -2,7 +2,7 @@ use crate::Error;
 use codec::Decode;
 use pallet_xbi_portal::xbi_codec::{XbiCheckOutStatus, XbiInstruction, XbiMetadata};
 
-use pallet_xbi_portal::{sabi::*, xbi_format::XbiFormat};
+use pallet_xbi_portal::{sabi::*, xp_format::XbiFormat};
 use t3rn_primitives::{
     side_effect::{ConfirmationOutcome, ConfirmedSideEffect, SideEffect},
     Bytes, EscrowTrait,
@@ -29,7 +29,7 @@ pub fn sfx_2_xbi<T: frame_system::Config>(
                 },
                 metadata,
             })
-        },
+        }
         b"mult" | b"tass" => Ok(XbiFormat {
             instr: XbiInstruction::TransferAssets {
                 // Get dest as argument_0 of SFX::TransferAssets of Type::DynamicBytes
@@ -179,7 +179,7 @@ pub fn xbi_result_2_sfx_confirmation<T: frame_system::Config>(
                 received_at: <frame_system::Pallet<T>>::block_number(),
                 cost: None,
             })
-        },
+        }
         _ => Err(Error::<T>::ExitOnlyXBIResultResolvesToSFXConfirmation),
     }
 }

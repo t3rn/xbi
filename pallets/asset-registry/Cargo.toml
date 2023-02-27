@@ -28,8 +28,8 @@ xcm          = { git = "https://github.com/paritytech/polkadot", branch = "relea
 xcm-builder  = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0.9.27", default-features = false }
 xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0.9.27", default-features = false }
 
-xbi-channel-primitives = { path = "../../crates/channel-primitives", default-features = false, features = [ "frame" ], version = "0.3" }
-xcm-primitives         = { path = "../../crates/xcm-primitives", default-features = false, features = [ "frame" ], package = "t3rn-xcm-primitives", version = "0.3" }
+xp-channel = { path = "../../crates/channel-primitives", default-features = false, features = [ "frame" ], version = "0.3" }
+xp-xcm     = { path = "../../crates/xcm-primitives", default-features = false, features = [ "frame" ], version = "0.3" }
 
 t3rn-primitives = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development", version = "1.0.0-alpha.1" }
 
@@ -62,11 +62,10 @@ std = [
   "xcm/std",
   "xcm-executor/std",
   "xcm-builder/std",
-  "xbi-channel-primitives/frame-std",
-  "xcm-primitives/frame-std",
-  "xcm-primitives/std",
-  "xbi-channel-primitives/std",
+  "xp-channel/frame-std",
+  "xp-xcm/frame-std",
+  "xp-xcm/std",
+  "xp-channel/std",
   "t3rn-primitives/std",
 ]
 try-runtime = [ "frame-support/try-runtime", "frame-system/try-runtime" ]
-

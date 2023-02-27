@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use xbi_channel_primitives::Message;
-use xbi_format::{XbiFormat, XbiMetadata, XbiResult};
+use xp_channel::Message;
+use xp_format::{XbiFormat, XbiMetadata, XbiResult};
 
 #[cfg(feature = "frame")]
 pub mod frame;

@@ -21,7 +21,7 @@ pub mod pallet {
 
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
-    use pallet_xbi_portal::{primitives::xbi::XBIPortal, xbi_format::XbiFormat};
+    use pallet_xbi_portal::{primitives::xbi::XBIPortal, xp_format::XbiFormat};
     use sp_std::{default::Default, prelude::*};
 
     /// Configure the pallet by specifying the parameters and types on which it depends.
