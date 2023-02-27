@@ -29,7 +29,7 @@ jobs:
           tag_prefix: "v"
           major_pattern: "/feat!:|refactor!:"
           major_regexp_flags: "g"
-          minor_pattern: "feat:|refactor:"
+          minor_pattern: "/feat:|refactor:"
           minor_regexp_flags: "g"
           version_format: "${major}.${minor}.${patch}"
           bump_each_commit: false
