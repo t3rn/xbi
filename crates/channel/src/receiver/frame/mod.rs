@@ -1,8 +1,5 @@
 use codec::Encode;
-use frame_support::{
-    dispatch::DispatchErrorWithPostInfo, pallet_prelude::DispatchResultWithPostInfo,
-    weights::PostDispatchInfo,
-};
+
 use sp_runtime::sp_std::prelude::*;
 use xp_channel::{traits::HandlerInfo, ChannelProgressionEmitter};
 use xp_format::{Status, XbiFormat, XbiMetadata, XbiResult};
@@ -20,7 +17,20 @@ pub(crate) fn invert_destination_from_message(metadata: &mut XbiMetadata) {
     metadata.src_para_id = my_para;
 }
 
-// TODO[style]: migrate to `From` for XbiResult
+pub(crate) fn handle_instruction_result<E: ChannelProgressionEmitter>(
+    xbi_id: &Vec<u8>,
+    instruction_handle: &Result<
+        HandlerInfo<frame_support::weights::Weight>,
+        sp_runtime::DispatchErrorWithPostInfo<frame_support::weights::PostDispatchInfo>,
+    >,
+    msg: &mut XbiFormat,
+) -> XbiResult {
+    match instruction_handle {
+        Ok(info) => handler_to_xbi_result::<E>(&xbi_id.encode(), info, msg),
+        Err(e) => instruction_error_to_xbi_result(&xbi_id.encode(), e),
+    }
+}
+
 /// Map a result from an xbi handler to a result
 pub(crate) fn handler_to_xbi_result<Emitter: ChannelProgressionEmitter>(
     xbi_id: &Vec<u8>,
@@ -55,16 +65,6 @@ pub(crate) fn instruction_error_to_xbi_result(
         output: err.encode(),
         ..Default::default()
     }
-}
-
-// TODO[style]: migrate to `From` for XbiResult
-pub(crate) fn handler_to_dispatch_info(
-    r: Result<HandlerInfo<frame_support::weights::Weight>, DispatchErrorWithPostInfo>,
-) -> DispatchResultWithPostInfo {
-    r.map(|info| PostDispatchInfo {
-        actual_weight: Some(info.weight),
-        ..Default::default()
-    })
 }
 
 #[cfg(test)]

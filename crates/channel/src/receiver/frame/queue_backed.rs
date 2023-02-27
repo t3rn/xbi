@@ -1,7 +1,5 @@
-use crate::receiver::frame::{
-    handler_to_xbi_result, instruction_error_to_xbi_result, invert_destination_from_message,
-};
-use crate::receiver::{frame::handler_to_dispatch_info, Receiver as ReceiverExt};
+use crate::receiver::frame::invert_destination_from_message;
+use crate::receiver::Receiver as ReceiverExt;
 use codec::Encode;
 use frame_support::pallet_prelude::DispatchResultWithPostInfo;
 use frame_system::{ensure_signed, Config};
@@ -9,10 +7,12 @@ use sp_runtime::{traits::UniqueSaturatedInto, Either};
 use sp_std::marker::PhantomData;
 use xp_channel::{
     queue::{QueueSignal, Queueable},
-    traits::XbiInstructionHandler,
+    traits::{HandlerInfo, XbiInstructionHandler},
     ChannelProgressionEmitter, Message,
 };
 use xp_format::{XbiFormat, XbiMetadata, XbiResult};
+
+use super::handle_instruction_result;
 
 /// This is an asynchronous queue backed frame receiver, which expects some queue handler to transport the messages back via the transport layer,
 /// detaching the message handling part with the transport of the message.
@@ -47,10 +47,8 @@ where
 
         let instruction_result = InstructionHandler::handle(origin, msg);
 
-        let xbi_result = match &instruction_result {
-            Ok(info) => handler_to_xbi_result::<Emitter>(&xbi_id.encode(), info, msg),
-            Err(e) => instruction_error_to_xbi_result(&xbi_id.encode(), e),
-        };
+        let xbi_result =
+            handle_instruction_result::<Emitter>(&xbi_id.encode(), &instruction_result, msg);
 
         // progress to executed
         msg.metadata.timesheet.progress(current_block);
@@ -70,7 +68,7 @@ where
             QueueSignal::ResponseReceived,
         ));
 
-        handler_to_dispatch_info(instruction_result)
+        instruction_result.map(HandlerInfo::into)
     }
 
     /// Response should delegate to the queue handler who would know about how to handle the message

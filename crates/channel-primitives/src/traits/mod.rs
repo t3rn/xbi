@@ -33,6 +33,20 @@ impl<Weight> From<(Vec<u8>, Weight)> for HandlerInfo<Weight> {
     }
 }
 
+// Justification: no need for from here
+#[allow(clippy::from_over_into)]
+#[cfg(feature = "frame")]
+impl Into<frame_support::weights::PostDispatchInfo>
+    for HandlerInfo<frame_support::weights::Weight>
+{
+    fn into(self) -> frame_support::weights::PostDispatchInfo {
+        frame_support::weights::PostDispatchInfo {
+            actual_weight: Some(self.weight),
+            pays_fee: frame_support::weights::Pays::Yes,
+        }
+    }
+}
+
 /// A simple trait that allows a parachain to specify how they would handle an xbi instruction.
 ///
 /// This is also utilised as a simple gateway for routing messages within a parachain, and could be used for different pallets to contact each other.

@@ -1,10 +1,4 @@
-use crate::{
-    receiver::frame::{
-        handler_to_dispatch_info, handler_to_xbi_result, instruction_error_to_xbi_result,
-        invert_destination_from_message,
-    },
-    receiver::Receiver as ReceiverExt,
-};
+use crate::{receiver::frame::invert_destination_from_message, receiver::Receiver as ReceiverExt};
 use codec::Encode;
 use frame_support::pallet_prelude::DispatchResultWithPostInfo;
 use frame_system::{ensure_signed, Config};
@@ -12,10 +6,12 @@ use sp_runtime::{traits::UniqueSaturatedInto, Either};
 use sp_std::marker::PhantomData;
 use xp_channel::{
     queue::{QueueSignal, Queueable},
-    traits::XbiInstructionHandler,
+    traits::{HandlerInfo, XbiInstructionHandler},
     ChannelProgressionEmitter, Message,
 };
 use xp_format::{XbiFormat, XbiMetadata, XbiResult};
+
+use super::handle_instruction_result;
 
 /// This is a synchronous backed Frame receiver
 /// It services the `REQ-REP` side of an async channel, that is to say, it receives a message, handles it, then responds with the result
@@ -52,10 +48,8 @@ where
 
         let instruction_handle = InstructionHandler::handle(origin, msg);
 
-        let xbi_result = match &instruction_handle {
-            Ok(info) => handler_to_xbi_result::<Emitter>(&xbi_id.encode(), info, msg),
-            Err(e) => instruction_error_to_xbi_result(&xbi_id.encode(), e),
-        };
+        let xbi_result =
+            handle_instruction_result::<Emitter>(&xbi_id.encode(), &instruction_handle, msg);
 
         msg.metadata.timesheet.progress(current_block);
 
@@ -71,7 +65,7 @@ where
 
         Sender::send(Message::Response(xbi_result, msg.metadata.clone()));
 
-        handler_to_dispatch_info(instruction_handle)
+        instruction_handle.map(HandlerInfo::into)
     }
 
     // TODO: this should not have a queue anymore, we should provide some storage interface to write the result and add the cost.
