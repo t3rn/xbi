@@ -24,7 +24,7 @@ jobs:
           fetch-depth: 0
       - name: Get Next Version
         id: version
-        uses: paulhatch/semantic-version@v5.0.0-alpha
+        uses: paulhatch/semantic-version@v5.0.2
         with:
           tag_prefix: "v"
           major_pattern: "/feat!:|refactor!:"
@@ -35,6 +35,7 @@ jobs:
           bump_each_commit: false
           search_commit_body: false
           user_format_type: "json"
+          enable_prerelease_mode: true
       - name: Comment on PR with version
         uses: mshick/add-pr-comment@v2
         with:
