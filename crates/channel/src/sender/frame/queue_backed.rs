@@ -6,6 +6,7 @@ use xp_channel::{
     queue::{QueueSignal, Queueable},
     ChannelProgressionEmitter, Message, SendXcm,
 };
+use xp_format::Timestamp::*;
 use xp_xcm::xcm::prelude::*;
 use xp_xcm::{MultiLocationBuilder, XcmBuilder};
 
@@ -50,11 +51,9 @@ where
 
         match &mut msg {
             Message::Request(format) => {
-                // Progress the submitted timestamp
-                format.metadata.timesheet.progress(current_block);
-
-                // Progress the sent timestamp, in hope of being sent
-                format.metadata.timesheet.progress(current_block);
+                // Progress the timestamps in one go TODO: this will change when we finish up queue impl
+                format.metadata.timesheet.progress(Submitted(current_block));
+                format.metadata.timesheet.progress(Sent(current_block));
 
                 // TODO: charge as reserve because we pay as sovereign
                 // TODO: actually reserve fees
@@ -98,7 +97,7 @@ where
             }
             Message::Response(result, metadata) => {
                 // Progress the delivered timestamp
-                metadata.timesheet.progress(current_block);
+                metadata.timesheet.progress(Responded(current_block));
 
                 let require_weight_at_most = 1_000_000_000;
 

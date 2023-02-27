@@ -364,6 +364,14 @@ pub struct XbiTimeSheet<BlockNumber: FullCodec + TypeInfo> {
     pub responded: Option<BlockNumber>,
 }
 
+pub enum Timestamp<BlockNumber: FullCodec + TypeInfo> {
+    Submitted(BlockNumber),
+    Sent(BlockNumber),
+    Delivered(BlockNumber),
+    Executed(BlockNumber),
+    Responded(BlockNumber),
+}
+
 impl<BlockNumber: FullCodec + TypeInfo> XbiTimeSheet<BlockNumber> {
     pub fn new() -> Self {
         XbiTimeSheet {
@@ -376,17 +384,13 @@ impl<BlockNumber: FullCodec + TypeInfo> XbiTimeSheet<BlockNumber> {
     }
 
     // TODO: The current progress field should just be an enum, and we can progress by either providing the enum or the next step.
-    pub fn progress(&mut self, block_number: BlockNumber) -> &mut Self {
-        if self.submitted.is_none() {
-            self.submitted = Some(block_number)
-        } else if self.sent.is_none() {
-            self.sent = Some(block_number);
-        } else if self.delivered.is_none() {
-            self.delivered = Some(block_number);
-        } else if self.executed.is_none() {
-            self.executed = Some(block_number);
-        } else if self.responded.is_none() {
-            self.responded = Some(block_number);
+    pub fn progress(&mut self, timestamp: Timestamp<BlockNumber>) -> &mut Self {
+        match timestamp {
+            Timestamp::Submitted(block) => self.submitted = Some(block),
+            Timestamp::Sent(block) => self.sent = Some(block),
+            Timestamp::Delivered(block) => self.delivered = Some(block),
+            Timestamp::Executed(block) => self.executed = Some(block),
+            Timestamp::Responded(block) => self.responded = Some(block),
         }
         self
     }
@@ -473,6 +477,7 @@ impl XbiMetadata {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Timestamp::*;
     use sp_runtime::traits::BlakeTwo256;
 
     #[test]
@@ -486,35 +491,23 @@ mod tests {
     fn timesheet_can_progress() {
         let mut timesheet = XbiTimeSheet::<u32>::new();
 
-        timesheet.progress(1);
-        timesheet.progress(2);
+        timesheet.progress(Submitted(1));
+        timesheet.progress(Sent(2));
         assert_eq!(timesheet.submitted, Some(1));
         assert_eq!(timesheet.sent, Some(2));
 
-        timesheet.progress(3);
-        assert_eq!(timesheet.submitted, Some(1));
-        assert_eq!(timesheet.sent, Some(2));
-        assert_eq!(timesheet.delivered, Some(3));
-
-        timesheet.progress(4);
+        timesheet.progress(Delivered(3));
         assert_eq!(timesheet.submitted, Some(1));
         assert_eq!(timesheet.sent, Some(2));
         assert_eq!(timesheet.delivered, Some(3));
-        assert_eq!(timesheet.executed, Some(4));
 
-        timesheet.progress(5);
+        timesheet.progress(Executed(4));
         assert_eq!(timesheet.submitted, Some(1));
         assert_eq!(timesheet.sent, Some(2));
         assert_eq!(timesheet.delivered, Some(3));
         assert_eq!(timesheet.executed, Some(4));
-        assert_eq!(timesheet.responded, Some(5));
 
-        // Timesheet progress after complete is noop
-        timesheet.progress(6);
-        timesheet.progress(7);
-        timesheet.progress(8);
-        timesheet.progress(9);
-        timesheet.progress(10);
+        timesheet.progress(Responded(5));
         assert_eq!(timesheet.submitted, Some(1));
         assert_eq!(timesheet.sent, Some(2));
         assert_eq!(timesheet.delivered, Some(3));

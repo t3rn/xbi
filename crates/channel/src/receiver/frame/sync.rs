@@ -9,6 +9,7 @@ use xp_channel::{
     traits::{HandlerInfo, XbiInstructionHandler},
     ChannelProgressionEmitter, Message,
 };
+use xp_format::Timestamp::*;
 use xp_format::{XbiFormat, XbiMetadata, XbiResult};
 
 use super::handle_instruction_result;
@@ -38,7 +39,7 @@ where
         let _who = ensure_signed(origin.clone())?;
         let current_block: u32 = <frame_system::Pallet<T>>::block_number().unique_saturated_into();
 
-        msg.metadata.timesheet.progress(current_block);
+        msg.metadata.timesheet.progress(Delivered(current_block));
 
         Emitter::emit_received(Either::Left(msg));
 
@@ -51,7 +52,7 @@ where
         let xbi_result =
             handle_instruction_result::<Emitter>(&xbi_id.encode(), &instruction_handle, msg);
 
-        msg.metadata.timesheet.progress(current_block);
+        msg.metadata.timesheet.progress(Executed(current_block));
 
         Emitter::emit_request_handled(
             &xbi_result,
