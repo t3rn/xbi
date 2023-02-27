@@ -25,8 +25,9 @@
             cmake 
             openssl 
             pkg-config 
-            clang 
+            # clang 
             llvmPackages_11.libclang 
+            llvmPackages_11.bintools 
             taplo 
             protobuf
           ];
