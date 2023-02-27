@@ -18,17 +18,18 @@ jobs:
 
       - name: Calculate semantic version
         id: version
-        uses: paulhatch/semantic-version@v5.0.0-alpha
+        uses: paulhatch/semantic-version@v5.0.2
         with:
           tag_prefix: "v"
           major_pattern: "/feat!:|refactor!:"
           major_regexp_flags: "g"
-          minor_pattern: "feat:|refactor:"
+          minor_pattern: "/feat:|refactor:"
           minor_regexp_flags: "g"
           version_format: "${major}.${minor}.${patch}"
           bump_each_commit: false
           search_commit_body: false
           user_format_type: "json"
+          enable_prerelease_mode: true
 
       - name: Install cargo release
         uses: baptiste0928/cargo-install@v1
