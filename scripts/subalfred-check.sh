@@ -16,12 +16,12 @@ for dir in $(ls pallets); do
     echo pallets/$dir >> list
 done
 
-for dir in $(ls runtime); do 
+for dir in $(ls crates); do 
     if [[ $dir == "mock" ]]; then 
         continue; 
     fi;
 
-    echo runtime/$dir >> list
+    echo crates/$dir >> list
 done
 
 ERRORS=false
