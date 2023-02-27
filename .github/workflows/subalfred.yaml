@@ -5,7 +5,7 @@ name: Subalfred Checks
 on: [pull_request]
 
 env:
-  IGNORE_FALSE_POSITIVES_REGEX_PATTERN: "benchmarking|frame-try-runtime|frame-std"
+  IGNORE_FALSE_POSITIVES_REGEX_PATTERN: "benchmarking|frame-try-runtime|frame-std|frame-support|frame-system|xcm-executor|xcm"
 
 jobs:
   check:
