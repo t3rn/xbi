@@ -41,11 +41,23 @@ jobs:
           command: fmt
           args: --all -- --check
 
-      - name: 📑 Lint code
-        uses: actions-rs/cargo@v1
+      - name: Install clippy-sarif
+        uses: baptiste0928/cargo-install@v1
         with:
-          command: clippy
-          args: --all -- --deny "warnings"
+          crate: clippy-sarif
+
+      - name: Install sarif-fmt
+        uses: baptiste0928/cargo-install@v1
+        with:
+          crate: sarif-fmt
+
+      - name: 📑 Lint code
+        run: cargo clippy --all-targets --all-features --message-format=json | clippy-sarif | tee results.sarif | sarif-fmt
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: results.sarif
 
       - name: Install nextest
         uses: baptiste0928/cargo-install@v1
