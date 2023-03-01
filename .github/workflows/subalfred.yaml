@@ -10,7 +10,7 @@ env:
 jobs:
   check:
     name: Task check features
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: ☁️ Checkout git repo

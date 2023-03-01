@@ -27,26 +27,42 @@ done
 
 ERRORS=false
 
+echo 🔎 Subalfred feature checks
 for dir in $(cat list); do 
     echo 
     RESULT=$(subalfred check features $dir)
     CHECK_RESULT=$? # 0 if it's good, anything else is bad 
 
+    # If subalfred fails with 130||1, then we dont want to proceed with the check
+    # Its probably cargo error
+    if [[ $CHECK_RESULT == 130 || $CHECK_RESULT == 1 ]]; then
+        echo "❌ Subalfred failed to run check features in $dir"
+        echo "$RESULT"
+        ERRORS=true 
+
+        continue
+    fi
+
+    # Sanitizing subalfred output
+    # First line is always "checking: $PATH/Cargo.toml"
+    RESULT=$(echo "$RESULT" | tail -n+2)
+
     # Filter out false positives
     RESULT_OUTPUT=$(echo "$RESULT" | grep -vE "($1)")
+    # Trim whitespaces
+    RESULT_OUTPUT=${RESULT_OUTPUT##*( )}
+
+    # We are checking here if there is anything left in the output after filtering out false positives
+    if [[ "$RESULT_OUTPUT" == "" ]]; then
+        echo "✅ $dir"
+        continue
+    fi
 
     echo "$RESULT_OUTPUT" | grep '`std`' > /dev/null
     GREP_RESULT=$? # 0 if it's bad, 1 if it's good
 
-    if [[ -z "$RESULT_OUTPUT" ]]; then
-        echo "🟡 $dir"
-    fi
-    # If there are no errors in subalfred check, then we're good
-    if [[ $CHECK_RESULT == 0 ]]; then
-        echo "✅ $dir"
-
     # If result is non empty and there are no std features, then we're yellow
-    elif [[ "$GREP_RESULT" == 1 && "$CHECK_RESULT" != 0 && "$RESULT_OUTPUT" != "" ]]; then
+    if [[ "$GREP_RESULT" == 1 && "$CHECK_RESULT" != 0 && "$RESULT_OUTPUT" != "" ]]; then
         echo "🟡 $dir"
         echo -e "$RESULT_OUTPUT"
 
@@ -61,3 +77,5 @@ done
 if [[ $ERRORS == true ]]; then
     exit 1
 fi
+
+rm list
