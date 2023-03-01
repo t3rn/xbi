@@ -44,8 +44,8 @@ fn default_register_info() -> (u32, MultiLocation) {
     assert_ok!(AssetRegistry::register_info(
         Origin::root(),
         AssetInfo {
-            id: id.clone(),
-            capabilities: capabilities.clone(),
+            id,
+            capabilities,
             location: location.clone()
         }
     ));
@@ -492,16 +492,13 @@ fn can_execute_xcm_message_with_matching_capabilities() {
         default_registration();
         let (_, location) = default_register_info();
 
-        let msg = Xcm(vec![
+        let mut msg = Xcm(vec![
             WithdrawAsset((Here, 1).into()),
             WithdrawAsset((Here, 1).into()),
         ]);
 
         assert_ok!(crate::Pallet::<Test>::should_execute::<()>(
-            &location,
-            &mut msg.clone(),
-            0,
-            &mut 0
+            &location, &mut msg, 0, &mut 0
         ));
     })
 }
@@ -527,10 +524,10 @@ fn cant_execute_xcm_message_with_wrong_capabilities() {
             }
         ));
 
-        let msg = Xcm(vec![WithdrawAsset((Here, 1).into())]);
+        let mut msg = Xcm(vec![WithdrawAsset((Here, 1).into())]);
 
         assert_err!(
-            crate::Pallet::<Test>::should_execute::<()>(&location, &mut msg.clone(), 0, &mut 0),
+            crate::Pallet::<Test>::should_execute::<()>(&location, &mut msg, 0, &mut 0),
             ()
         )
     })
@@ -560,8 +557,8 @@ fn can_buy_and_refund_weight_multiple_assets() {
         assert_ok!(AssetRegistry::register_info(
             Origin::root(),
             AssetInfo {
-                id: id.clone(),
-                capabilities: capabilities.clone(),
+                id,
+                capabilities,
                 location: location_two.clone()
             }
         ));
@@ -576,7 +573,7 @@ fn can_buy_and_refund_weight_multiple_assets() {
 
         let mut balance: BTreeMap<AssetId, u128> = BTreeMap::new();
         balance.insert(location_one.clone().into(), 2_000_000u128);
-        balance.insert(location_two.clone().into(), 4_000_000u128);
+        balance.insert(location_two.into(), 4_000_000u128);
 
         assets = trader.buy_weight(2_000_000u64, assets.clone()).unwrap();
         assert_eq!(
@@ -589,7 +586,7 @@ fn can_buy_and_refund_weight_multiple_assets() {
 
         assert_eq!(
             trader.refund_weight(2_000_000u64).unwrap(),
-            (Concrete(location_one.clone()), 2_000_000u128).into()
+            (Concrete(location_one), 2_000_000u128).into()
         );
 
         assert_eq!(trader.weight, 0u64);
@@ -614,7 +611,7 @@ fn can_buy_weight_for_partial_balance() {
         balance.insert(location.clone().into(), 2_000_000u128);
 
         assert_eq!(
-            trader.buy_weight(weight_to_buy.clone(), asset.clone().into()),
+            trader.buy_weight(weight_to_buy, asset.into()),
             Ok(Assets {
                 fungible: balance.clone(),
                 non_fungible: Default::default()
@@ -629,7 +626,7 @@ fn can_buy_weight_for_partial_balance() {
 
         assert_eq!(
             trader.refund_weight(1_000_000u64),
-            Some((Concrete(location.clone()), 1_000_000u128).into())
+            Some((Concrete(location), 1_000_000u128).into())
         );
 
         // Weight has been deducted correctly
@@ -663,8 +660,8 @@ fn can_buy_and_refund_weight_with_fee_weight_multiplier() {
         assert_ok!(AssetRegistry::register_info(
             Origin::root(),
             AssetInfo {
-                id: id.clone(),
-                capabilities: capabilities.clone(),
+                id,
+                capabilities,
                 location: location.clone()
             }
         ));
@@ -679,9 +676,7 @@ fn can_buy_and_refund_weight_with_fee_weight_multiplier() {
         balance.insert(location.clone().into(), 3_000_000u128);
 
         // buy first half
-        assets = trader
-            .buy_weight(weight_to_buy.clone(), assets.clone())
-            .unwrap();
+        assets = trader.buy_weight(weight_to_buy, assets.clone()).unwrap();
         assert_eq!(
             assets,
             Assets {
@@ -692,9 +687,7 @@ fn can_buy_and_refund_weight_with_fee_weight_multiplier() {
         assert_eq!(trader.weight, 1_000_000u64);
 
         // buy second half
-        assets = trader
-            .buy_weight(weight_to_buy.clone(), assets.clone())
-            .unwrap();
+        assets = trader.buy_weight(weight_to_buy, assets.clone()).unwrap();
         assert_eq!(
             assets,
             Assets {
@@ -706,7 +699,7 @@ fn can_buy_and_refund_weight_with_fee_weight_multiplier() {
 
         assert_eq!(
             trader.refund_weight(2_000_000u64),
-            Some((Concrete(location.clone()), 6_000_000u128).into())
+            Some((Concrete(location), 6_000_000u128).into())
         );
 
         assert_eq!(trader.weight, 0u64);
@@ -722,7 +715,7 @@ fn can_buy_and_refund_weight_for_whole_balance() {
 
         // We are going to buy 4e9 weight
         let bought = 4_000_000u64;
-        let asset: MultiAsset = (Concrete(location.clone()), bought.clone() as u128).into();
+        let asset: MultiAsset = (Concrete(location), bought as u128).into();
 
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
 
@@ -734,7 +727,7 @@ fn can_buy_and_refund_weight_for_whole_balance() {
             })
         );
 
-        assert_eq!(trader.refund_weight(bought), Some(asset.into()));
+        assert_eq!(trader.refund_weight(bought), Some(asset));
 
         // Weight has been deducted correctly
         assert_eq!(trader.weight, 0u64);
@@ -749,7 +742,7 @@ fn cant_buy_weight_for_insufficient_balance() {
         let (_, location) = default_register_info();
 
         let weight_to_buy = 2_000_000u64;
-        let asset: MultiAsset = (Concrete(location.clone()), 1_000_000u128).into();
+        let asset: MultiAsset = (Concrete(location), 1_000_000u128).into();
 
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
 
@@ -811,7 +804,7 @@ fn cant_buy_weight_with_unknown_asset() {
 
         // We are going to buy 4e9 weight
         let weight_to_buy = 1_000_000u64;
-        let asset: MultiAsset = (Concrete(location.clone()), 1_000_000u128).into();
+        let asset: MultiAsset = (Concrete(location), 1_000_000u128).into();
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
 
         assert_err!(
@@ -846,8 +839,8 @@ fn cant_buy_weight_without_payable_capability() {
         assert_ok!(AssetRegistry::register_info(
             Origin::root(),
             AssetInfo {
-                id: id.clone(),
-                capabilities: capabilities.clone(),
+                id,
+                capabilities,
                 location: location.clone()
             }
         ));
@@ -893,8 +886,8 @@ fn cant_buy_weight_with_non_payable_capability() {
         assert_ok!(AssetRegistry::register_info(
             Origin::root(),
             AssetInfo {
-                id: id.clone(),
-                capabilities: capabilities.clone(),
+                id,
+                capabilities,
                 location: location.clone()
             }
         ));

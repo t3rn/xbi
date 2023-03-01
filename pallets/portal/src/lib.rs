@@ -573,10 +573,7 @@ impl<T: Config> Writable<(H256, XbiResult)> for Pallet<T> {
             Decode::decode(&mut &hash.encode()[..]).map_err(|_| Error::<T>::FailedToCastHash)?;
         if !XbiResponses::<T>::contains_key(hash) {
             XbiResponses::<T>::insert(hash, result.clone());
-            Self::deposit_event(Event::<T>::ResponseStored {
-                hash: hash,
-                result: result.clone(),
-            });
+            Self::deposit_event(Event::<T>::ResponseStored { hash, result });
             Ok(())
         } else {
             Err(Error::<T>::ResponseAlreadyStored.into())
