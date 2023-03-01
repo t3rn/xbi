@@ -215,9 +215,6 @@ pub enum XbiInstruction {
         asset_b: AssetId,
         amount: Value,
     },
-    /// Provide the result of an XBI instruction
-    // TODO: make this a tuple type with a struct XbiResult since this would be easier to send back
-    Result(XbiResult),
 }
 
 impl Default for XbiInstruction {
@@ -229,7 +226,6 @@ impl Default for XbiInstruction {
 /// A result containing the status of the call
 #[derive(Debug, Clone, Eq, Default, PartialEq, Encode, Decode, TypeInfo)]
 pub struct XbiResult {
-    pub id: Data, // TODO: maybe make hash
     pub status: Status,
     pub output: Data,
     pub witness: Data,
