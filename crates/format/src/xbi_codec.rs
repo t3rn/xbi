@@ -304,29 +304,6 @@ impl Decode for XbiInstruction {
                     amount: Decode::decode(&mut &amount[..])?,
                 })
             }
-            255 => {
-                let id_len = input.read_byte()?;
-                let mut id = vec![0u8; id_len as usize];
-                input.read(&mut id[..])?;
-
-                let mut outcome: [u8; 1] = Default::default();
-                input.read(&mut outcome[..])?;
-
-                let output_len = input.read_byte()?;
-                let mut output = vec![0u8; output_len as usize];
-                input.read(&mut output[..])?;
-
-                let witness_len = input.read_byte()?;
-                let mut witness = vec![0u8; witness_len as usize];
-                input.read(&mut witness[..])?;
-
-                Ok(XbiInstruction::Result(XbiResult {
-                    id: Decode::decode(&mut &id[..])?,
-                    status: Decode::decode(&mut &outcome[..])?,
-                    output: Decode::decode(&mut &output[..])?,
-                    witness: Decode::decode(&mut &witness[..])?,
-                }))
-            }
             _ => Err("Unknown XBI Order".into()),
         }
     }
@@ -470,25 +447,6 @@ impl Encode for XbiInstruction {
                 asset_b.encode_to(dest_bytes);
                 amount.encode_to(dest_bytes);
             }
-            XbiInstruction::Result(XbiResult {
-                id,
-                status,
-                output,
-                witness,
-            }) => {
-                dest_bytes.push_byte(255);
-
-                dest_bytes.push_byte(id.encode().len() as u8);
-                id.encode_to(dest_bytes);
-
-                status.encode_to(dest_bytes);
-
-                dest_bytes.push_byte(output.encode().len() as u8);
-                output.encode_to(dest_bytes);
-
-                dest_bytes.push_byte(witness.encode().len() as u8);
-                witness.encode_to(dest_bytes);
-            }
         }
     }
 }
@@ -497,10 +455,9 @@ impl Encode for XbiInstruction {
 mod tests {
     use super::*;
 
+    use crate::XbiInstruction;
     use crate::{ActionNotificationTimeouts, XbiFormat, XbiMetadata};
-    use crate::{Status, XbiInstruction};
     use codec::{Decode, Encode};
-    use frame_support::{Blake2_256, StorageHasher};
 
     #[test]
     fn custom_encodes_decodes_xbi_evm() {
@@ -716,20 +673,5 @@ mod tests {
         );
         assert_eq!(xbi_transfer_assets, decoded_xbi_transfer_assets);
         assert_eq!(xbi_transfer_assets.encode().len(), 53);
-    }
-
-    #[test]
-    fn custom_encodes_decodes_xbi_results() {
-        let xbi_result = XbiInstruction::Result(XbiResult {
-            id: Blake2_256::hash("helloworldthisismyid".as_bytes()).encode(),
-            status: Status::Success,
-            output: vec![1, 2, 3],
-            witness: vec![4, 5, 6],
-        });
-
-        let decoded_xbi_result: XbiInstruction =
-            Decode::decode(&mut &xbi_result.encode()[..]).unwrap();
-        assert_eq!(decoded_xbi_result.encode(), xbi_result.encode());
-        assert_eq!(xbi_result, decoded_xbi_result);
     }
 }

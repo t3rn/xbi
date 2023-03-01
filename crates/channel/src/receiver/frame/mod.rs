@@ -18,7 +18,6 @@ pub(crate) fn invert_destination_from_message(metadata: &mut XbiMetadata) {
 }
 
 pub(crate) fn handle_instruction_result<E: ChannelProgressionEmitter>(
-    xbi_id: &Vec<u8>,
     instruction_handle: &Result<
         HandlerInfo<frame_support::weights::Weight>,
         sp_runtime::DispatchErrorWithPostInfo<frame_support::weights::PostDispatchInfo>,
@@ -26,14 +25,13 @@ pub(crate) fn handle_instruction_result<E: ChannelProgressionEmitter>(
     msg: &mut XbiFormat,
 ) -> XbiResult {
     match instruction_handle {
-        Ok(info) => handler_to_xbi_result::<E>(&xbi_id.encode(), info, msg),
-        Err(e) => instruction_error_to_xbi_result(&xbi_id.encode(), e),
+        Ok(info) => handler_to_xbi_result::<E>(info, msg),
+        Err(e) => instruction_error_to_xbi_result(e),
     }
 }
 
 /// Map a result from an xbi handler to a result
 pub(crate) fn handler_to_xbi_result<Emitter: ChannelProgressionEmitter>(
-    xbi_id: &Vec<u8>,
     info: &HandlerInfo<frame_support::weights::Weight>,
     msg: &mut XbiFormat,
 ) -> XbiResult {
@@ -43,10 +41,9 @@ pub(crate) fn handler_to_xbi_result<Emitter: ChannelProgressionEmitter>(
 
     let status: Status = Status::from(&msg.metadata.fees);
 
-    log::debug!(target: "frame-receiver", "XBI handler status: {:?} for id {:?}", status, xbi_id);
+    log::debug!(target: "frame-receiver", "XBI handler status: {:?} for id {:?}", status, msg.metadata.get_id());
 
     XbiResult {
-        id: xbi_id.encode(),
         status,
         output: info.output.clone(),
         ..Default::default()
@@ -55,12 +52,10 @@ pub(crate) fn handler_to_xbi_result<Emitter: ChannelProgressionEmitter>(
 
 // TODO[Style]: Move to From implementation
 pub(crate) fn instruction_error_to_xbi_result(
-    xbi_id: &Vec<u8>,
     err: &sp_runtime::DispatchErrorWithPostInfo<frame_support::weights::PostDispatchInfo>,
 ) -> XbiResult {
     log::error!(target: "frame-receiver", "Failed to execute instruction: {:?}", err);
     XbiResult {
-        id: xbi_id.encode(),
         status: Status::FailedExecution,
         output: err.encode(),
         ..Default::default()
@@ -94,8 +89,6 @@ mod tests {
 
     #[test]
     fn xbi_handler_maps_to_result_correctly_when_exceeded_gas() {
-        let id = b"hello".to_vec();
-
         let info = HandlerInfo {
             weight: 100,
             output: b"world".to_vec(),
@@ -109,17 +102,14 @@ mod tests {
             ..Default::default()
         };
 
-        let result = handler_to_xbi_result::<()>(&id, &info, &mut msg);
+        let result = handler_to_xbi_result::<()>(&info, &mut msg);
 
         assert_eq!(msg.metadata.fees.aggregated_cost, 100);
-        assert_eq!(result.id, id.encode());
         assert_eq!(result.status, Status::ExecutionLimitExceeded);
     }
 
     #[test]
     fn xbi_handler_maps_to_result_correctly() {
-        let id = b"hello".to_vec();
-
         let info = HandlerInfo {
             weight: 100,
             output: b"world".to_vec(),
@@ -133,17 +123,14 @@ mod tests {
             ..Default::default()
         };
 
-        let result = handler_to_xbi_result::<()>(&id, &info, &mut msg);
+        let result = handler_to_xbi_result::<()>(&info, &mut msg);
 
         assert_eq!(msg.metadata.fees.aggregated_cost, 100);
-        assert_eq!(result.id, id.encode());
         assert_eq!(result.status, Status::Success);
     }
 
     #[test]
     fn xbi_handler_error_maps_to_result_correctly() {
-        let id = b"hello".to_vec();
-
         let err = DispatchErrorWithPostInfo {
             post_info: PostDispatchInfo {
                 actual_weight: Some(1000),
@@ -151,9 +138,8 @@ mod tests {
             },
             error: sp_runtime::DispatchError::Other("Fail"),
         };
-        let result = instruction_error_to_xbi_result(&id, &err);
+        let result = instruction_error_to_xbi_result(&err);
 
-        assert_eq!(result.id, id.encode());
         assert_eq!(result.status, Status::FailedExecution);
         assert_eq!(result.output, err.encode());
     }
