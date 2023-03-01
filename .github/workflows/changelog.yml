@@ -1,4 +1,4 @@
-name: Deploy
+name: Changelog
 
 on:
   push:
@@ -17,7 +17,7 @@ jobs:
         id: changelog
         uses: requarks/changelog-action@v1
         with:
-          token: ${{ github.token }}
+          token: ${{ github.GH_PAT }}
           tag: ${{ github.ref_name }}
 
       - name: Create Release
@@ -35,3 +35,4 @@ jobs:
           branch: main
           commit_message: "build(cargo-release): update CHANGELOG.md for ${{ github.ref_name }}"
           file_pattern: CHANGELOG.md
+          token: ${{ secrets.GH_PATH }}

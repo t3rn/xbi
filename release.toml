@@ -1,5 +1,5 @@
 allow-branch               = [ "main", "!HEAD" ]
-consolidate-commits        = false
+consolidate-commits        = true
 dependent-version          = "upgrade"
 enable-all-features        = true
 enable-features            = [  ]
@@ -8,7 +8,7 @@ owners                     = [ "team@t3rn.io" ]
 pre-release-commit-message = "build(cargo-release): Release {{crate_name}} version {{version}}"
 pre-release-replacements   = [  ]
 publish                    = true
-push                       = true
+push                       = false
 push-options               = [  ]
 push-remote                = "origin"
 release                    = true

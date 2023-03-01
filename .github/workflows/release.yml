@@ -40,19 +40,21 @@ jobs:
       - name: Login to cargo registry
         run: cargo login ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-      # TODO reenable publishing once we push all the crates(again)
       - name: Release
         id: release
-        run: cargo release --execute --no-publish --no-confirm -c release.toml --exclude large --exclude slim --exclude xbi-integration-tests --exclude xbi-client ${{ steps.version.outputs.version }}
+        run: cargo release --execute --no-confirm -c release.toml --exclude large --exclude slim --exclude xbi-integration-tests --exclude xbi-client ${{ steps.version.outputs.version }}
 
-      - name: Send telegram message on primitives release failure
-        if: failure() && steps.release.outcome == 'failure'
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_TO }}
-          token: ${{ secrets.TELEGRAM_TOKEN }}
-          format: markdown
-          message: |
-            `XBI` *failed to publish*! 👻
+      - name: Push tag
+        run: git push origin v${{ steps.version.outputs.version }}
 
-            See changes: https://github.com/${{ github.repository }}/commit/${{github.sha}}
+      # - name: Send telegram message on primitives release failure
+      #   if: failure() && steps.release.outcome == 'failure'
+      #   uses: appleboy/telegram-action@master
+      #   with:
+      #     to: ${{ secrets.TELEGRAM_TO }}
+      #     token: ${{ secrets.TELEGRAM_TOKEN }}
+      #     format: markdown
+      #     message: |
+      #       `XBI` *failed to publish*! 👻
+
+      #       See changes: https://github.com/${{ github.repository }}/commit/${{github.sha}}
