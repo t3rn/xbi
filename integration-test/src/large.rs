@@ -506,7 +506,7 @@ mod tests {
         Large::execute_with(|| {
             assert_ok!(XbiPortal::send(
                 large::Origin::signed(ALICE),
-                Message::Request(XbiFormat {
+                XbiFormat {
                     instr: XbiInstruction::CallEvm {
                         source: SubstrateAbiConverter::try_convert(ALICE).unwrap(),
                         target: substrate_abi::AccountId20::from_low_u64_be(1),
@@ -519,14 +519,15 @@ mod tests {
                         access_list: vec![]
                     },
                     metadata: XbiMetadata::new(
-                        Default::default(),
-                        SLIM_PARA_ID,
                         LARGE_PARA_ID,
+                        SLIM_PARA_ID,
                         Default::default(),
                         Fees::new(Some(1), Some(90_000_000_000), Some(10_000_000_000)),
                         None,
+                        Default::default(),
+                        Default::default(),
                     ),
-                })
+                }
             ));
 
             assert_xcmp_sent!(large);
@@ -567,7 +568,7 @@ mod tests {
         Slim::execute_with(|| {
             assert_ok!(slim::XbiPortal::send(
                 slim::Origin::signed(ALICE),
-                Message::Request(XbiFormat {
+                XbiFormat {
                     instr: XbiInstruction::CallEvm {
                         source: SubstrateAbiConverter::try_convert(ALICE).unwrap(),
                         target: substrate_abi::AccountId20::from_low_u64_be(1),
@@ -580,14 +581,15 @@ mod tests {
                         access_list: vec![]
                     },
                     metadata: XbiMetadata::new(
-                        Default::default(),
-                        LARGE_PARA_ID,
                         SLIM_PARA_ID,
+                        LARGE_PARA_ID,
                         Default::default(),
                         Fees::new(Some(1), Some(90_000_000_000), Some(10_000_000_000)),
                         None,
+                        Default::default(),
+                        Default::default(),
                     ),
-                })
+                }
             ));
 
             crate::slim::log_all_events("Slim");
@@ -640,7 +642,7 @@ mod tests {
         Slim::execute_with(|| {
             assert_ok!(slim::XbiPortal::send(
                 slim::Origin::signed(ALICE),
-                Message::Request(XbiFormat {
+                XbiFormat {
                     instr: XbiInstruction::CallWasm {
                         dest: hex_literal::hex!(
                             "18a84a38cff91f3345a66802803f8959d11d4d2315a082bfeb2a49ce72b2577f"
@@ -652,14 +654,15 @@ mod tests {
                         data: b"".to_vec()
                     },
                     metadata: XbiMetadata::new(
-                        Default::default(),
-                        LARGE_PARA_ID,
                         SLIM_PARA_ID,
+                        LARGE_PARA_ID,
                         Default::default(),
                         Fees::new(Some(1), Some(90_000_000_000), Some(10_000_000_000)),
                         None,
+                        Default::default(),
+                        Default::default(),
                     ),
-                })
+                }
             ));
             crate::slim::log_all_events("Slim");
             assert_xcmp_sent!(slim);
@@ -712,7 +715,7 @@ mod tests {
         Slim::execute_with(|| {
             assert_ok!(slim::XbiPortal::send(
                 slim::Origin::signed(ALICE),
-                Message::Request(XbiFormat {
+                XbiFormat {
                     instr: XbiInstruction::CallWasm {
                         dest: hex_literal::hex!(
                             "18a84a38cff91f3345a66802803f8959d11d4d2315a082bfeb2a49ce72b2577f"
@@ -724,14 +727,15 @@ mod tests {
                         data: b"".to_vec()
                     },
                     metadata: XbiMetadata::new(
-                        Default::default(),
-                        LARGE_PARA_ID,
                         SLIM_PARA_ID,
+                        LARGE_PARA_ID,
                         Default::default(),
                         Fees::new(Some(1), Some(100_000), Some(10_000_000_000)),
                         None,
+                        Default::default(),
+                        Default::default(),
                     ),
-                })
+                }
             ));
 
             crate::slim::log_all_events("Slim");

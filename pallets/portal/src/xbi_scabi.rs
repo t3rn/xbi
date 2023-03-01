@@ -1,5 +1,4 @@
 use crate::{pallet, xbi_abi::*, BalanceOf, Error};
-use codec::Encode;
 use frame_support::{dispatch::PostDispatchInfo, weights::Weight};
 use frame_system::pallet_prelude::OriginFor;
 use sp_core::{H160, H256, U256};
@@ -56,14 +55,6 @@ pub trait Scabi<T: pallet::Config> {
         data: Vec<u8>,
         debug: bool,
     ) -> Result<XbiInstruction, Error<T>>;
-
-    fn post_dispatch_info_2_xbi_checkout(
-        id: T::Hash,
-        post_dispatch_info: PostDispatchInfo,
-        notification_delivery_timeout: T::BlockNumber,
-        resolution_status: Status,
-        actual_delivery_cost: Value,
-    ) -> Result<XbiCheckOut, Error<T>>;
 
     fn xbi_checkout_2_post_dispatch_info(
         xbi_checkout: XbiCheckOut,
@@ -162,37 +153,6 @@ impl<T: crate::Config + frame_system::Config> Scabi<T> for XbiAbi<T> {
             nonce: None,
             access_list: vec![],
         })
-    }
-
-    fn post_dispatch_info_2_xbi_checkout(
-        id: T::Hash,
-        post_dispatch_info: PostDispatchInfo,
-        notification_delivery_timeout: T::BlockNumber,
-        resolution_status: Status,
-        actual_delivery_cost: Value,
-    ) -> Result<XbiCheckOut, Error<T>> {
-        let actual_execution_cost =
-            if let Some(some_actual_weight) = post_dispatch_info.actual_weight {
-                some_actual_weight.into()
-            } else {
-                0
-            };
-
-        let actual_aggregated_cost =
-            if let Some(v) = actual_delivery_cost.checked_add(actual_delivery_cost) {
-                v
-            } else {
-                return Err(Error::ArithmeticErrorOverflow);
-            };
-        Ok(XbiCheckOut::new::<T>(
-            id,
-            notification_delivery_timeout,
-            post_dispatch_info.encode(),
-            resolution_status,
-            actual_execution_cost,
-            actual_delivery_cost,
-            actual_aggregated_cost,
-        ))
     }
 
     fn xbi_checkout_2_post_dispatch_info(
