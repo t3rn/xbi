@@ -42,9 +42,10 @@ jobs:
       - name: Login to cargo registry
         run: cargo login ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
+      # TODO Fix releasing pallets since t3rn repos arent on crates.io
       - name: Release
         id: release
-        run: cargo release --execute --no-confirm -c release.toml --exclude large --exclude slim --exclude xbi-integration-tests --exclude xbi-client ${{ steps.version.outputs.version }}
+        run: cargo release --execute --no-confirm -c release.toml --exclude large --exclude slim --exclude xbi-integration-tests --exclude xbi-client --exclude pallet-asset-registry --exclude pallet-xbi-portal ${{ steps.version.outputs.version }}
 
       - name: Push tag
         run: git push origin v${{ steps.version.outputs.version }}
