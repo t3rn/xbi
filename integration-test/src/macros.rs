@@ -63,6 +63,25 @@ macro_rules! assert_xbi_sent {
 }
 
 #[macro_export]
+macro_rules! assert_response_stored {
+    ($runtime:ident) => {
+        assert!($runtime::System::events().iter().any(|r| matches!(
+                    &r.event,
+                    $runtime::Event::XbiPortal(pallet_xbi_portal::Event::ResponseStored { .. })
+                )));
+    };
+    ($runtime:ident, $status:expr) => {
+        assert!($runtime::System::events().iter().any(|r| matches!(
+                    &r.event,
+                    $runtime::Event::XbiPortal(pallet_xbi_portal::Event::ResponseStored {
+                        result: xp_format::XbiResult { status, ..},
+                        ..
+                    }) if status == &$status
+                )));
+    };
+}
+
+#[macro_export]
 macro_rules! assert_xbi_received {
     ($runtime:ident) => {
         assert!($runtime::System::events().iter().any(|r| matches!(
