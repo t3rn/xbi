@@ -331,31 +331,17 @@ pub mod pallet {
                         }
                         QueueSignal::XcmSendError => {
                             if let Message::Request(req) = msg {
-                                let key = T::Hash::decode(&mut &req.metadata.get_id()[..]).unwrap(); // TODO: remove unwrap
-
                                 let result = XbiResult {
                                     status: Status::DispatchFailed,
                                     output: vec![],
                                     witness: vec![],
                                 };
-                                if !XbiResponses::<T>::contains_key(key) {
-                                    XbiResponses::<T>::insert(key, result);
-                                } else {
-                                    log::warn!("Duplicate response: {:?}", result);
-                                }
+                                Pallet::<T>::write((req.metadata.get_id(), result))?;
                             }
                         }
                         QueueSignal::ResponseReceived => {
                             if let Message::Response(resp, meta) = msg {
-                                let key = T::Hash::decode(&mut &meta.get_id()[..]).unwrap(); // TODO: remove unwrap
-
-                                // TODO: update meta, asserting exists
-                                // TODO: write response
-                                if !XbiResponses::<T>::contains_key(key) {
-                                    XbiResponses::<T>::insert(key, resp);
-                                } else {
-                                    log::warn!("Duplicate response: {:?}", resp);
-                                }
+                                Pallet::<T>::write((meta.get_id(), resp))?;
                             }
                         }
                     }
