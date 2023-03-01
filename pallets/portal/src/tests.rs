@@ -9,9 +9,9 @@ fn cannot_store_duplicate_responses() {
     new_test_ext().execute_with(|| {
         let result = XbiResult::default();
         let hash = H256::from_low_u64_be(1);
-        assert_ok!(XbiPortal::write((hash.clone(), result.clone())));
+        assert_ok!(XbiPortal::write((hash, result.clone())));
         assert_err!(
-            XbiPortal::write((hash.clone(), result.clone())),
+            XbiPortal::write((hash, result.clone())),
             Error::<Test>::ResponseAlreadyStored
         );
         let stored = XbiResponses::<Test>::get(hash).unwrap();
