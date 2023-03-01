@@ -39,7 +39,9 @@ evm-primitives       = { git = "https://github.com/t3rn/t3rn", branch = "develop
 t3rn-primitives      = { git = "https://github.com/t3rn/t3rn", branch = "development", default-features = false, version = "1.0.0-alpha.1" }
 
 [dev-dependencies]
-pallet-evm = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.27", version = "6.0.0-dev" }
+pallet-assets   = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", version = "4.0.0-dev" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", version = "4.0.0-dev" }
+pallet-evm      = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.27", version = "6.0.0-dev" }
 
 [features]
 default = [ "std" ]

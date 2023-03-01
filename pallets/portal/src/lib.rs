@@ -30,6 +30,8 @@ use xs_channel::receiver::Receiver as XbiReceiver;
 use xs_channel::sender::{frame::ReceiveCallProvider, Sender as XbiSender};
 
 #[cfg(test)]
+mod mock;
+#[cfg(test)]
 mod tests;
 
 pub mod primitives;
@@ -50,7 +52,7 @@ pub mod pallet {
         pallet_prelude::*,
         traits::{fungibles::Transfer, ReservableCurrency},
     };
-    use frame_system::{offchain::SendTransactionTypes, pallet_prelude::*};
+    use frame_system::pallet_prelude::*;
     use sp_runtime::traits::BlakeTwo256;
     use xcm::v2::SendXcm;
     use xp_channel::queue::{ringbuffer::DefaultIdx, Queue as QueueExt, QueueSignal};
@@ -121,7 +123,8 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, DefaultIdx, (Message, QueueSignal), ValueQuery>;
 
     #[pallet::config]
-    pub trait Config: SendTransactionTypes<Call<Self>> + frame_system::Config {
+    pub trait Config: frame_system::Config {
+        // TODO: disable SendTransactionTypes<Call<Self>> for now
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         type Call: From<Call<Self>>;
         type XcmSovereignOrigin: Get<Self::AccountId>;
@@ -269,6 +272,7 @@ pub mod pallet {
         DefiUnsupported,
         ArithmeticErrorOverflow,
         TransferFailed,
+        ResponseAlreadyStored,
     }
 
     /// TODO: implement benchmarks
@@ -586,8 +590,10 @@ impl<T: Config> Writable<(H256, XbiResult)> for Pallet<T> {
             Self::deposit_event(Event::<T>::ResponseStored {
                 hash: hash,
                 result: result.clone(),
-            })
+            });
+            Ok(())
+        } else {
+            Err(Error::<T>::ResponseAlreadyStored.into())
         }
-        Ok(())
     }
 }
