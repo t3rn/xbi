@@ -4,7 +4,7 @@ use codec::{Decode, Encode, FullCodec};
 use core::fmt::Debug;
 use scale_info::TypeInfo;
 use sp_core::Hasher;
-use sp_runtime::traits::Hash;
+use sp_runtime::traits::{BlakeTwo256, Hash};
 use sp_runtime::AccountId32;
 use sp_std::prelude::*;
 use sp_std::vec;
@@ -66,61 +66,6 @@ pub struct XbiCheckOut {
     // TODO: this can be calculated by a function on XbiCheckout
     /// The cost of the message with the execution cost
     pub actual_aggregated_cost: Value,
-}
-
-impl XbiCheckOut {
-    pub fn new<T: frame_system::Config>(
-        id: T::Hash,
-        _delivery_timeout: T::BlockNumber,
-        output: Vec<u8>,
-        resolution_status: Status,
-        actual_execution_cost: Value,
-        actual_delivery_cost: Value,
-        actual_aggregated_cost: Value,
-    ) -> Self {
-        XbiCheckOut {
-            xbi: XbiInstruction::Result(XbiResult {
-                id: id.encode(),
-                status: resolution_status.clone(),
-                output,
-                witness: vec![],
-            }),
-            resolution_status,
-            checkout_timeout: Default::default(),
-            // fixme: make below work - casting block no to timeout
-            // provide some differential function so not to couple to `frame`
-            // checkout_timeout: ((frame_system::Pallet::<T>::block_number() - delivery_timeout)
-            //     * T::BlockNumber::from(T::ExpectedBlockTimeMs::get())).into(),
-            actual_execution_cost,
-            actual_delivery_cost,
-            actual_aggregated_cost,
-        }
-    }
-
-    /// Instantiate a new checkout with default costs
-    pub fn new_ignore_costs<T: frame_system::Config>(
-        id: T::Hash,
-        _delivery_timeout: T::BlockNumber,
-        output: Vec<u8>,
-        resolution_status: Status,
-    ) -> Self {
-        XbiCheckOut {
-            xbi: XbiInstruction::Result(XbiResult {
-                id: id.encode(),
-                status: resolution_status.clone(),
-                output,
-                witness: vec![],
-            }),
-            resolution_status,
-            checkout_timeout: Default::default(),
-            // fixme: make below work - casting block no to timeout
-            // provide some differential function so not to couple to `frame`
-            //     * T::BlockNumber::from(T::ExpectedBlockTimeMs::get())).into(),
-            actual_execution_cost: 0,
-            actual_delivery_cost: 0,
-            actual_aggregated_cost: 0,
-        }
-    }
 }
 
 /// An XBI message with additional timeout information
@@ -215,9 +160,6 @@ pub enum XbiInstruction {
         asset_b: AssetId,
         amount: Value,
     },
-    /// Provide the result of an XBI instruction
-    // TODO: make this a tuple type with a struct XbiResult since this would be easier to send back
-    Result(XbiResult),
 }
 
 impl Default for XbiInstruction {
@@ -229,7 +171,6 @@ impl Default for XbiInstruction {
 /// A result containing the status of the call
 #[derive(Debug, Clone, Eq, Default, PartialEq, Encode, Decode, TypeInfo)]
 pub struct XbiResult {
-    pub id: Data, // TODO: maybe make hash
     pub status: Status,
     pub output: Data,
     pub witness: Data,
@@ -304,7 +245,7 @@ pub struct Fees {
     /// The maximum cost of sending any notifications
     pub notification_cost_limit: Value,
     /// The cost of execution and notification
-    pub aggregated_cost: Value,
+    aggregated_cost: Value,
 }
 
 impl Fees {
@@ -343,6 +284,10 @@ impl Fees {
 
     pub fn notification_limit_exceeded(&self) -> bool {
         self.aggregated_cost > self.notification_cost_limit
+    }
+
+    pub fn get_aggregated_cost(&self) -> Value {
+        self.aggregated_cost
     }
 }
 
@@ -383,7 +328,6 @@ impl<BlockNumber: FullCodec + TypeInfo> XbiTimeSheet<BlockNumber> {
         }
     }
 
-    // TODO: The current progress field should just be an enum, and we can progress by either providing the enum or the next step.
     pub fn progress(&mut self, timestamp: Timestamp<BlockNumber>) -> &mut Self {
         match timestamp {
             Timestamp::Submitted(block) => self.submitted = Some(block),
@@ -400,7 +344,7 @@ impl<BlockNumber: FullCodec + TypeInfo> XbiTimeSheet<BlockNumber> {
 #[derive(Clone, Eq, PartialEq, Debug, Default, Encode, Decode, TypeInfo)]
 pub struct XbiMetadata {
     /// The XBI identifier
-    pub id: sp_core::H256,
+    id: sp_core::H256,
     /// The destination parachain
     pub dest_para_id: u32,
     /// The src parachain
@@ -408,7 +352,7 @@ pub struct XbiMetadata {
     /// User provided timeouts
     pub timeouts: Timeouts,
     /// The time sheet providing timestamps to each of the xbi progression
-    pub timesheet: XbiTimeSheet<u32>, // TODO: assume u32 is block number
+    timesheet: XbiTimeSheet<u32>, // TODO: assume u32 is block number
     /// User provided cost limits
     pub fees: Fees,
     /// The optional known caller
@@ -429,48 +373,76 @@ impl XbiMetadata {
     // }
 
     /// Provide a hash of the XBI msg id
-    pub fn id<Hashing: Hash + Hasher<Out = <Hashing as Hash>::Output>>(
+    pub fn rehash_id<Hashing: Hash + Hasher<Out = <Hashing as Hash>::Output>>(
         &self,
     ) -> <Hashing as Hasher>::Out {
         <Hashing as Hasher>::hash(&self.id.encode()[..])
     }
 
+    /// Provide the hashable fields for the metadata to retrieve the id, this omits the things that are normally different across the lifecycle of the message
+    pub(crate) fn sane_fields(&self) -> Vec<Vec<u8>> {
+        vec![
+            self.src_para_id.encode(),
+            self.dest_para_id.encode(),
+            self.timeouts.encode(),
+            self.fees.asset.encode(),
+            self.fees.execution_cost_limit.encode(),
+            self.fees.notification_cost_limit.encode(),
+            self.maybe_known_origin.encode(),
+        ]
+    }
+
+    pub fn sane_hashable_fields(&self) -> Vec<u8> {
+        self.sane_fields().concat()
+    }
+
+    pub fn enrich_id<Hashing: Hasher<Out = sp_core::H256>>(
+        &mut self,
+        nonce: u32,
+        seed: Option<&[u8]>,
+    ) -> &mut Self {
+        if self.id == sp_core::H256::default() {
+            let mut hash_contents = vec![nonce.encode(), self.sane_hashable_fields()];
+            if let Some(seed) = seed {
+                hash_contents.push(seed.to_vec());
+            }
+
+            self.id = Hashing::hash(&hash_contents.concat()[..]);
+        } else {
+            log::warn!("Can only enrich the id if it has not been enriched already");
+        }
+        self
+    }
+
+    pub fn get_id(&self) -> sp_core::H256 {
+        self.id
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        id: sp_core::H256,
-        dest_para_id: u32,
         src_para_id: u32,
+        dest_para_id: u32,
         timeouts: Timeouts,
         fees: Fees,
         maybe_known_origin: Option<AccountId32>,
+        nonce: u32,
+        seed: Option<&[u8]>,
     ) -> Self {
-        XbiMetadata {
-            id,
+        let mut base = XbiMetadata {
+            id: Default::default(),
             dest_para_id,
             src_para_id,
             timeouts,
             timesheet: Default::default(),
             fees,
             maybe_known_origin,
-        }
+        };
+        base.enrich_id::<BlakeTwo256>(nonce, seed).to_owned()
     }
 
-    pub fn new_with_default_timeouts(
-        id: sp_core::H256,
-        dest_para_id: u32,
-        src_para_id: u32,
-        costs: Fees,
-        maybe_known_origin: Option<AccountId32>,
-    ) -> Self {
-        XbiMetadata {
-            id,
-            dest_para_id,
-            src_para_id,
-            timeouts: Timeouts::default(),
-            timesheet: Default::default(),
-            fees: costs,
-            maybe_known_origin,
-        }
+    pub fn progress(&mut self, timestamp: Timestamp<u32>) -> &mut Self {
+        self.timesheet.progress(timestamp);
+        self
     }
 }
 
@@ -483,7 +455,7 @@ mod tests {
     #[test]
     fn can_hash_id() {
         let meta = XbiMetadata::default();
-        let hash = meta.id::<BlakeTwo256>();
+        let hash = meta.rehash_id::<BlakeTwo256>();
         assert_eq!(hash, <BlakeTwo256 as Hasher>::hash(&meta.id.0))
     }
 
@@ -544,5 +516,28 @@ mod tests {
 
         fees.notification_cost_limit = 0;
         assert_eq!(Status::from(&fees), Status::NotificationLimitExceeded);
+    }
+
+    #[test]
+    fn test_can_enrich_id() {
+        let mut meta = XbiMetadata::default();
+        let nonce = 1;
+
+        meta.enrich_id::<sp_runtime::traits::BlakeTwo256>(nonce, None);
+        assert_ne!(meta.id, sp_core::H256::default());
+        let expected_fields = vec![nonce.encode(), meta.sane_hashable_fields()].concat();
+        assert_eq!(
+            meta.id,
+            <sp_runtime::traits::BlakeTwo256 as sp_core::Hasher>::hash(&expected_fields[..])
+        );
+    }
+
+    // test that the sane_hashable fields do not contain the insane fields
+    #[test]
+    fn test_sane_hashable_fields() {
+        let meta = XbiMetadata::default();
+        let sane_fields = meta.sane_fields();
+        assert!(!sane_fields.contains(&meta.id.encode()));
+        assert!(!sane_fields.contains(&meta.timesheet.encode()));
     }
 }

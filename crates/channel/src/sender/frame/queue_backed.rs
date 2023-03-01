@@ -52,8 +52,8 @@ where
         match &mut msg {
             Message::Request(format) => {
                 // Progress the timestamps in one go TODO: this will change when we finish up queue impl
-                format.metadata.timesheet.progress(Submitted(current_block));
-                format.metadata.timesheet.progress(Sent(current_block));
+                format.metadata.progress(Submitted(current_block));
+                format.metadata.progress(Sent(current_block));
 
                 // TODO: charge as reserve because we pay as sovereign
                 // TODO: actually reserve fees
@@ -97,7 +97,7 @@ where
             }
             Message::Response(result, metadata) => {
                 // Progress the delivered timestamp
-                metadata.timesheet.progress(Responded(current_block));
+                metadata.progress(Responded(current_block));
 
                 let require_weight_at_most = 1_000_000_000;
 

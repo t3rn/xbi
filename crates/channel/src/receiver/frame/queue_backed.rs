@@ -1,6 +1,5 @@
 use crate::receiver::frame::invert_destination_from_message;
 use crate::receiver::Receiver as ReceiverExt;
-use codec::Encode;
 use frame_support::pallet_prelude::DispatchResultWithPostInfo;
 use frame_system::{ensure_signed, Config};
 use sp_runtime::{traits::UniqueSaturatedInto, Either};
@@ -38,21 +37,18 @@ where
         let current_block: u32 = <frame_system::Pallet<T>>::block_number().unique_saturated_into();
 
         // progress to delivered
-        msg.metadata.timesheet.progress(Delivered(current_block));
+        msg.metadata.progress(Delivered(current_block));
 
         Emitter::emit_received(Either::Left(msg));
 
         invert_destination_from_message(&mut msg.metadata);
 
-        let xbi_id = msg.metadata.id::<T::Hashing>();
-
         let instruction_result = InstructionHandler::handle(origin, msg);
 
-        let xbi_result =
-            handle_instruction_result::<Emitter>(&xbi_id.encode(), &instruction_result, msg);
+        let xbi_result = handle_instruction_result::<Emitter>(&instruction_result, msg);
 
         // progress to executed
-        msg.metadata.timesheet.progress(Executed(current_block));
+        msg.metadata.progress(Executed(current_block));
 
         Emitter::emit_request_handled(
             &xbi_result,
