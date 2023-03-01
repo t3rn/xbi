@@ -50,6 +50,7 @@ pub mod pallet {
         traits::{fungibles::Transfer, ReservableCurrency},
     };
     use frame_system::{offchain::SendTransactionTypes, pallet_prelude::*};
+    use sp_runtime::traits::BlakeTwo256;
     use xcm::v2::SendXcm;
     use xp_channel::queue::{ringbuffer::DefaultIdx, Queue as QueueExt, QueueSignal};
     use xp_xcm::frame_traits::AssetLookup;
@@ -100,6 +101,16 @@ pub mod pallet {
     #[pallet::type_value]
     pub(super) fn BufferIndexDefaultValue() -> (DefaultIdx, DefaultIdx) {
         (0, 0)
+    }
+
+    #[pallet::storage]
+    #[pallet::getter(fn message_nonce)]
+    pub(super) type MessageNonce<T: Config> =
+        StorageValue<_, u32, ValueQuery, MessageNonceDefaultValue>;
+
+    #[pallet::type_value]
+    pub(super) fn MessageNonceDefaultValue() -> u32 {
+        0
     }
 
     #[pallet::storage]
@@ -253,19 +264,23 @@ pub mod pallet {
         TransferFailed,
     }
 
+    /// TODO: implement benchmarks
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        // TODO: users should not be able to provide the ID, it should have a nonce appended and we hash it
-        /// TODO: implement benchmarks
-        /// This will send an xbi message
         #[pallet::weight(50_000 + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
-        pub fn send(origin: OriginFor<T>, msg: Message) -> DispatchResult {
+        pub fn send(origin: OriginFor<T>, msg: XbiFormat) -> DispatchResult {
             let _who = ensure_signed(origin)?;
+            let mut msg = msg;
+
+            // Get and increment the nonce
+            let nonce = Self::message_nonce().wrapping_add(1);
+            <MessageNonce<T>>::set(nonce);
+            msg.metadata.enrich_id::<BlakeTwo256>(nonce, None);
+
             // TODO: we probably shouldnt allow send src==dest
-            <Sender<T> as XbiSender<_>>::send(msg)
+            <Sender<T> as XbiSender<_>>::send(Message::Request(msg))
         }
 
-        /// TODO: implement benchmarks
         /// This receive api is called by the sender on the source parachain and needs to exist for
         /// the handler to be able to invoke
         ///
@@ -295,7 +310,7 @@ pub mod pallet {
                     match signal {
                         QueueSignal::PendingResponse => {
                             if let Message::Request(req) = msg {
-                                let key = T::Hash::decode(&mut &req.metadata.id[..]).unwrap(); // TODO: remove unwrap
+                                let key = T::Hash::decode(&mut &req.metadata.get_id()[..]).unwrap(); // TODO: remove unwrap
                                 if !XbiRequests::<T>::contains_key(key) {
                                     XbiRequests::<T>::insert(key, req);
                                 } else {
@@ -305,10 +320,9 @@ pub mod pallet {
                         }
                         QueueSignal::XcmSendError => {
                             if let Message::Request(req) = msg {
-                                let key = T::Hash::decode(&mut &req.metadata.id[..]).unwrap(); // TODO: remove unwrap
+                                let key = T::Hash::decode(&mut &req.metadata.get_id()[..]).unwrap(); // TODO: remove unwrap
 
                                 let result = XbiResult {
-                                    id: req.metadata.id.clone().as_bytes().to_vec(),
                                     status: Status::DispatchFailed,
                                     output: vec![],
                                     witness: vec![],
@@ -322,7 +336,7 @@ pub mod pallet {
                         }
                         QueueSignal::ResponseReceived => {
                             if let Message::Response(resp, meta) = msg {
-                                let key = T::Hash::decode(&mut &meta.id[..]).unwrap(); // TODO: remove unwrap
+                                let key = T::Hash::decode(&mut &meta.get_id()[..]).unwrap(); // TODO: remove unwrap
 
                                 // TODO: update meta, asserting exists
                                 // TODO: write response

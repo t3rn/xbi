@@ -75,11 +75,15 @@ mod tests {
 
     #[test]
     fn inverting_destination_works_correctly_when_within_gas() {
-        let mut metadata = XbiMetadata {
-            src_para_id: 1,
-            dest_para_id: 2,
-            ..Default::default()
-        };
+        let mut metadata = XbiMetadata::new(
+            1,
+            2,
+            Default::default(),
+            Fees::new(None, Some(1), Some(10_000_000_000)),
+            Default::default(),
+            Default::default(),
+            Default::default(),
+        );
         assert_eq!(metadata.src_para_id, 1);
         assert_eq!(metadata.dest_para_id, 2);
         invert_destination_from_message(&mut metadata);
@@ -95,16 +99,21 @@ mod tests {
         };
 
         let mut msg = XbiFormat {
-            metadata: XbiMetadata {
-                fees: Fees::new(None, Some(1), Some(10_000_000_000)),
-                ..Default::default()
-            },
+            metadata: XbiMetadata::new(
+                Default::default(),
+                Default::default(),
+                Default::default(),
+                Fees::new(None, Some(1), Some(10_000_000_000)),
+                Default::default(),
+                Default::default(),
+                Default::default(),
+            ),
             ..Default::default()
         };
 
         let result = handler_to_xbi_result::<()>(&info, &mut msg);
 
-        assert_eq!(msg.metadata.fees.aggregated_cost, 100);
+        assert_eq!(msg.metadata.fees.get_aggregated_cost(), 100);
         assert_eq!(result.status, Status::ExecutionLimitExceeded);
     }
 
@@ -116,16 +125,21 @@ mod tests {
         };
 
         let mut msg = XbiFormat {
-            metadata: XbiMetadata {
-                fees: Fees::new(None, Some(10_000_000_000), Some(10_000_000_000)),
-                ..Default::default()
-            },
+            metadata: XbiMetadata::new(
+                Default::default(),
+                Default::default(),
+                Default::default(),
+                Fees::new(None, Some(10_000_000_000), Some(10_000_000_000)),
+                Default::default(),
+                Default::default(),
+                Default::default(),
+            ),
             ..Default::default()
         };
 
         let result = handler_to_xbi_result::<()>(&info, &mut msg);
 
-        assert_eq!(msg.metadata.fees.aggregated_cost, 100);
+        assert_eq!(msg.metadata.fees.get_aggregated_cost(), 100);
         assert_eq!(result.status, Status::Success);
     }
 
