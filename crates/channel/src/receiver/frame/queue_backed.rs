@@ -37,7 +37,7 @@ where
         let current_block: u32 = <frame_system::Pallet<T>>::block_number().unique_saturated_into();
 
         // progress to delivered
-        msg.metadata.timesheet.progress(Delivered(current_block));
+        msg.metadata.progress(Delivered(current_block));
 
         Emitter::emit_received(Either::Left(msg));
 
@@ -48,7 +48,7 @@ where
         let xbi_result = handle_instruction_result::<Emitter>(&instruction_result, msg);
 
         // progress to executed
-        msg.metadata.timesheet.progress(Executed(current_block));
+        msg.metadata.progress(Executed(current_block));
 
         Emitter::emit_request_handled(
             &xbi_result,

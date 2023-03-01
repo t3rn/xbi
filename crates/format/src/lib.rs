@@ -404,7 +404,7 @@ pub struct XbiMetadata {
     /// User provided timeouts
     pub timeouts: Timeouts,
     /// The time sheet providing timestamps to each of the xbi progression
-    pub timesheet: XbiTimeSheet<u32>, // TODO: assume u32 is block number
+    timesheet: XbiTimeSheet<u32>, // TODO: assume u32 is block number
     /// User provided cost limits
     pub fees: Fees,
     /// The optional known caller
@@ -451,22 +451,9 @@ impl XbiMetadata {
         }
     }
 
-    pub fn new_with_default_timeouts(
-        id: sp_core::H256,
-        dest_para_id: u32,
-        src_para_id: u32,
-        costs: Fees,
-        maybe_known_origin: Option<AccountId32>,
-    ) -> Self {
-        XbiMetadata {
-            id,
-            dest_para_id,
-            src_para_id,
-            timeouts: Timeouts::default(),
-            timesheet: Default::default(),
-            fees: costs,
-            maybe_known_origin,
-        }
+    pub fn progress(&mut self, timestamp: Timestamp<u32>) -> &mut Self {
+        self.timesheet.progress(timestamp);
+        self
     }
 }
 
