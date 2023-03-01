@@ -12,12 +12,14 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GH_PAT }}
 
       - name: Update CHANGELOG
         id: changelog
         uses: requarks/changelog-action@v1
         with:
-          token: ${{ github.GH_PAT }}
+          token: ${{ secrets.GH_PAT }}
           tag: ${{ github.ref_name }}
 
       - name: Create Release
@@ -35,4 +37,3 @@ jobs:
           branch: main
           commit_message: "build(cargo-release): update CHANGELOG.md for ${{ github.ref_name }}"
           file_pattern: CHANGELOG.md
-          token: ${{ secrets.GH_PATH }}
