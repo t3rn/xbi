@@ -124,7 +124,7 @@ impl<T: crate::Config + frame_system::Config> Scabi<T> for XbiAbi<T> {
                 target,
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             ))
-            .map_err(|_| Error::XBIABIFailedToCastBetweenTypesAddress)?,
+            .map_err(|_| Error::FailedToCastAddress)?,
             value,
             gas_limit,
             storage_deposit_limit: None,

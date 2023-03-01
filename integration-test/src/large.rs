@@ -53,10 +53,10 @@ mod tests {
 
     use crate::{
         assert_deposit, assert_polkadot_attempted, assert_polkadot_sent,
-        assert_relay_executed_downward, assert_relay_executed_upward, assert_withdrawal,
-        assert_xbi_instruction_handled, assert_xbi_received, assert_xbi_request_handled,
-        assert_xbi_sent, assert_xcmp_receipt_success, assert_xcmp_sent, log_all_roco_events,
-        rococo, setup,
+        assert_relay_executed_downward, assert_relay_executed_upward, assert_response_stored,
+        assert_withdrawal, assert_xbi_instruction_handled, assert_xbi_received,
+        assert_xbi_request_handled, assert_xbi_sent, assert_xcmp_receipt_success, assert_xcmp_sent,
+        log_all_roco_events, rococo, setup,
         slim::{Slender, Slim, SLENDER_PARA_ID, SLIM_PARA_ID},
         teleport_from_relay_to, transfer_to, ParaKind, RococoNet, ALICE,
     };
@@ -555,6 +555,7 @@ mod tests {
             log_all_events();
             assert_xbi_received!(large);
             assert_xcmp_receipt_success!(large);
+            assert_response_stored!(large, Status::Success);
             System::reset_events();
         });
     }
@@ -613,6 +614,7 @@ mod tests {
 
         Slim::execute_with(|| {
             crate::slim::log_all_events("Slim");
+            assert_response_stored!(slim, Status::Success);
             slim::System::reset_events();
         });
     }
@@ -686,6 +688,7 @@ mod tests {
         println!(">>> [Slim] Checking slim events");
         Slim::execute_with(|| {
             crate::slim::log_all_events("Slim");
+            assert_response_stored!(slim, Status::Success);
             slim::System::reset_events();
         });
     }
@@ -759,6 +762,7 @@ mod tests {
 
         Slim::execute_with(|| {
             crate::slim::log_all_events("Slim");
+            assert_response_stored!(slim, Status::ExecutionLimitExceeded);
             slim::System::reset_events();
         });
     }

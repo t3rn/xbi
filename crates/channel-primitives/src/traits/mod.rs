@@ -1,4 +1,5 @@
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, FullCodec};
+use sp_runtime::DispatchResult;
 use sp_std::prelude::*;
 
 /// A set of traits containing some loosely typed shims to storage interactions in substrate.
@@ -62,4 +63,9 @@ pub trait XbiInstructionHandler<Origin> {
         HandlerInfo<frame_support::weights::Weight>,
         frame_support::dispatch::DispatchErrorWithPostInfo,
     >;
+}
+
+// A trait providing generic write access, its intention is so that a pallet may provide a way to write channel elements to storage.
+pub trait Writable<T: FullCodec> {
+    fn write(t: T) -> DispatchResult;
 }

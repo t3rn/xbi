@@ -5,6 +5,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use pallet::*;
+use sp_core::H256;
 pub use substrate_abi;
 pub use substrate_contracts_abi;
 pub use xp_channel::{queue::QueueSignal, ChannelProgressionEmitter, Message};
@@ -22,7 +23,7 @@ use sp_runtime::{traits::UniqueSaturatedInto, AccountId32, DispatchErrorWithPost
 use sp_std::{default::Default, prelude::*};
 use xp_channel::{
     queue::ringbuffer::RingBufferTransient,
-    traits::{HandlerInfo, XbiInstructionHandler},
+    traits::{HandlerInfo, Writable, XbiInstructionHandler},
 };
 use xp_format::{Status, XbiFormat, XbiInstruction, XbiMetadata, XbiResult};
 use xs_channel::receiver::Receiver as XbiReceiver;
@@ -81,6 +82,7 @@ pub mod pallet {
         Sender<T>,
         Pallet<T>,
         Queue<Pallet<T>>,
+        Pallet<T>,
         Pallet<T>,
     >;
 
@@ -226,6 +228,10 @@ pub mod pallet {
             signal: QueueSignal,
             msg: Message,
         },
+        ResponseStored {
+            hash: T::Hash,
+            result: XbiResult,
+        },
     }
 
     /// Errors that can occur while checking the authorship inherent.
@@ -246,8 +252,9 @@ pub mod pallet {
     // Errors inform users that something went wrong.
     #[pallet::error]
     pub enum Error<T> {
-        XBIABIFailedToCastBetweenTypesValue,
-        XBIABIFailedToCastBetweenTypesAddress,
+        FailedToCastValue,
+        FailedToCastAddress,
+        FailedToCastHash,
         InstructionuctionNotAllowedHere,
         AlreadyCheckedIn,
         NotificationTimeoutDelivery,
@@ -437,8 +444,7 @@ impl<C: Config> ReceiveCallProvider for Pallet<C> {
 fn account_from_account32<T: Config>(
     account: &AccountId32,
 ) -> Result<T::AccountId, DispatchErrorWithPostInfo<PostDispatchInfo>> {
-    T::AccountId::decode(&mut account.as_ref())
-        .map_err(|_| Error::<T>::XBIABIFailedToCastBetweenTypesAddress.into())
+    T::AccountId::decode(&mut account.as_ref()).map_err(|_| Error::<T>::FailedToCastAddress.into())
 }
 
 // TODO: write tests
@@ -548,7 +554,7 @@ impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
                 >>::AssetId::decode(
                     &mut &currency_id.encode()[..]
                 )
-                .map_err(|_| Error::<T>::XBIABIFailedToCastBetweenTypesValue)?;
+                .map_err(|_| Error::<T>::FailedToCastValue)?;
 
                 // TODO: have an assertion that the destination actually was updated
                 T::Assets::transfer(
@@ -566,5 +572,22 @@ impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
                 Ok(Default::default())
             }
         }
+    }
+}
+
+// TODO: benchmarking
+impl<T: Config> Writable<(H256, XbiResult)> for Pallet<T> {
+    fn write(t: (H256, XbiResult)) -> sp_runtime::DispatchResult {
+        let (hash, result) = t;
+        let hash: T::Hash =
+            Decode::decode(&mut &hash.encode()[..]).map_err(|_| Error::<T>::FailedToCastHash)?;
+        if !XbiResponses::<T>::contains_key(hash) {
+            XbiResponses::<T>::insert(hash, result.clone());
+            Self::deposit_event(Event::<T>::ResponseStored {
+                hash: hash,
+                result: result.clone(),
+            })
+        }
+        Ok(())
     }
 }

@@ -1,11 +1,13 @@
-use crate::{receiver::frame::invert_destination_from_message, receiver::Receiver as ReceiverExt};
+use crate::{
+    receiver::frame::invert_destination_from_message, Receiver as ReceiverExt, Sender as SenderExt,
+};
 use frame_support::pallet_prelude::DispatchResultWithPostInfo;
 use frame_system::{ensure_signed, Config};
 use sp_runtime::{traits::UniqueSaturatedInto, Either};
 use sp_std::marker::PhantomData;
 use xp_channel::{
     queue::{QueueSignal, Queueable},
-    traits::{HandlerInfo, XbiInstructionHandler},
+    traits::{HandlerInfo, Writable, XbiInstructionHandler},
     ChannelProgressionEmitter, Message,
 };
 use xp_format::Timestamp::*;
@@ -16,19 +18,20 @@ use super::handle_instruction_result;
 /// This is a synchronous backed Frame receiver
 /// It services the `REQ-REP` side of an async channel, that is to say, it receives a message, handles it, then responds with the result
 /// all in one step.
-pub struct Receiver<T, Sender, Emitter, Queue, InstructionHandler> {
-    phantom: PhantomData<(T, Sender, Emitter, Queue, InstructionHandler)>,
+pub struct Receiver<T, Sender, Emitter, Queue, InstructionHandler, ResultStore> {
+    phantom: PhantomData<(T, Sender, Emitter, Queue, InstructionHandler, ResultStore)>,
 }
 
 #[cfg(feature = "frame")]
-impl<T, Sender, Emitter, Queue, InstructionHandler> ReceiverExt
-    for Receiver<T, Sender, Emitter, Queue, InstructionHandler>
+impl<T, Sender, Emitter, Queue, InstructionHandler, ResultStore> ReceiverExt
+    for Receiver<T, Sender, Emitter, Queue, InstructionHandler, ResultStore>
 where
     T: Config,
-    Sender: crate::sender::Sender<Message>,
+    Sender: SenderExt<Message>,
     Emitter: ChannelProgressionEmitter,
     Queue: Queueable<(Message, QueueSignal)>,
     InstructionHandler: XbiInstructionHandler<T::Origin>,
+    ResultStore: Writable<(sp_core::H256, XbiResult)>,
 {
     type Origin = T::Origin;
     type Outcome = DispatchResultWithPostInfo;
@@ -65,17 +68,15 @@ where
         instruction_handle.map(HandlerInfo::into)
     }
 
-    // TODO: this should not have a queue anymore, we should provide some storage interface to write the result and add the cost.
-    /// Response should update the state of the storage checkout queues and notify the sender of completion
     fn handle_response(
         origin: &Self::Origin,
         msg: &XbiResult,
-        _metadata: &XbiMetadata,
+        metadata: &XbiMetadata,
     ) -> DispatchResultWithPostInfo {
         let _who = ensure_signed(origin.clone())?;
         Emitter::emit_received(Either::Right(msg));
-
-        // TODO: add the cost of handling this response here
-        Ok(Default::default())
+        ResultStore::write((metadata.get_id(), msg.clone()))
+            .map(|_| Default::default())
+            .map_err(|e| e.into())
     }
 }
