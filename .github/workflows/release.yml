@@ -46,6 +46,7 @@ jobs:
       - name: Release
         id: release
         run: cargo release --execute --no-confirm -c release.toml --exclude large --exclude slim --exclude xbi-integration-tests --exclude xbi-client --exclude pallet-asset-registry --exclude pallet-xbi-portal ${{ steps.version.outputs.version }}
+        continue-on-error: true
 
       - name: Push tag
         run: git push origin v${{ steps.version.outputs.version }}
