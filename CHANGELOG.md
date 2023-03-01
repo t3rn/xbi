@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.3.6] - 2023-03-01
+### :sparkles: New Features
+- [`edcb5db`](https://github.com/t3rn/xbi/commit/edcb5db0043be65b8cba0b0b763065674e926041) - store xbi responses in sync channel *(commit by [@AwesomeIbex](https://github.com/AwesomeIbex))*
+
+### :white_check_mark: Tests
+- [`ef7c723`](https://github.com/t3rn/xbi/commit/ef7c723a1f0e33e3f105416970cdd555cd2b62fc) - introduce low level unhappy path test *(commit by [@AwesomeIbex](https://github.com/AwesomeIbex))*
+
+### :wrench: Chores
+- [`f1547be`](https://github.com/t3rn/xbi/commit/f1547be590af386b6896d290bfa2d8424fbaf9d0) - make the queue use the same logic *(commit by [@AwesomeIbex](https://github.com/AwesomeIbex))*
+- [`f95f84f`](https://github.com/t3rn/xbi/commit/f95f84fe60d6367feddef377c150a06e98e31cb9) - **asset-registry**: clippy lints *(commit by [@AwesomeIbex](https://github.com/AwesomeIbex))*
+
+
 ## [v0.3.5] - 2023-03-01
 ### :bug: Bug Fixes
 - [`0af6565`](https://github.com/t3rn/xbi/commit/0af6565f782bba5db1d9d35a7b7940c2cc533091) - scabi module error when publishing *(commit by [@AwesomeIbex](https://github.com/AwesomeIbex))*
@@ -39,3 +51,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [`03ffbb5`](https://github.com/t3rn/xbi/commit/03ffbb58c7ef7ad92d4aa98572197e5c962c14a3) - **format**: hide the timesheet from requesting users *(commit by @AwesomeIbex)*
 
 [v0.3.4]: https://github.com/t3rn/xbi/compare/v0.3.3...v0.3.4
+[v0.3.6]: https://github.com/t3rn/xbi/compare/v0.3.5...v0.3.6
