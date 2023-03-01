@@ -5,7 +5,7 @@ edition     = "2021"
 license     = "Apache-2.0"
 name        = "xp-xcm"
 repository  = "https://github.com/t3rn/xbi"
-version     = "0.3.5"
+version     = "0.3.6"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3", default-features = false, features = [ 'derive' ] }
