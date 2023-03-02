@@ -1,6 +1,7 @@
 use crate::TypeInfo;
 use codec::{Codec, Decode, Encode, EncodeLike};
 use sp_std::prelude::*;
+use xp_format::Status;
 
 pub mod ringbuffer;
 
@@ -28,7 +29,7 @@ pub enum QueueSignal {
     PendingExecution, // The message needs to be executed by the handler
     PendingResponse,  // The executed message needs to be responded over the protocol
     PendingResult,    // Result needs to be stored in the responses
-    ProtocolError,
+    ProtocolError(Status),
 }
 
 pub trait Queueable<Item>
