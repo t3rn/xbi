@@ -48,12 +48,13 @@ pub mod pallet {
         *,
     };
     use contracts_primitives::ContractExecResult;
+    use frame_support::traits::OriginTrait;
     use frame_support::{
         pallet_prelude::*,
         traits::{fungibles::Transfer, ReservableCurrency},
     };
     use frame_system::pallet_prelude::*;
-    use sp_runtime::traits::BlakeTwo256;
+    use sp_runtime::traits::{BlakeTwo256, Zero};
     use xcm::v2::SendXcm;
     use xp_channel::{
         queue::{ringbuffer::DefaultIdx, Queue as QueueExt, QueueSignal},
@@ -205,11 +206,15 @@ pub mod pallet {
         // dispatched.
         //
         // This function must return the weight consumed by `on_initialize` and `on_finalize`.
-        fn on_initialize(_n: T::BlockNumber) -> Weight {
-            // Anything that needs to be done at the start of the block.
-            // We don't do anything here.
-            // x-t3rn#4: Go over open Xtx and cancel if necessary
-            0
+        fn on_initialize(block: T::BlockNumber) -> Weight {
+            // TODO: enable when confident it works
+            if block % T::CheckInterval::get() == Zero::zero() {
+                Pallet::<T>::process_queue(T::Origin::root())
+                    .map(|i| i.actual_weight.unwrap_or_default())
+                    .unwrap_or_else(|e| e.post_info.actual_weight.unwrap_or_default())
+            } else {
+                0
+            }
         }
 
         fn on_finalize(_n: T::BlockNumber) {}
@@ -328,8 +333,12 @@ pub mod pallet {
 
         /// TODO: implement benchmarks
         #[pallet::weight(50_000 + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
-        pub fn process_queue(origin: OriginFor<T>) -> DispatchResult {
+        pub fn process_queue(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
+
+            // TODO: terminal operations
+            let max_events_to_process = T::CheckOutLimit::get();
+
             let mut queue = <Queue<Pallet<T>>>::default();
 
             if queue.is_empty() {
@@ -453,7 +462,8 @@ pub mod pallet {
                     }
                 }
             }
-            Ok(())
+            // FIXME: this should be added up
+            Ok(Default::default())
         }
     }
 
