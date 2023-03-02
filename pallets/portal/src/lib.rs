@@ -59,7 +59,11 @@ pub mod pallet {
         queue::{ringbuffer::DefaultIdx, Queue as QueueExt, QueueSignal},
         ExecutionType,
     };
+    use xp_format::Timestamp;
     use xp_xcm::frame_traits::AssetLookup;
+    pub use xp_xcm::frame_traits::XcmConvert;
+    use xp_xcm::MultiLocationBuilder;
+    use xp_xcm::{xcm::prelude::*, XcmBuilder};
 
     /// A reexport of the Queue backed by a RingBufferTransient
     pub(crate) type Queue<Pallet> = RingBufferTransient<
@@ -81,16 +85,8 @@ pub mod pallet {
     >;
 
     /// A reexport of the Sender backed by the Queue
-    pub(crate) type AsyncSender<T> = xs_channel::sender::frame::queue_backed::Sender<
-        T,
-        Pallet<T>,
-        Pallet<T>,
-        <T as Config>::Xcm,
-        <T as Config>::Call,
-        Queue<Pallet<T>>,
-        <T as Config>::AssetRegistry,
-        u32,
-    >;
+    pub(crate) type AsyncSender<T> =
+        xs_channel::sender::frame::queue_backed::Sender<T, Queue<Pallet<T>>>;
 
     /// A reexport of the synchronous receiver
     pub(crate) type Receiver<T> = xs_channel::receiver::frame::sync::Receiver<
@@ -120,6 +116,11 @@ pub mod pallet {
         StorageMap<_, Blake2_128Concat, <T as frame_system::Config>::Hash, XbiResult, OptionQuery>;
 
     #[pallet::storage]
+    #[pallet::getter(fn queue_item)]
+    pub(super) type QueueItems<T> =
+        StorageMap<_, Blake2_128Concat, DefaultIdx, (Message, QueueSignal), ValueQuery>;
+
+    #[pallet::storage]
     #[pallet::getter(fn queue_range)]
     pub(super) type BufferRange<T: Config> =
         StorageValue<_, (DefaultIdx, DefaultIdx), ValueQuery, BufferIndexDefaultValue>;
@@ -138,11 +139,6 @@ pub mod pallet {
     pub(super) fn MessageNonceDefaultValue() -> u32 {
         0
     }
-
-    #[pallet::storage]
-    #[pallet::getter(fn queue_item)]
-    pub(super) type QueueItems<T> =
-        StorageMap<_, Blake2_128Concat, DefaultIdx, (Message, QueueSignal), ValueQuery>;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -331,31 +327,120 @@ pub mod pallet {
         }
 
         /// TODO: implement benchmarks
-        /// TODO: implement the queue for async channels
         #[pallet::weight(50_000 + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
         pub fn process_queue(origin: OriginFor<T>) -> DispatchResult {
             ensure_root(origin)?;
             let mut queue = <Queue<Pallet<T>>>::default();
+
             if queue.is_empty() {
                 Self::deposit_event(QueueEmpty);
             } else {
-                while let Some((msg, signal)) = queue.pop() {
+                while let Some((mut msg, signal)) = queue.pop() {
                     Self::deposit_event(QueuePopped {
                         signal: signal.clone(),
                         msg: msg.clone(),
                     });
+                    let current_block: u32 =
+                        <frame_system::Pallet<T>>::block_number().unique_saturated_into();
+
                     match signal {
-                        QueueSignal::PendingResponse => {
-                            if let Message::Request(req) = msg {
-                                let key = T::Hash::decode(&mut &req.metadata.get_id()[..]).unwrap(); // TODO: remove unwrap
-                                if !XbiRequests::<T>::contains_key(key) {
-                                    XbiRequests::<T>::insert(key, req);
-                                } else {
-                                    log::warn!("Duplicate request: {:?}", req);
-                                }
+                        QueueSignal::PendingRequest => {
+                            if let Message::Request(format) = &mut msg {
+                                format.metadata.progress(Timestamp::Sent(current_block));
+
+                                // TODO: make function
+                                let dest = MultiLocationBuilder::new_parachain(
+                                    format.metadata.dest_para_id,
+                                )
+                                .with_parents(1)
+                                .build();
+
+                                // TODO: make function
+                                let payment_asset = match format.metadata.fees.asset {
+                                    Some(id) => T::AssetRegistry::reverse_ref(&id)
+                                        .map_err(|_| DispatchError::CannotLookup)?,
+                                    None => MultiLocationBuilder::new_native().build(),
+                                };
+
+                                // TODO: make function
+                                let xbi_format_msg = XcmBuilder::<()>::default()
+                                    .with_withdraw_concrete_asset(
+                                        payment_asset.clone(),
+                                        format.metadata.fees.get_aggregated_limit(),
+                                    )
+                                    .with_buy_execution(
+                                        payment_asset,
+                                        format.metadata.fees.notification_cost_limit,
+                                        None,
+                                    )
+                                    .with_transact(
+                                        Some(OriginKind::SovereignAccount),
+                                        Some(format.metadata.fees.execution_cost_limit as u64),
+                                        Pallet::<T>::provide(format.clone()),
+                                    )
+                                    .build();
+
+                                T::Xcm::send_xcm(dest, xbi_format_msg)
+                                    .map(|_| {
+                                        log::trace!(target: "xbi-portal", "Successfully sent xcm message");
+                                        Pallet::<T>::emit_sent(msg.clone());
+                                    })
+                                    .map_err(|e| {
+                                        log::error!(target: "xbi-portal", "Failed to send xcm request: {:?}", e);
+                                        queue.push((msg, QueueSignal::ProtocolError));
+                                    });
                             }
                         }
-                        QueueSignal::XcmSendError => {
+                        QueueSignal::PendingExecution => {
+                            todo!()
+                        }
+                        QueueSignal::PendingResponse => {
+                            if let Message::Response(result, metadata) = &mut msg {
+                                let require_weight_at_most = 1_000_000_000;
+
+                                let dest =
+                                    MultiLocationBuilder::new_parachain(metadata.dest_para_id)
+                                        .with_parents(1)
+                                        .build();
+
+                                // NOTE: do we want to allow the user to control what asset we pay for in response?
+                                // I think that should be configured by the channel implementation, not the user
+                                let _payment_asset = match metadata.fees.asset {
+                                    Some(id) => T::AssetRegistry::reverse_ref(&id)
+                                        .map_err(|_| DispatchError::CannotLookup)?,
+                                    None => MultiLocationBuilder::new_native().build(),
+                                };
+
+                                let xbi_format_msg = XcmBuilder::<()>::default()
+                                    // TODO: reenable based on above conversations
+                                    // .with_withdraw_concrete_asset(payment_asset.clone(), 1_000_000_000_000) // TODO: take amount from new costs field
+                                    // .with_buy_execution(payment_asset, 1_000_000_000, None) // TODO: same as above
+                                    .with_transact(
+                                        Some(OriginKind::SovereignAccount),
+                                        Some(require_weight_at_most),
+                                        Pallet::<T>::provide((result.clone(), metadata.clone())),
+                                    )
+                                    .build();
+
+                                T::Xcm::send_xcm(dest, xbi_format_msg)
+                                    .map(|_| {
+                                        log::trace!(target: "xbi-portal", "Successfully sent xcm message");
+                                        Pallet::<T>::emit_sent(msg.clone())
+                                    })
+                                    .map_err(|e| {
+                                        log::error!(target: "xbi-sender", "Failed to send xcm request: {:?}", e);
+                                        queue.push((msg, QueueSignal::ProtocolError));
+                                    });
+                            }
+                        }
+                        QueueSignal::PendingResult => {
+                            if let Message::Response(resp, meta) = msg {
+                                Pallet::<T>::write((meta.get_id(), resp))?;
+                            }
+                        }
+                        QueueSignal::ProtocolError => {
+                            // TODO: emit an error
+
                             if let Message::Request(req) = msg {
                                 let result = XbiResult {
                                     status: Status::DispatchFailed,
@@ -363,11 +448,6 @@ pub mod pallet {
                                     witness: vec![],
                                 };
                                 Pallet::<T>::write((req.metadata.get_id(), result))?;
-                            }
-                        }
-                        QueueSignal::ResponseReceived => {
-                            if let Message::Response(resp, meta) = msg {
-                                Pallet::<T>::write((meta.get_id(), resp))?;
                             }
                         }
                     }
