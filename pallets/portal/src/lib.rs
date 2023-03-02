@@ -336,6 +336,9 @@ pub mod pallet {
         pub fn process_queue(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
 
+            let current_block: u32 =
+                <frame_system::Pallet<T>>::block_number().unique_saturated_into();
+
             // TODO: terminal operations
             let max_events_to_process = T::CheckOutLimit::get();
 
@@ -349,8 +352,6 @@ pub mod pallet {
                         signal: signal.clone(),
                         msg: msg.clone(),
                     });
-                    let current_block: u32 =
-                        <frame_system::Pallet<T>>::block_number().unique_saturated_into();
 
                     match signal {
                         QueueSignal::PendingRequest => {
@@ -394,9 +395,9 @@ pub mod pallet {
                                         log::trace!(target: "xbi-portal", "Successfully sent xcm message");
                                         Pallet::<T>::emit_sent(msg.clone());
                                     })
-                                    .map_err(|e| {
+                                    .unwrap_or_else(|e| {
                                         log::error!(target: "xbi-portal", "Failed to send xcm request: {:?}", e);
-                                        queue.push((msg, QueueSignal::ProtocolError));
+                                        queue.push((msg, QueueSignal::ProtocolError(Status::DispatchFailed)));
                                     });
                             }
                         }
@@ -436,9 +437,9 @@ pub mod pallet {
                                         log::trace!(target: "xbi-portal", "Successfully sent xcm message");
                                         Pallet::<T>::emit_sent(msg.clone())
                                     })
-                                    .map_err(|e| {
+                                    .unwrap_or_else(|e| {
                                         log::error!(target: "xbi-sender", "Failed to send xcm request: {:?}", e);
-                                        queue.push((msg, QueueSignal::ProtocolError));
+                                        queue.push((msg, QueueSignal::ProtocolError(Status::DispatchFailed)));
                                     });
                             }
                         }
@@ -447,12 +448,12 @@ pub mod pallet {
                                 Pallet::<T>::write((meta.get_id(), resp))?;
                             }
                         }
-                        QueueSignal::ProtocolError => {
+                        QueueSignal::ProtocolError(status) => {
                             // TODO: emit an error
 
                             if let Message::Request(req) = msg {
                                 let result = XbiResult {
-                                    status: Status::DispatchFailed,
+                                    status,
                                     output: vec![],
                                     witness: vec![],
                                 };
