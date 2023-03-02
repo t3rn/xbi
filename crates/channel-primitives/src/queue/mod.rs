@@ -24,9 +24,11 @@ pub trait Instantiable {
 #[derive(Clone, Eq, PartialEq, Default, Encode, Decode, TypeInfo, Debug)]
 pub enum QueueSignal {
     #[default]
-    PendingResponse,
-    XcmSendError,
-    ResponseReceived,
+    PendingRequest, // Request needs to be sent over the protocol
+    PendingExecution, // The message needs to be executed by the handler
+    PendingResponse,  // The executed message needs to be responded over the protocol
+    PendingResult,    // Result needs to be stored in the responses
+    ProtocolError,
 }
 
 pub trait Queueable<Item>

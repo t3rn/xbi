@@ -62,7 +62,7 @@ where
 
         Queue::push((
             Message::Response(xbi_result, msg.metadata.clone()),
-            QueueSignal::ResponseReceived,
+            QueueSignal::PendingResponse,
         ));
 
         instruction_result.map(HandlerInfo::into)
@@ -79,7 +79,7 @@ where
 
         Queue::push((
             Message::Response(msg.clone(), metadata.clone()),
-            QueueSignal::ResponseReceived,
+            QueueSignal::PendingResult,
         ));
 
         // TODO: add the cost of handling this response here
