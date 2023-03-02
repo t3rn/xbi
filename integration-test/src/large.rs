@@ -776,7 +776,7 @@ mod tests {
         setup();
         setup_default_assets();
 
-        println!(">>> [Slim] Sending xbi message to large");
+        println!(">>> [Slim] Queueing xbi message");
         Slim::execute_with(|| {
             assert_ok!(slim::XbiPortal::send(
                 slim::Origin::signed(ALICE),
@@ -805,6 +805,13 @@ mod tests {
                 }
             ));
 
+            crate::slim::log_all_events("Slim");
+            slim::System::reset_events();
+        });
+
+        println!(">>> [Slim] Processing queue");
+        Slim::execute_with(|| {
+            assert_ok!(slim::XbiPortal::process_queue(slim::Origin::root()));
             crate::slim::log_all_events("Slim");
             assert_xcmp_sent!(slim);
             assert_xbi_sent!(slim);
@@ -852,7 +859,7 @@ mod tests {
             System::reset_events();
         });
 
-        println!(">>> [Slim] Sending xbi message to large");
+        println!(">>> [Slim] Queueing xbi message");
         Slim::execute_with(|| {
             assert_ok!(slim::XbiPortal::send(
                 slim::Origin::signed(ALICE),
@@ -879,6 +886,13 @@ mod tests {
                     ),
                 }
             ));
+            crate::slim::log_all_events("Slim");
+            slim::System::reset_events();
+        });
+
+        println!(">>> [Slim] Processing queue");
+        Slim::execute_with(|| {
+            assert_ok!(slim::XbiPortal::process_queue(slim::Origin::root()));
             crate::slim::log_all_events("Slim");
             assert_xcmp_sent!(slim);
             assert_xbi_sent!(slim);
@@ -927,7 +941,7 @@ mod tests {
             System::reset_events();
         });
 
-        println!(">>> [Slim] Sending xbi message to large");
+        println!(">>> [Slim] Queueing xbi message");
         Slim::execute_with(|| {
             assert_ok!(slim::XbiPortal::send(
                 slim::Origin::signed(ALICE),
@@ -955,6 +969,13 @@ mod tests {
                 }
             ));
 
+            crate::slim::log_all_events("Slim");
+            slim::System::reset_events();
+        });
+
+        println!(">>> [Slim] Processing queue");
+        Slim::execute_with(|| {
+            assert_ok!(slim::XbiPortal::process_queue(slim::Origin::root()));
             crate::slim::log_all_events("Slim");
             assert_xcmp_sent!(slim);
             assert_xbi_sent!(slim);
