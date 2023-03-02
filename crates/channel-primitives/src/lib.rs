@@ -73,6 +73,14 @@ impl ChannelProgressionEmitter for () {
     fn emit_sent(_msg: Message) {}
 }
 
+/// An type representing ways by which we can handle the channel
+#[derive(Clone, Eq, PartialEq, Debug, Default, Encode, Decode, TypeInfo)]
+pub enum ExecutionType {
+    #[default]
+    Sync,
+    Async,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

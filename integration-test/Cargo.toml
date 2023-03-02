@@ -42,6 +42,7 @@ pallet-asset-registry   = { path = "../pallets/asset-registry" }
 pallet-xbi-portal       = { path = "../pallets/portal" }
 substrate-abi           = { path = "../crates/sabi" }
 substrate-contracts-abi = { path = "../crates/scabi" }
+xp-channel              = { path = "../crates/channel-primitives" }
 xp-format               = { path = "../crates/format" }
 xp-xcm                  = { path = "../crates/xcm-primitives" }
 

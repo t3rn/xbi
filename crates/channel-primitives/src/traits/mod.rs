@@ -65,7 +65,7 @@ pub trait XbiInstructionHandler<Origin> {
     >;
 }
 
-// A trait providing generic write access, its intention is so that a pallet may provide a way to write channel elements to storage.
+/// A trait providing generic write access, its intention is so that a pallet may provide a way to write channel elements to storage.
 pub trait Writable<T: FullCodec> {
     fn write(t: T) -> DispatchResult;
 }
