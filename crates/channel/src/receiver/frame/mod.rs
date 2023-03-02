@@ -8,7 +8,7 @@ pub mod queue_backed;
 pub mod sync;
 
 /// The receiver needs to invert the message src/dest so that it can respond accordingly
-pub(crate) fn invert_destination_from_message(metadata: &mut XbiMetadata) {
+pub fn invert_destination_from_message(metadata: &mut XbiMetadata) {
     let reply_para = metadata.src_para_id;
     let my_para = metadata.dest_para_id;
 
@@ -17,7 +17,7 @@ pub(crate) fn invert_destination_from_message(metadata: &mut XbiMetadata) {
     metadata.src_para_id = my_para;
 }
 
-pub(crate) fn handle_instruction_result<E: ChannelProgressionEmitter>(
+pub fn handle_instruction_result<E: ChannelProgressionEmitter>(
     instruction_handle: &Result<
         HandlerInfo<frame_support::weights::Weight>,
         sp_runtime::DispatchErrorWithPostInfo<frame_support::weights::PostDispatchInfo>,
