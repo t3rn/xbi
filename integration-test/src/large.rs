@@ -506,6 +506,7 @@ mod tests {
         Large::execute_with(|| {
             assert_ok!(XbiPortal::send(
                 large::Origin::signed(ALICE),
+                xp_channel::ExecutionType::Sync,
                 XbiFormat {
                     instr: XbiInstruction::CallEvm {
                         source: SubstrateAbiConverter::try_convert(ALICE).unwrap(),
@@ -569,6 +570,7 @@ mod tests {
         Slim::execute_with(|| {
             assert_ok!(slim::XbiPortal::send(
                 slim::Origin::signed(ALICE),
+                xp_channel::ExecutionType::Sync,
                 XbiFormat {
                     instr: XbiInstruction::CallEvm {
                         source: SubstrateAbiConverter::try_convert(ALICE).unwrap(),
@@ -644,6 +646,7 @@ mod tests {
         Slim::execute_with(|| {
             assert_ok!(slim::XbiPortal::send(
                 slim::Origin::signed(ALICE),
+                xp_channel::ExecutionType::Sync,
                 XbiFormat {
                     instr: XbiInstruction::CallWasm {
                         dest: hex_literal::hex!(
@@ -718,6 +721,217 @@ mod tests {
         Slim::execute_with(|| {
             assert_ok!(slim::XbiPortal::send(
                 slim::Origin::signed(ALICE),
+                xp_channel::ExecutionType::Sync,
+                XbiFormat {
+                    instr: XbiInstruction::CallWasm {
+                        dest: hex_literal::hex!(
+                            "18a84a38cff91f3345a66802803f8959d11d4d2315a082bfeb2a49ce72b2577f"
+                        )
+                        .into(),
+                        value: 0,
+                        gas_limit: 500_000_000_000, // TODO: decide how we pass this through, really it should come from XBIMetadata
+                        storage_deposit_limit: None,
+                        data: b"".to_vec()
+                    },
+                    metadata: XbiMetadata::new(
+                        SLIM_PARA_ID,
+                        LARGE_PARA_ID,
+                        Default::default(),
+                        Fees::new(Some(1), Some(100_000), Some(10_000_000_000)),
+                        None,
+                        Default::default(),
+                        Default::default(),
+                    ),
+                }
+            ));
+
+            crate::slim::log_all_events("Slim");
+            assert_xcmp_sent!(slim);
+            assert_xbi_sent!(slim);
+            slim::System::reset_events();
+        });
+
+        println!(">>> [Large] checking events for xbi message");
+        Large::execute_with(|| {
+            log_all_events();
+            assert_xbi_received!(large);
+            assert_xbi_request_handled!(large);
+            assert_xbi_instruction_handled!(large);
+            assert_xcmp_receipt_success!(large);
+            assert_xcmp_sent!(large);
+            assert_xbi_sent!(large, Status::ExecutionLimitExceeded);
+            assert_xcmp_receipt_success!(large);
+            System::reset_events();
+        });
+
+        Slim::execute_with(|| {
+            crate::slim::log_all_events("Slim");
+            assert_response_stored!(slim, Status::ExecutionLimitExceeded);
+            slim::System::reset_events();
+        });
+    }
+
+    #[test]
+    fn slim_executes_an_evm_contract_on_large_async() {
+        setup();
+        setup_default_assets();
+
+        println!(">>> [Slim] Sending xbi message to large");
+        Slim::execute_with(|| {
+            assert_ok!(slim::XbiPortal::send(
+                slim::Origin::signed(ALICE),
+                xp_channel::ExecutionType::Async,
+                XbiFormat {
+                    instr: XbiInstruction::CallEvm {
+                        source: SubstrateAbiConverter::try_convert(ALICE).unwrap(),
+                        target: substrate_abi::AccountId20::from_low_u64_be(1),
+                        value: 0.into(),
+                        input: b"hello world".to_vec(),
+                        gas_limit: 5000000,
+                        max_fee_per_gas: SubstrateAbiConverter::convert(0_u32),
+                        max_priority_fee_per_gas: None,
+                        nonce: None,
+                        access_list: vec![]
+                    },
+                    metadata: XbiMetadata::new(
+                        SLIM_PARA_ID,
+                        LARGE_PARA_ID,
+                        Default::default(),
+                        Fees::new(Some(1), Some(90_000_000_000), Some(10_000_000_000)),
+                        None,
+                        Default::default(),
+                        Default::default(),
+                    ),
+                }
+            ));
+
+            crate::slim::log_all_events("Slim");
+            assert_xcmp_sent!(slim);
+            assert_xbi_sent!(slim);
+            slim::System::reset_events();
+        });
+
+        println!(">>> [Large] checking events for xbi message");
+        Large::execute_with(|| {
+            log_all_events();
+            assert_xbi_received!(large);
+            assert_xbi_request_handled!(large);
+            assert_xbi_instruction_handled!(large);
+            assert_xcmp_receipt_success!(large);
+            assert_xcmp_sent!(large);
+            assert_xbi_sent!(large, Status::Success);
+            assert_xcmp_receipt_success!(large);
+            System::reset_events();
+        });
+
+        Slim::execute_with(|| {
+            crate::slim::log_all_events("Slim");
+            assert_response_stored!(slim, Status::Success);
+            slim::System::reset_events();
+        });
+    }
+
+    #[test]
+    fn slim_executes_a_wasm_contract_on_large_async() {
+        setup();
+        setup_default_assets();
+
+        Large::execute_with(|| {
+            let contract_path = "fixtures/transfer_return_code.wat";
+            let wasm = wat::parse_file(contract_path).expect("Failed to parse file");
+            assert_ok!(large::Contracts::instantiate_with_code(
+                Origin::signed(ALICE),
+                0,
+                100_000_000_000,
+                None,
+                wasm,
+                vec![],
+                vec![],
+            ));
+            log_all_events();
+            System::reset_events();
+        });
+
+        println!(">>> [Slim] Sending xbi message to large");
+        Slim::execute_with(|| {
+            assert_ok!(slim::XbiPortal::send(
+                slim::Origin::signed(ALICE),
+                xp_channel::ExecutionType::Async,
+                XbiFormat {
+                    instr: XbiInstruction::CallWasm {
+                        dest: hex_literal::hex!(
+                            "18a84a38cff91f3345a66802803f8959d11d4d2315a082bfeb2a49ce72b2577f"
+                        )
+                        .into(),
+                        value: 0,
+                        gas_limit: 500_000_000_000,
+                        storage_deposit_limit: None,
+                        data: b"".to_vec()
+                    },
+                    metadata: XbiMetadata::new(
+                        SLIM_PARA_ID,
+                        LARGE_PARA_ID,
+                        Default::default(),
+                        Fees::new(Some(1), Some(90_000_000_000), Some(10_000_000_000)),
+                        None,
+                        Default::default(),
+                        Default::default(),
+                    ),
+                }
+            ));
+            crate::slim::log_all_events("Slim");
+            assert_xcmp_sent!(slim);
+            assert_xbi_sent!(slim);
+            slim::System::reset_events();
+        });
+
+        println!(">>> [Large] checking events for xbi message");
+        Large::execute_with(|| {
+            log_all_events();
+            assert_xbi_received!(large);
+            assert_xbi_request_handled!(large);
+            assert_xbi_instruction_handled!(large);
+            assert_xcmp_receipt_success!(large);
+            assert_xcmp_sent!(large);
+            assert_xbi_sent!(large, Status::Success);
+            assert_xcmp_receipt_success!(large);
+            System::reset_events();
+        });
+
+        println!(">>> [Slim] Checking slim events");
+        Slim::execute_with(|| {
+            crate::slim::log_all_events("Slim");
+            assert_response_stored!(slim, Status::Success);
+            slim::System::reset_events();
+        });
+    }
+
+    #[test]
+    fn user_cannot_exhaust_more_than_provided_gas_async() {
+        setup();
+        setup_default_assets();
+
+        Large::execute_with(|| {
+            let contract_path = "fixtures/transfer_return_code.wat";
+            let wasm = wat::parse_file(contract_path).expect("Failed to parse file");
+            assert_ok!(large::Contracts::instantiate_with_code(
+                Origin::signed(ALICE),
+                0,
+                100_000_000_000,
+                None,
+                wasm,
+                vec![],
+                vec![],
+            ));
+            log_all_events();
+            System::reset_events();
+        });
+
+        println!(">>> [Slim] Sending xbi message to large");
+        Slim::execute_with(|| {
+            assert_ok!(slim::XbiPortal::send(
+                slim::Origin::signed(ALICE),
+                xp_channel::ExecutionType::Async,
                 XbiFormat {
                     instr: XbiInstruction::CallWasm {
                         dest: hex_literal::hex!(

@@ -55,7 +55,10 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
     use sp_runtime::traits::BlakeTwo256;
     use xcm::v2::SendXcm;
-    use xp_channel::queue::{ringbuffer::DefaultIdx, Queue as QueueExt, QueueSignal};
+    use xp_channel::{
+        queue::{ringbuffer::DefaultIdx, Queue as QueueExt, QueueSignal},
+        ExecutionType,
+    };
     use xp_xcm::frame_traits::AssetLookup;
 
     /// A reexport of the Queue backed by a RingBufferTransient
@@ -67,7 +70,18 @@ pub mod pallet {
     >;
 
     /// A reexport of the Sender backed by the Queue
-    pub(crate) type Sender<T> = xs_channel::sender::frame::queue_backed::Sender<
+    pub(crate) type Sender<T> = xs_channel::sender::frame::sync::Sender<
+        T,
+        Pallet<T>,
+        Pallet<T>,
+        <T as Config>::Xcm,
+        <T as Config>::Call,
+        <T as Config>::AssetRegistry,
+        u32,
+    >;
+
+    /// A reexport of the Sender backed by the Queue
+    pub(crate) type AsyncSender<T> = xs_channel::sender::frame::queue_backed::Sender<
         T,
         Pallet<T>,
         Pallet<T>,
@@ -78,13 +92,21 @@ pub mod pallet {
         u32,
     >;
 
-    /// A reexport of the Receiver backed by the Queue
+    /// A reexport of the synchronous receiver
     pub(crate) type Receiver<T> = xs_channel::receiver::frame::sync::Receiver<
         T,
         Sender<T>,
         Pallet<T>,
         Queue<Pallet<T>>,
         Pallet<T>,
+        Pallet<T>,
+    >;
+
+    /// A reexport of the Receiver backed by the Queue
+    pub(crate) type AsyncReceiver<T> = xs_channel::receiver::frame::queue_backed::Receiver<
+        T,
+        Pallet<T>,
+        Queue<Pallet<T>>,
         Pallet<T>,
     >;
 
@@ -279,7 +301,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::weight(50_000 + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
-        pub fn send(origin: OriginFor<T>, msg: XbiFormat) -> DispatchResult {
+        pub fn send(origin: OriginFor<T>, kind: ExecutionType, msg: XbiFormat) -> DispatchResult {
             let _who = ensure_signed(origin)?;
             let mut msg = msg;
 
@@ -288,8 +310,12 @@ pub mod pallet {
             <MessageNonce<T>>::set(nonce);
             msg.metadata.enrich_id::<BlakeTwo256>(nonce, None);
 
-            // TODO: we probably shouldnt allow send src==dest
-            <Sender<T> as XbiSender<_>>::send(Message::Request(msg))
+            match kind {
+                ExecutionType::Sync => <Sender<T> as XbiSender<_>>::send(Message::Request(msg)),
+                ExecutionType::Async => {
+                    <AsyncSender<T> as XbiSender<_>>::send(Message::Request(msg))
+                }
+            }
         }
 
         /// This receive api is called by the sender on the source parachain and needs to exist for
