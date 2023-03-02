@@ -1,4 +1,3 @@
-use crate::receiver::frame::invert_destination_from_message;
 use crate::receiver::Receiver as ReceiverExt;
 use frame_support::pallet_prelude::DispatchResultWithPostInfo;
 use frame_system::{ensure_signed, Config};
@@ -6,66 +5,43 @@ use sp_runtime::{traits::UniqueSaturatedInto, Either};
 use sp_std::marker::PhantomData;
 use xp_channel::{
     queue::{QueueSignal, Queueable},
-    traits::{HandlerInfo, XbiInstructionHandler},
     ChannelProgressionEmitter, Message,
 };
 use xp_format::Timestamp::*;
 use xp_format::{XbiFormat, XbiMetadata, XbiResult};
 
-use super::handle_instruction_result;
-
 /// This is an asynchronous queue backed frame receiver, which expects some queue handler to transport the messages back via the transport layer,
 /// detaching the message handling part with the transport of the message.
-pub struct Receiver<T, Emitter, Queue, InstructionHandler> {
-    phantom: PhantomData<(T, Emitter, Queue, InstructionHandler)>,
+pub struct Receiver<T, Queue, Emitter> {
+    phantom: PhantomData<(T, Queue, Emitter)>,
 }
 
-impl<T, Emitter, Queue, InstructionHandler> ReceiverExt
-    for Receiver<T, Emitter, Queue, InstructionHandler>
+impl<T, Queue, Emitter> ReceiverExt for Receiver<T, Queue, Emitter>
 where
     T: Config,
-    Emitter: ChannelProgressionEmitter,
     Queue: Queueable<(Message, QueueSignal)>,
-    InstructionHandler: XbiInstructionHandler<T::Origin>,
+    Emitter: ChannelProgressionEmitter,
 {
     type Origin = T::Origin;
     type Outcome = DispatchResultWithPostInfo;
 
     /// Request should always run the instruction, and produce some info containing meters for the execution
-    fn handle_request(origin: &Self::Origin, msg: &mut XbiFormat) -> DispatchResultWithPostInfo {
+    fn handle_request(origin: &Self::Origin, format: &mut XbiFormat) -> DispatchResultWithPostInfo {
         let _who = ensure_signed(origin.clone())?;
+        Emitter::emit_received(Either::Left(format));
+
         let current_block: u32 = <frame_system::Pallet<T>>::block_number().unique_saturated_into();
 
         // progress to delivered
-        msg.metadata.progress(Delivered(current_block));
-
-        Emitter::emit_received(Either::Left(msg));
-
-        invert_destination_from_message(&mut msg.metadata);
-
-        let instruction_result = InstructionHandler::handle(origin, msg);
-
-        let xbi_result = handle_instruction_result::<Emitter>(&instruction_result, msg);
-
-        // progress to executed
-        msg.metadata.progress(Executed(current_block));
-
-        Emitter::emit_request_handled(
-            &xbi_result,
-            &msg.metadata,
-            &match &instruction_result {
-                Ok(info) => Some(info.weight),
-                Err(e) => e.post_info.actual_weight,
-            }
-            .unwrap_or_default(),
-        );
+        format.metadata.progress(Delivered(current_block));
 
         Queue::push((
-            Message::Response(xbi_result, msg.metadata.clone()),
-            QueueSignal::PendingResponse,
+            Message::Request(format.to_owned()),
+            QueueSignal::PendingExecution,
         ));
 
-        instruction_result.map(HandlerInfo::into)
+        // TODO: cost of queueing message
+        Ok(Default::default())
     }
 
     /// Response should delegate to the queue handler who would know about how to handle the message

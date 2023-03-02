@@ -65,6 +65,7 @@ pub mod pallet {
     pub use xp_xcm::frame_traits::XcmConvert;
     use xp_xcm::MultiLocationBuilder;
     use xp_xcm::{xcm::prelude::*, XcmBuilder};
+    use xs_channel::receiver::frame::{handle_instruction_result, invert_destination_from_message};
 
     /// A reexport of the Queue backed by a RingBufferTransient
     pub(crate) type Queue<Pallet> = RingBufferTransient<
@@ -100,12 +101,8 @@ pub mod pallet {
     >;
 
     /// A reexport of the Receiver backed by the Queue
-    pub(crate) type AsyncReceiver<T> = xs_channel::receiver::frame::queue_backed::Receiver<
-        T,
-        Pallet<T>,
-        Queue<Pallet<T>>,
-        Pallet<T>,
-    >;
+    pub(crate) type AsyncReceiver<T> =
+        xs_channel::receiver::frame::queue_backed::Receiver<T, Queue<Pallet<T>>, Pallet<T>>;
 
     // TODO: unify these storage items
     #[pallet::storage]
@@ -339,6 +336,8 @@ pub mod pallet {
             let current_block: u32 =
                 <frame_system::Pallet<T>>::block_number().unique_saturated_into();
 
+            let mut weight: u64 = 0;
+
             // TODO: terminal operations
             let max_events_to_process = T::CheckOutLimit::get();
 
@@ -402,7 +401,43 @@ pub mod pallet {
                             }
                         }
                         QueueSignal::PendingExecution => {
-                            todo!()
+                            if let Message::Request(format) = &mut msg {
+                                invert_destination_from_message(&mut format.metadata);
+
+                                let instruction_result =
+                                    Pallet::<T>::handle(&T::Origin::root(), format);
+
+                                let xbi_result = handle_instruction_result::<Pallet<T>>(
+                                    &instruction_result,
+                                    format,
+                                );
+
+                                // progress to executed
+                                format.metadata.progress(Timestamp::Executed(current_block));
+
+                                Pallet::<T>::emit_request_handled(
+                                    &xbi_result,
+                                    &format.metadata,
+                                    &match &instruction_result {
+                                        Ok(info) => Some(info.weight),
+                                        Err(e) => e.post_info.actual_weight,
+                                    }
+                                    .unwrap_or_default(),
+                                );
+
+                                queue.push((
+                                    Message::Response(xbi_result, format.metadata.clone()),
+                                    QueueSignal::PendingResponse,
+                                ));
+
+                                let handler: DispatchResultWithPostInfo =
+                                    instruction_result.map(HandlerInfo::into);
+
+                                if let Ok(info) = handler {
+                                    weight = weight
+                                        .saturating_add(info.actual_weight.unwrap_or_default());
+                                }
+                            }
                         }
                         QueueSignal::PendingResponse => {
                             if let Message::Response(result, metadata) = &mut msg {
