@@ -24,24 +24,33 @@ where
     fn send(mut msg: Message) -> Self::Outcome {
         let current_block: u32 = <frame_system::Pallet<T>>::block_number().unique_saturated_into();
 
+        log::debug!(target: "xs-channel", "Sending message: {:?} on block {}", msg, current_block);
+
         match &mut msg {
             Message::Request(format) => {
                 format.metadata.progress(Submitted(current_block));
 
+                assert!(format.metadata.get_timesheet().submitted.is_some());
                 // TODO: charge as reserve because we pay as sovereign
                 // TODO: actually reserve fees
 
+                log::debug!(target: "xs-channel", "Pushing message: {:?} on block {} to queue", format, current_block);
+                println!(
+                    "Pushing message: {:?} on block {} to queue",
+                    format, current_block
+                );
                 Queue::push((
                     Message::Request(format.to_owned()),
                     QueueSignal::PendingRequest,
                 ));
             }
             Message::Response(result, metadata) => {
-                // Progress the delivered timestamp
                 metadata.progress(Responded(current_block));
 
                 // TODO: charge as reserve because we pay as sovereign
                 // TODO: actually reserve fees
+
+                log::debug!(target: "xs-channel", "Pushing message: {:?} {:?} on block {} to queue", result, metadata, current_block);
 
                 Queue::push((
                     Message::Response(result.to_owned(), metadata.to_owned()),
