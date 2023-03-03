@@ -127,6 +127,12 @@ where
     ///
     /// Will insert the new item, but will not update the bounds in storage.
     fn push(&mut self, item: Item) {
+        log::debug!(
+            target: "xp_channel::queue",
+            "pushing item: {:?} at index {:?}",
+            item.encode(),
+            self.end.encode()
+        );
         M::insert(self.end, item);
         // this will intentionally overflow and wrap around when bonds_end
         // reaches `Index::max_value` because we want a ringbuffer.
