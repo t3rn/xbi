@@ -297,24 +297,33 @@ impl Fees {
 /// Utilised by the queue to determine when to stop progressing an item
 #[derive(Debug, Clone, PartialEq, Default, Eq, Encode, Decode, TypeInfo)]
 pub struct XbiTimeSheet<BlockNumber: FullCodec + TypeInfo> {
-    /// At the time of user submission
+    /// When a message was submitted
     pub submitted: Option<BlockNumber>,
-    /// When sent over xcm
+    /// When a message was sent over the protocol
     pub sent: Option<BlockNumber>,
-    /// When received by the receiver
+    /// When a message was received on the other side
     pub delivered: Option<BlockNumber>,
-    /// When executed
+    /// When a message was executed
     pub executed: Option<BlockNumber>,
-    /// When the response was received
+    /// When a response was sent
     pub responded: Option<BlockNumber>,
+    /// When a response was received by the initiater
+    pub received: Option<BlockNumber>,
 }
 
 pub enum Timestamp<BlockNumber: FullCodec + TypeInfo> {
+    /// When a message was submitted
     Submitted(BlockNumber),
+    /// When a message was sent over the protocol
     Sent(BlockNumber),
+    /// When a message was received on the other side
     Delivered(BlockNumber),
+    /// When a message was executed
     Executed(BlockNumber),
+    /// When a response was sent
     Responded(BlockNumber),
+    /// When a response was received by the initiater
+    Received(BlockNumber),
 }
 
 impl<BlockNumber: FullCodec + TypeInfo> XbiTimeSheet<BlockNumber> {
@@ -325,6 +334,7 @@ impl<BlockNumber: FullCodec + TypeInfo> XbiTimeSheet<BlockNumber> {
             delivered: None,
             executed: None,
             responded: None,
+            received: None,
         }
     }
 
@@ -335,6 +345,7 @@ impl<BlockNumber: FullCodec + TypeInfo> XbiTimeSheet<BlockNumber> {
             Timestamp::Delivered(block) => self.delivered = Some(block),
             Timestamp::Executed(block) => self.executed = Some(block),
             Timestamp::Responded(block) => self.responded = Some(block),
+            Timestamp::Received(block) => self.received = Some(block),
         }
         self
     }
@@ -416,6 +427,10 @@ impl XbiMetadata {
 
     pub fn get_id(&self) -> sp_core::H256 {
         self.id
+    }
+
+    pub fn get_timesheet(&self) -> &XbiTimeSheet<u32> {
+        &self.timesheet
     }
 
     #[allow(clippy::too_many_arguments)]
