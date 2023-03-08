@@ -1,4 +1,4 @@
-use crate::{mock::*, xbi_abi::AccountId32, BufferRange, Error, Pallet, QueueItems, XbiResponses};
+use crate::{mock::*, xbi_abi::AccountId32, BufferRange, Error, Pallet, XbiResponses};
 use crate::{Queue, H256};
 use frame_support::{assert_err, assert_ok};
 use xp_channel::traits::Writable;
@@ -46,7 +46,15 @@ fn test_async_sender_pushes_request_to_queue() {
                 dest: AccountId32::new([4u8; 32]),
                 value: 100,
             },
-            ..Default::default()
+            metadata: XbiMetadata::new(
+                0,
+                0,
+                Default::default(),
+                Default::default(),
+                Some(AccountId32::new([1u8; 32])),
+                0,
+                None,
+            ),
         };
         assert_ok!(crate::pallet::AsyncSender::<Test>::send(Message::Request(
             format.clone()
@@ -68,7 +76,15 @@ fn test_async_sender_pushes_request_to_queue() {
 fn test_async_sender_pushes_response_to_queue() {
     new_test_ext().execute_with(|| {
         let result = XbiResult::default();
-        let mut meta = XbiMetadata::default();
+        let mut meta = XbiMetadata::new(
+            0,
+            0,
+            Default::default(),
+            Default::default(),
+            Some(AccountId32::new([1u8; 32])),
+            0,
+            None,
+        );
 
         assert_ok!(crate::pallet::AsyncSender::<Test>::send(Message::Response(
             result.clone(),

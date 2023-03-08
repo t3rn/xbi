@@ -520,9 +520,10 @@ mod tests {
                     delivered: Some(10),
                     executed: Some(11),
                     responded: Some(12),
+                    received: None,
                 },
                 fees: Fees::new(Some(13), Some(14), Some(15)),
-                maybe_known_origin: None,
+                origin: None,
             },
         };
 

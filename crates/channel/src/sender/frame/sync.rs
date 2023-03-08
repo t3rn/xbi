@@ -1,5 +1,10 @@
 use super::ReceiveCallProvider;
-use crate::sender::Sender as SenderExt;
+use crate::sender::{xbi_origin, Sender as SenderExt};
+use codec::{Decode, Encode};
+use frame_support::traits::{
+    fungibles::{BalancedHold, Inspect, Mutate, MutateHold},
+    Get, ReservableCurrency,
+};
 use frame_system::Config;
 use sp_runtime::{traits::UniqueSaturatedInto, DispatchError, DispatchResult};
 use sp_std::marker::PhantomData;
@@ -11,20 +16,66 @@ use xp_xcm::{MultiLocationBuilder, XcmBuilder};
 
 // TODO: currently there is a spike to investigate this via dispatch send round-trip
 /// A synchronous frame-based channel sender part.
-pub struct Sender<T, Emitter, CallProvider, Xcm, Call, AssetRegistry, AssetId> {
+pub struct Sender<
+    T,
+    Emitter,
+    CallProvider,
+    Xcm,
+    Currency,
+    Assets,
+    AssetRegistry,
+    ChargeForMessage,
+    AssetReserveCustodian,
+> {
     #[allow(clippy::all)]
-    phantom: PhantomData<(T, Emitter, CallProvider, Xcm, Call, AssetRegistry, AssetId)>,
+    phantom: PhantomData<(
+        T,
+        Emitter,
+        CallProvider,
+        Xcm,
+        Currency,
+        Assets,
+        AssetRegistry,
+        ChargeForMessage,
+        AssetReserveCustodian,
+    )>,
 }
 
-impl<T, Emitter, CallProvider, Xcm, Call, AssetLookup, AssetId> SenderExt<Message>
-    for Sender<T, Emitter, CallProvider, Xcm, Call, AssetLookup, AssetId>
+type AssetIdOf<T, Assets> = <Assets as Inspect<<T as Config>::AccountId>>::AssetId;
+
+impl<
+        T,
+        Emitter,
+        CallProvider,
+        Xcm,
+        Currency,
+        Assets,
+        AssetLookup,
+        ChargeForMessage,
+        AssetReserveCustodian,
+    > SenderExt<Message>
+    for Sender<
+        T,
+        Emitter,
+        CallProvider,
+        Xcm,
+        Currency,
+        Assets,
+        AssetLookup,
+        ChargeForMessage,
+        AssetReserveCustodian,
+    >
 where
     T: Config,
     Emitter: ChannelProgressionEmitter,
     CallProvider: ReceiveCallProvider,
     Xcm: SendXcm,
-    AssetLookup: xp_xcm::frame_traits::AssetLookup<AssetId>,
-    AssetId: From<u32> + Clone,
+    Currency: ReservableCurrency<T::AccountId>,
+    Assets: Mutate<T::AccountId>,
+    AssetLookup: xp_xcm::frame_traits::AssetLookup<<Assets as Inspect<T::AccountId>>::AssetId>,
+    ChargeForMessage:
+        xp_channel::traits::ChargeForMessage<T::AccountId, Currency, Assets, AssetReserveCustodian>,
+    AssetReserveCustodian: Get<T::AccountId>,
 {
     type Outcome = DispatchResult;
 
@@ -39,15 +90,20 @@ where
 
         match &mut msg {
             Message::Request(format) => {
+                let o: T::AccountId = xbi_origin(&format.metadata)?;
+
                 // Progress the timestamps in one go
                 format.metadata.progress(Submitted(current_block));
                 format.metadata.progress(Sent(current_block));
+
+                ChargeForMessage::charge(&o, &format.metadata.fees)?;
 
                 // TODO: charge as reserve because we pay as sovereign
                 // TODO: actually reserve fees
                 let payment_asset = match format.metadata.fees.asset {
                     Some(id) => {
-                        let id: AssetId = id.into();
+                        let id: AssetIdOf<T, Assets> = Decode::decode(&mut &id.encode()[..])
+                            .map_err(|_| DispatchError::CannotLookup)?;
                         AssetLookup::reverse_ref(&id).map_err(|_| DispatchError::CannotLookup)?
                     }
                     None => MultiLocationBuilder::new_native().build(),
@@ -77,8 +133,12 @@ where
                     })
             }
             Message::Response(result, metadata) => {
+                let o: T::AccountId = xbi_origin(&metadata)?;
+
                 // Progress the delivered timestamp
                 metadata.progress(Responded(current_block));
+
+                ChargeForMessage::refund(&o, &metadata.fees)?;
 
                 // TODO: Set this and get it from config
                 let require_weight_at_most = 1_000_000_000;
@@ -87,7 +147,8 @@ where
                 // I think that should be configured by the channel implementation, not the user
                 let _payment_asset = match metadata.fees.asset {
                     Some(id) => {
-                        let id: AssetId = id.into();
+                        let id: AssetIdOf<T, Assets> = Decode::decode(&mut &id.encode()[..])
+                            .map_err(|_| DispatchError::CannotLookup)?;
                         AssetLookup::reverse_ref(&id).map_err(|_| DispatchError::CannotLookup)?
                     }
                     None => MultiLocationBuilder::new_native().build(),

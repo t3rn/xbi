@@ -2,6 +2,7 @@ use crate as pallet_xbi_portal;
 use frame_support::{
     parameter_types,
     traits::{ConstU16, ConstU64},
+    weights::IdentityFee,
 };
 use frame_system as system;
 use frame_system::EnsureRoot;
@@ -14,6 +15,7 @@ use sp_runtime::{
 
 pub type Balance = u128;
 pub type AssetId = u32;
+pub type AccountId = u64;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -34,7 +36,7 @@ frame_support::construct_runtime!(
 
 impl system::Config for Test {
     type AccountData = pallet_balances::AccountData<Balance>;
-    type AccountId = u64;
+    type AccountId = AccountId;
     type BaseCallFilter = frame_support::traits::Everything;
     type BlockHashCount = ConstU64<250>;
     type BlockLength = ();
@@ -98,6 +100,10 @@ impl evm_primitives::traits::Evm<<Test as frame_system::Config>::Origin> for Non
     }
 }
 
+parameter_types! {
+    pub ReserveBalanceCustodian: AccountId = 64;
+}
+
 impl pallet_xbi_portal::Config for Test {
     type Call = Call;
     type Event = Event;
@@ -115,7 +121,9 @@ impl pallet_xbi_portal::Config for Test {
     type ParachainId = ConstU32<3333>;
     type TimeoutChecksLimit = ConstU32<3000>;
     type Assets = Assets;
+    type FeeConversion = IdentityFee<Balance>;
     type DeFi = ();
+    type ReserveBalanceCustodian = ReserveBalanceCustodian;
 }
 
 parameter_types! {

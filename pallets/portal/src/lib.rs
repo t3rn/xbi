@@ -16,7 +16,7 @@ use contracts_primitives::traits::Contracts;
 use evm_primitives::traits::Evm;
 use frame_support::{
     traits::{fungibles::Transfer, Currency, ExistenceRequirement, Get},
-    weights::PostDispatchInfo,
+    weights::{PostDispatchInfo, WeightToFee},
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
 use sp_runtime::{traits::UniqueSaturatedInto, AccountId32, DispatchErrorWithPostInfo, Either};
@@ -48,7 +48,10 @@ pub mod pallet {
         *,
     };
     use contracts_primitives::ContractExecResult;
-    use frame_support::traits::OriginTrait;
+    use frame_support::traits::{
+        fungibles::{Inspect, Mutate},
+        OriginTrait,
+    };
     use frame_support::{
         pallet_prelude::*,
         traits::{fungibles::Transfer, ReservableCurrency},
@@ -67,6 +70,9 @@ pub mod pallet {
     use xp_xcm::{xcm::prelude::*, XcmBuilder};
     use xs_channel::receiver::frame::{handle_instruction_result, invert_destination_from_message};
 
+    type AssetIdOf<T> =
+        <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
+
     /// A reexport of the Queue backed by a RingBufferTransient
     pub(crate) type Queue<Pallet> = RingBufferTransient<
         (Message, QueueSignal),
@@ -81,14 +87,22 @@ pub mod pallet {
         Pallet<T>,
         Pallet<T>,
         <T as Config>::Xcm,
-        <T as Config>::Call,
+        <T as Config>::Currency,
+        <T as Config>::Assets,
         <T as Config>::AssetRegistry,
-        u32,
+        (),
+        <T as Config>::ReserveBalanceCustodian,
     >;
 
     /// A reexport of the Sender backed by the Queue
-    pub(crate) type AsyncSender<T> =
-        xs_channel::sender::frame::queue_backed::Sender<T, Queue<Pallet<T>>>;
+    pub(crate) type AsyncSender<T> = xs_channel::sender::frame::queue_backed::Sender<
+        T,
+        Queue<Pallet<T>>,
+        <T as Config>::Currency,
+        <T as Config>::Assets,
+        (),
+        <T as Config>::ReserveBalanceCustodian,
+    >;
 
     /// A reexport of the synchronous receiver
     pub(crate) type Receiver<T> = xs_channel::receiver::frame::sync::Receiver<
@@ -160,17 +174,25 @@ pub mod pallet {
             Self::Origin,
             Outcome = Result<(evm_primitives::CallInfo, Weight), DispatchError>,
         >;
-        type Assets: Transfer<Self::AccountId>;
+
         type Currency: ReservableCurrency<Self::AccountId>;
 
+        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
+
         /// Provide access to the asset registry so we can lookup, not really specific to XBI just helps us at this stage
-        type AssetRegistry: AssetLookup<u32>; // TODO: this breaks for non-u32 assets
+        type AssetRegistry: AssetLookup<<Self::Assets as Inspect<Self::AccountId>>::AssetId>;
 
         /// Provide access to DeFI
         type DeFi: DeFi<Self>;
 
         // TODO: might not actually need this
         type Callback: XBICallback<Self>;
+
+        /// Convert XBI messages to fees
+        type FeeConversion: WeightToFee;
+
+        /// A place to store reserved funds whilst we approach a nicer way of reserving asset funds
+        type ReserveBalanceCustodian: Get<Self::AccountId>;
 
         // Queue management constants, needs revisiting TODO
         #[pallet::constant]
@@ -366,8 +388,13 @@ pub mod pallet {
 
                                 // TODO: make function
                                 let payment_asset = match format.metadata.fees.asset {
-                                    Some(id) => T::AssetRegistry::reverse_ref(&id)
-                                        .map_err(|_| DispatchError::CannotLookup)?,
+                                    Some(id) => {
+                                        let id: AssetIdOf<T> =
+                                            Decode::decode(&mut &id.encode()[..])
+                                                .map_err(|_| DispatchError::CannotLookup)?;
+                                        T::AssetRegistry::reverse_ref(&id)
+                                            .map_err(|_| DispatchError::CannotLookup)?
+                                    }
                                     None => MultiLocationBuilder::new_native().build(),
                                 };
 
@@ -451,8 +478,13 @@ pub mod pallet {
                                 // NOTE: do we want to allow the user to control what asset we pay for in response?
                                 // I think that should be configured by the channel implementation, not the user
                                 let _payment_asset = match metadata.fees.asset {
-                                    Some(id) => T::AssetRegistry::reverse_ref(&id)
-                                        .map_err(|_| DispatchError::CannotLookup)?,
+                                    Some(id) => {
+                                        let id: AssetIdOf<T> =
+                                            Decode::decode(&mut &id.encode()[..])
+                                                .map_err(|_| DispatchError::CannotLookup)?;
+                                        T::AssetRegistry::reverse_ref(&id)
+                                            .map_err(|_| DispatchError::CannotLookup)?
+                                    }
                                     None => MultiLocationBuilder::new_native().build(),
                                 };
 
