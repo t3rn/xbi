@@ -367,6 +367,7 @@ impl<T: Config> ShouldExecute for Pallet<T> {
     }
 }
 
+// TODO: this needs plugging into the config and tied to the pallet more
 pub struct WeightAssetConvert<T: pallet::Config, WeightToFeeConverter> {
     _phantom: PhantomData<(T, WeightToFeeConverter)>,
     weight: Weight,

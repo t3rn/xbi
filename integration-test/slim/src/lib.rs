@@ -4,7 +4,7 @@ use cumulus_parachains_common::{impls::NonZeroIssuance, AuraId, SLOT_DURATION};
 use frame_support::{
     construct_runtime, parameter_types,
     traits::{Everything, Nothing, OnTimestampSet},
-    weights::{constants::WEIGHT_PER_SECOND, Weight},
+    weights::{constants::WEIGHT_PER_SECOND, IdentityFee, Weight},
 };
 use frame_system::EnsureRoot;
 use pallet_xcm::XcmPassthrough;
@@ -279,6 +279,10 @@ where
     type OverarchingCall = Call;
 }
 
+parameter_types! {
+    pub ReserveBalanceCustodian: AccountId = AccountId::new([64u8; 32]); // 0x404...4
+}
+
 impl pallet_xbi_portal::Config for Runtime {
     type AssetRegistry = AssetRegistry;
     type Assets = Assets;
@@ -297,6 +301,8 @@ impl pallet_xbi_portal::Config for Runtime {
     type TimeoutChecksLimit = ConstU32<3000>;
     type Xcm = XcmRouter;
     type XcmSovereignOrigin = XbiSovereign;
+    type FeeConversion = IdentityFee<Balance>;
+    type ReserveBalanceCustodian = ReserveBalanceCustodian;
 }
 
 pub type AssetId = u32;

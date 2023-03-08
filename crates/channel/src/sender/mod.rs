@@ -1,6 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use sp_runtime::{sp_std::prelude::*, traits::Dispatchable, DispatchResultWithInfo};
+use codec::Decode;
+use sp_runtime::{sp_std::prelude::*, traits::Dispatchable, DispatchError, DispatchResultWithInfo};
+use xp_channel::{XbiFormat, XbiMetadata};
 
 #[cfg(feature = "frame")]
 pub mod frame;
@@ -47,6 +49,16 @@ pub trait PromiseDelegate<T, Call: Dispatchable>: Sender<T> {
         req: T,
         promise: CallPromise<Self::Outcome, Call>,
     ) -> DispatchResultWithInfo<Call::PostInfo>;
+}
+
+pub fn xbi_origin<T: Decode>(m: &XbiMetadata) -> Result<T, DispatchError> {
+    let x: Result<T, DispatchError> = m
+        .get_origin()
+        .ok_or_else(|| "XBI message has no origin".into())
+        .and_then(|o| {
+            Decode::decode(&mut o.as_ref()).map_err(|err| "XBI message origin is not valid".into())
+        });
+    x
 }
 
 // Note: because of the store simulation, if one test fails, they all will fail. Run each one independently to find the busted test.

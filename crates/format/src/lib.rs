@@ -367,7 +367,7 @@ pub struct XbiMetadata {
     /// User provided cost limits
     pub fees: Fees,
     /// The optional known caller
-    pub maybe_known_origin: Option<AccountId32>,
+    origin: Option<AccountId32>,
 }
 
 /// max_exec_cost satisfies all of the execution fee requirements while going through XCM execution:
@@ -399,7 +399,7 @@ impl XbiMetadata {
             self.fees.asset.encode(),
             self.fees.execution_cost_limit.encode(),
             self.fees.notification_cost_limit.encode(),
-            self.maybe_known_origin.encode(),
+            self.origin.encode(),
         ]
     }
 
@@ -433,13 +433,17 @@ impl XbiMetadata {
         &self.timesheet
     }
 
+    pub fn get_origin(&self) -> Option<&AccountId32> {
+        self.origin.as_ref()
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         src_para_id: u32,
         dest_para_id: u32,
         timeouts: Timeouts,
         fees: Fees,
-        maybe_known_origin: Option<AccountId32>,
+        origin: Option<AccountId32>,
         nonce: u32,
         seed: Option<&[u8]>,
     ) -> Self {
@@ -450,7 +454,7 @@ impl XbiMetadata {
             timeouts,
             timesheet: Default::default(),
             fees,
-            maybe_known_origin,
+            origin,
         };
         base.enrich_id::<BlakeTwo256>(nonce, seed).to_owned()
     }

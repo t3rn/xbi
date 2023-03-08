@@ -1,4 +1,6 @@
-use crate::sender::Sender as SenderExt;
+use crate::sender::{xbi_origin, Sender as SenderExt};
+use codec::Decode;
+use frame_support::traits::{fungibles::Mutate, Get, ReservableCurrency};
 use frame_system::Config;
 use sp_runtime::{traits::UniqueSaturatedInto, DispatchResult};
 use sp_std::marker::PhantomData;
@@ -9,15 +11,28 @@ use xp_channel::{
 use xp_format::Timestamp::*;
 
 /// An asynchronous frame-based channel sender part. The resolving messages are handled by some Queue implementation.
-pub struct Sender<T, Queue> {
+pub struct Sender<T, Queue, Currency, Assets, ChargeForMessage, AssetReserveCustodian> {
     #[allow(clippy::all)]
-    phantom: PhantomData<(T, Queue)>,
+    phantom: PhantomData<(
+        T,
+        Queue,
+        Currency,
+        Assets,
+        ChargeForMessage,
+        AssetReserveCustodian,
+    )>,
 }
 
-impl<T, Queue> SenderExt<Message> for Sender<T, Queue>
+impl<T, Queue, Currency, Assets, ChargeForMessage, AssetReserveCustodian> SenderExt<Message>
+    for Sender<T, Queue, Currency, Assets, ChargeForMessage, AssetReserveCustodian>
 where
     T: Config,
     Queue: Queueable<(Message, QueueSignal)>,
+    Currency: ReservableCurrency<T::AccountId>,
+    Assets: Mutate<T::AccountId>,
+    ChargeForMessage:
+        xp_channel::traits::ChargeForMessage<T::AccountId, Currency, Assets, AssetReserveCustodian>,
+    AssetReserveCustodian: Get<T::AccountId>,
 {
     type Outcome = DispatchResult;
 
@@ -28,27 +43,25 @@ where
 
         match &mut msg {
             Message::Request(format) => {
+                let o: T::AccountId = xbi_origin(&format.metadata)?;
+
                 format.metadata.progress(Submitted(current_block));
 
-                assert!(format.metadata.get_timesheet().submitted.is_some());
-                // TODO: charge as reserve because we pay as sovereign
-                // TODO: actually reserve fees
+                ChargeForMessage::charge(&o, &format.metadata.fees)?;
 
                 log::debug!(target: "xs-channel", "Pushing message: {:?} on block {} to queue", format, current_block);
-                println!(
-                    "Pushing message: {:?} on block {} to queue",
-                    format, current_block
-                );
+
                 Queue::push((
                     Message::Request(format.to_owned()),
                     QueueSignal::PendingRequest,
                 ));
             }
             Message::Response(result, metadata) => {
+                let o: T::AccountId = xbi_origin(&metadata)?;
+
                 metadata.progress(Responded(current_block));
 
-                // TODO: charge as reserve because we pay as sovereign
-                // TODO: actually reserve fees
+                ChargeForMessage::refund(&o, &metadata.fees)?;
 
                 log::debug!(target: "xs-channel", "Pushing message: {:?} {:?} on block {} to queue", result, metadata, current_block);
 
