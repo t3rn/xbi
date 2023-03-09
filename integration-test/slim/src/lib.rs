@@ -88,7 +88,7 @@ parameter_types! {
     pub const RelayNetwork: NetworkId = NetworkId::Any;
         pub const SelfLocation: MultiLocation = MultiLocation::here();
     pub CheckingAccount: AccountId = PolkadotXcm::check_account();
-    pub CheckingAccount2: AccountId = AccountId::new([1_u8; 32]);
+    pub CheckingAccount2: AccountId = AccountId::new([254_u8; 32]);
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 }
@@ -263,13 +263,6 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
     }
 }
 
-parameter_types! {
-    pub const SelfGatewayId: [u8; 4] = [3, 3, 3, 3];
-    pub const XBIAccountId: AccountId = AccountId::new([68u8; 32]); // 0x444...4
-    // pub ParachainId: ConstU32 = ConstU32<ParachainInfo::parachain_id().into()>;
-    pub const XbiSovereign: AccountId = AccountId32::new([0u8; 32]);
-}
-
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
 where
     Call: From<C>,
@@ -280,7 +273,8 @@ where
 }
 
 parameter_types! {
-    pub ReserveBalanceCustodian: AccountId = AccountId::new([64u8; 32]); // 0x404...4
+    pub const XbiSovereign: AccountId = AccountId32::new([100u8; 32]);
+    pub ReserveBalanceCustodian: AccountId = AccountId::new([64u8; 32]);
 }
 
 impl pallet_xbi_portal::Config for Runtime {

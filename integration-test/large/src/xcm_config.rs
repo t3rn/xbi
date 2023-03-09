@@ -201,13 +201,6 @@ impl pallet_xcm::Config for Runtime {
     const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
 }
 
-parameter_types! {
-    pub const SelfGatewayId: [u8; 4] = [3, 3, 3, 3];
-    pub const XBIAccountId: AccountId = AccountId::new([68u8; 32]); // 0x444...4
-    // pub ParachainId: ConstU32 = ConstU32<ParachainInfo::parachain_id().into()>;
-    pub const XbiSovereign: AccountId = AccountId32::new([0u8; 32]);
-}
-
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
 where
     Call: From<C>,
@@ -217,7 +210,8 @@ where
 }
 
 parameter_types! {
-    pub ReserveBalanceCustodian: AccountId = AccountId::new([64u8; 32]); // 0x404...4
+    pub const XbiSovereign: AccountId = AccountId32::new([104u8; 32]);
+    pub ReserveBalanceCustodian: AccountId = AccountId::new([64u8; 32]);
 }
 
 impl pallet_xbi_portal::Config for Runtime {

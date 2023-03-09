@@ -4,13 +4,9 @@ use bytes::buf::Buf;
 use frame_support::{assert_ok, pallet_prelude::Weight, traits::GenesisBuild};
 use hex::ToHex;
 use log::LevelFilter;
-use pallet_asset_registry::VersionedMultiAssets;
 pub use rococo_runtime as rococo;
 use sp_runtime::AccountId32;
-use xcm::{
-    latest::prelude::*,
-    v1::{Junction, Junctions, MultiLocation},
-};
+use xcm::v1::{Junction, Junctions, MultiLocation};
 use xcm_emulator::{decl_test_network, decl_test_relay_chain, TestExt};
 
 use crate::{
@@ -111,27 +107,6 @@ pub fn transfer_to(dest: AccountId32, amt: u128) {
                 amount
             }) if to == &dest && amount == &amt
         )));
-        rococo::System::reset_events();
-    });
-}
-
-// Note, this is a little buggy, better use the macro instead
-pub fn teleport_to(dest: MultiLocation, beneficiary: MultiLocation, amount: u128) {
-    RococoNet::execute_with(|| {
-        let assets = MultiAssets::from(vec![MultiAsset {
-            id: AssetId::Concrete(MultiLocation::here()),
-            fun: Fungibility::Fungible(amount),
-        }]);
-        let assets = VersionedMultiAssets::V1(assets);
-        log::info!("Teleporting {:?} to {:?}", assets, dest);
-        assert_ok!(rococo::XcmPallet::teleport_assets(
-            rococo::Origin::signed(ALICE),
-            box dest.into(),
-            box beneficiary.into(),
-            box assets,
-            0,
-        ));
-        log_all_roco_events();
         rococo::System::reset_events();
     });
 }
