@@ -157,6 +157,34 @@ macro_rules! assert_withdrawal {
 }
 
 #[macro_export]
+macro_rules! assert_asset_burned {
+    ($runtime:ident, $id:expr, $who:expr, $amt:expr) => {
+        assert!($runtime::System::events().iter().any(|r| matches!(
+            &r.event,
+            $runtime::Event::Assets(pallet_assets::Event::Burned {
+                asset_id,
+                owner,
+                balance,
+            }) if asset_id == &$id && owner == &$who && balance == &$amt))
+        );
+    };
+}
+
+#[macro_export]
+macro_rules! assert_asset_issued {
+    ($runtime:ident, $id:expr, $who:expr, $amt:expr) => {
+        assert!($runtime::System::events().iter().any(|r| matches!(
+            &r.event,
+            $runtime::Event::Assets(pallet_assets::Event::Issued {
+                asset_id,
+                owner,
+                total_supply,
+            }) if asset_id == &$id && owner == &$who && total_supply == &$amt))
+        );
+    };
+}
+
+#[macro_export]
 macro_rules! assert_deposit {
     ($runtime:ident, $who:expr, $amt:expr) => {
         assert!($runtime::System::events().iter().any(|r| matches!(
