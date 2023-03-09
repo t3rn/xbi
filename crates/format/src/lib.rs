@@ -4,7 +4,7 @@ use codec::{Decode, Encode, FullCodec};
 use core::fmt::Debug;
 use scale_info::TypeInfo;
 use sp_core::Hasher;
-use sp_runtime::traits::{BlakeTwo256, Hash, IdentifyAccount};
+use sp_runtime::traits::{BlakeTwo256, Hash};
 use sp_runtime::AccountId32;
 use sp_std::prelude::*;
 use sp_std::vec;
