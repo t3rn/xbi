@@ -322,8 +322,11 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         #[pallet::weight(50_000 + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
         pub fn send(origin: OriginFor<T>, kind: ExecutionType, msg: XbiFormat) -> DispatchResult {
-            let _who = ensure_signed(origin)?;
+            let who = ensure_signed(origin)?;
             let mut msg = msg;
+
+            msg.metadata
+                .enrich_origin(&account32_from_account::<T>(&who)?);
 
             // Get and increment the nonce
             let nonce = Self::message_nonce().wrapping_add(1);
@@ -619,6 +622,17 @@ fn account_from_account32<T: Config>(
     account: &AccountId32,
 ) -> Result<T::AccountId, DispatchErrorWithPostInfo<PostDispatchInfo>> {
     T::AccountId::decode(&mut account.as_ref()).map_err(|_| Error::<T>::FailedToCastAddress.into())
+}
+// TODO: move to sabi
+fn account32_from_account<T: Config>(account: &T::AccountId) -> Result<AccountId32, DispatchError> {
+    let account_bytes = account.encode();
+
+    Ok(AccountId32::new(
+        account_bytes
+            .get(0..32)
+            .and_then(|x| x.try_into().ok())
+            .ok_or(pallet::Error::<T>::FailedToCastAddress)?,
+    ))
 }
 
 // TODO: write tests

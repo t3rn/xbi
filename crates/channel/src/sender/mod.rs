@@ -51,16 +51,6 @@ pub trait PromiseDelegate<T, Call: Dispatchable>: Sender<T> {
     ) -> DispatchResultWithInfo<Call::PostInfo>;
 }
 
-pub fn xbi_origin<T: Decode>(m: &XbiMetadata) -> Result<T, DispatchError> {
-    let x: Result<T, DispatchError> = m
-        .get_origin()
-        .ok_or_else(|| "XBI message has no origin".into())
-        .and_then(|o| {
-            Decode::decode(&mut o.as_ref()).map_err(|err| "XBI message origin is not valid".into())
-        });
-    x
-}
-
 // Note: because of the store simulation, if one test fails, they all will fail. Run each one independently to find the busted test.
 #[cfg(test)]
 mod tests {
