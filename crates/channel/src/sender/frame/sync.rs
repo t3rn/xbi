@@ -134,16 +134,16 @@ where
 
                 Xcm::send_xcm(dest, xbi_format_msg)
                     .map(|_| {
-                        log::trace!(target: "xbi-sender", "Successfully sent xcm message");
+                        log::trace!(target: "xs-channel", "Successfully sent xcm message");
                         Emitter::emit_sent(msg.clone());
                     })
                     .map_err(|e| {
                         // TODO: ensure happens on queue
                         if let Err(e) = ChargeForMessage::refund(&o, &metadata.fees) {
-                            log::error!(target: "xbi-sender", "Failed to refund fees: {:?}", e);
+                            log::error!(target: "xs-channel", "Failed to refund fees: {:?}", e);
                         }
 
-                        log::error!(target: "xbi-sender", "Failed to send xcm request: {:?}", e);
+                        log::error!(target: "xs-channel", "Failed to send xcm request: {:?}", e);
                         DispatchError::Other("Failed to send xcm request")
                     })
             }
@@ -180,7 +180,7 @@ where
                 Xcm::send_xcm(dest, xbi_format_msg)
                     .map(|_| Emitter::emit_sent(msg.clone()))
                     .map_err(|e| {
-                        log::error!(target: "xbi-sender", "Failed to send xcm request: {:?}", e);
+                        log::error!(target: "xs-channel", "Failed to send xcm request: {:?}", e);
                         DispatchError::Other("Failed to send xcm request")
                     })
             }

@@ -39,7 +39,7 @@ pub(crate) fn handler_to_xbi_result<Emitter: ChannelProgressionEmitter>(
 
     let status: Status = Status::from(&msg.metadata.fees);
 
-    log::debug!(target: "frame-receiver", "XBI handler status: {:?} for id {:?}", status, msg.metadata.get_id());
+    log::debug!(target: "xs-channel", "XBI handler status: {:?} for id {:?}", status, msg.metadata.get_id());
 
     XbiResult {
         status,
@@ -52,7 +52,7 @@ pub(crate) fn handler_to_xbi_result<Emitter: ChannelProgressionEmitter>(
 pub(crate) fn instruction_error_to_xbi_result(
     err: &sp_runtime::DispatchErrorWithPostInfo<frame_support::weights::PostDispatchInfo>,
 ) -> XbiResult {
-    log::error!(target: "frame-receiver", "Failed to execute instruction: {:?}", err);
+    log::error!(target: "xs-channel", "Failed to execute instruction: {:?}", err);
     XbiResult {
         status: Status::FailedExecution,
         output: err.encode(),
@@ -110,7 +110,7 @@ mod tests {
         };
         // Manually set aggregate because we delegate this to instruction handler now.
         msg.metadata.fees.push_aggregate(100);
-        
+
         let result = handler_to_xbi_result::<()>(&info, &mut msg);
 
         assert_eq!(msg.metadata.fees.get_aggregated_cost(), 100);

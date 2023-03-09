@@ -7,7 +7,7 @@ impl<T: Config> AssetLookup<AssetIdOf<T>> for Pallet<T> {}
 impl<T: Config> xcm_executor::traits::Convert<MultiLocation, AssetIdOf<T>> for Pallet<T> {
     fn convert_ref(value: impl core::borrow::Borrow<MultiLocation>) -> Result<AssetIdOf<T>, ()> {
         let value = value.borrow();
-        log::debug!(target: "xcm", "convert_ref: {:?}", value);
+        log::debug!(target: "asset-registry", "convert_ref: {:?}", value);
         Self::lookup(Either::Left(value.clone()))
             .map_err(|_| ())
             .and_then(|asset_id| asset_id.left().ok_or(()))
@@ -15,7 +15,7 @@ impl<T: Config> xcm_executor::traits::Convert<MultiLocation, AssetIdOf<T>> for P
 
     fn reverse_ref(value: impl core::borrow::Borrow<AssetIdOf<T>>) -> Result<MultiLocation, ()> {
         let value = value.borrow();
-        log::debug!(target: "xcm", "reverse_ref: {:?}", value);
+        log::debug!(target: "asset-registry", "reverse_ref: {:?}", value);
         Self::lookup(Either::Right(*value))
             .map_err(|_| ())
             .and_then(|location| location.right().ok_or(()))

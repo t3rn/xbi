@@ -102,7 +102,7 @@ where
 
         let xbi_result = handle_instruction_result::<Emitter>(&instruction_result, msg);
 
-        log::debug!(target: "xp-channel", "Instruction handled: {:?}", xbi_result);
+        log::debug!(target: "xs-channel", "Instruction handled: {:?}", xbi_result);
         msg.metadata.progress(Executed(
             <frame_system::Pallet<T>>::block_number().unique_saturated_into(),
         ));
@@ -120,7 +120,7 @@ where
         Sender::send(Message::Response(xbi_result, msg.metadata.clone()));
 
         instruction_result
-            .inspect(|info| log::debug!(target: "xp-channel", "Instruction handled: {:?}", info))
+            .inspect(|info| log::debug!(target: "xs-channel", "Instruction handled: {:?}", info))
             .map(HandlerInfo::into)
     }
 
