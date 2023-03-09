@@ -37,8 +37,6 @@ pub(crate) fn handler_to_xbi_result<Emitter: ChannelProgressionEmitter>(
 ) -> XbiResult {
     Emitter::emit_instruction_handled(msg, &info.weight);
 
-    msg.metadata.fees.push_aggregate(info.weight.into());
-
     let status: Status = Status::from(&msg.metadata.fees);
 
     log::debug!(target: "frame-receiver", "XBI handler status: {:?} for id {:?}", status, msg.metadata.get_id());
@@ -110,7 +108,9 @@ mod tests {
             ),
             ..Default::default()
         };
-
+        // Manually set aggregate because we delegate this to instruction handler now.
+        msg.metadata.fees.push_aggregate(100);
+        
         let result = handler_to_xbi_result::<()>(&info, &mut msg);
 
         assert_eq!(msg.metadata.fees.get_aggregated_cost(), 100);
@@ -136,6 +136,8 @@ mod tests {
             ),
             ..Default::default()
         };
+        // Manually set aggregate because we delegate this to instruction handler now.
+        msg.metadata.fees.push_aggregate(100);
 
         let result = handler_to_xbi_result::<()>(&info, &mut msg);
 
