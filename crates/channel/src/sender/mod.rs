@@ -1,8 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::Decode;
-use sp_runtime::{sp_std::prelude::*, traits::Dispatchable, DispatchError, DispatchResultWithInfo};
-use xp_channel::{XbiFormat, XbiMetadata};
+use sp_runtime::{sp_std::prelude::*, traits::Dispatchable, DispatchResultWithInfo};
 
 #[cfg(feature = "frame")]
 pub mod frame;

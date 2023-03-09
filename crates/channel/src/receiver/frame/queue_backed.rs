@@ -1,6 +1,6 @@
 use crate::receiver::Receiver as ReceiverExt;
 use frame_support::pallet_prelude::DispatchResultWithPostInfo;
-use frame_system::{ensure_signed, ensure_signed_or_root, Config};
+use frame_system::{ensure_signed_or_root, Config};
 use sp_runtime::{traits::UniqueSaturatedInto, Either};
 use sp_std::marker::PhantomData;
 use xp_channel::{
@@ -28,19 +28,17 @@ where
     /// Request should always run the instruction, and produce some info containing meters for the execution
     fn handle_request(origin: &Self::Origin, format: &mut XbiFormat) -> DispatchResultWithPostInfo {
         let _who = ensure_signed_or_root(origin.clone())?;
+        format.metadata.progress(Delivered(
+            <frame_system::Pallet<T>>::block_number().unique_saturated_into(),
+        ));
         Emitter::emit_received(Either::Left(format));
-
-        let current_block: u32 = <frame_system::Pallet<T>>::block_number().unique_saturated_into();
-
-        // progress to delivered
-        format.metadata.progress(Delivered(current_block));
 
         Queue::push((
             Message::Request(format.to_owned()),
             QueueSignal::PendingExecution,
         ));
 
-        // TODO: cost of queueing message
+        // TODO: cost of queueing message, explore this
         Ok(Default::default())
     }
 
@@ -51,22 +49,19 @@ where
         metadata: &XbiMetadata,
     ) -> DispatchResultWithPostInfo {
         let _who = ensure_signed_or_root(origin.clone())?;
+        let mut meta = metadata.clone();
 
-        let mut metadata = metadata.clone();
-
+        meta.progress(Received(
+            <frame_system::Pallet<T>>::block_number().unique_saturated_into(),
+        ));
         Emitter::emit_received(Either::Right(msg));
 
-        let current_block: u32 = <frame_system::Pallet<T>>::block_number().unique_saturated_into();
-
-        // progress to delivered
-        metadata.progress(Received(current_block));
-
         Queue::push((
-            Message::Response(msg.clone(), metadata.clone()),
+            Message::Response(msg.clone(), meta.clone()),
             QueueSignal::PendingResult,
         ));
 
-        // TODO: add the cost of handling this response here
+        // TODO: add the cost of handling this response here, explore this
         Ok(Default::default())
     }
 }

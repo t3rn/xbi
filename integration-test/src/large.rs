@@ -52,13 +52,14 @@ mod tests {
     use super::*;
 
     use crate::{
-        assert_deposit, assert_polkadot_attempted, assert_polkadot_sent,
-        assert_relay_executed_downward, assert_relay_executed_upward, assert_response_stored,
-        assert_withdrawal, assert_xbi_instruction_handled, assert_xbi_received,
-        assert_xbi_request_handled, assert_xbi_sent, assert_xcmp_receipt_success, assert_xcmp_sent,
-        log_all_roco_events, rococo, setup,
+        assert_asset_burned, assert_asset_issued, assert_deposit, assert_polkadot_attempted,
+        assert_polkadot_sent, assert_relay_executed_downward, assert_relay_executed_upward,
+        assert_response_stored, assert_withdrawal, assert_xbi_instruction_handled,
+        assert_xbi_received, assert_xbi_request_handled, assert_xbi_sent,
+        assert_xcmp_receipt_success, assert_xcmp_sent, log_all_roco_events, para_id_to_account,
+        rococo, setup,
         slim::{Slender, Slim, SLENDER_PARA_ID, SLIM_PARA_ID},
-        teleport_from_relay_to, transfer_to, ParaKind, RococoNet, ALICE,
+        teleport_from_relay_to, transfer_to, ParaKind, RococoNet, ALICE, CONTRACT_CALLER,
     };
     use codec::Encode;
     use frame_support::{assert_ok, traits::Currency};
@@ -160,6 +161,8 @@ mod tests {
         Slim::execute_with(|| {
             crate::slim::create_asset(1, "xRoc", "XROC", 12, None, 1, "Slim");
             crate::slim::register_asset(1, MultiLocation::parent(), "Slim");
+            crate::slim::mint_asset(1, ALICE, initial_balance);
+            crate::slim::mint_asset(1, CONTRACT_CALLER, initial_balance * 100);
         });
         Large::execute_with(|| {
             teleport_from_relay_to!(
@@ -181,7 +184,12 @@ mod tests {
             log_all_roco_events();
             assert_relay_executed_upward!(Outcome::Complete(4_000_000_000));
             assert_deposit!(rococo, large::PolkadotXcm::check_account()); // Deposited to checking account on relay
-            System::reset_events();
+            rococo::System::reset_events();
+        });
+
+        Large::execute_with(|| {
+            log_all_events();
+            large::System::reset_events();
         });
     }
 
@@ -495,7 +503,6 @@ mod tests {
             crate::slim::log_all_events("Slim");
             assert!(slim::System::events().iter().any(|r| matches!(
                 &r.event,
-                // slim::Event::Assets(pallet_assets::Event::Issued { asset_id, owner, total_supply}) if asset_id == &1 && owner == &crate::para_id_to_account(ParaKind::Child(LARGE_PARA_ID)) && total_supply == &1_000_000_000_000
                 slim::Event::Assets(pallet_assets::Event::Issued { .. })
             )));
             assert_xcmp_receipt_success!(slim);
@@ -566,10 +573,13 @@ mod tests {
         setup();
         setup_default_assets();
 
+        let asset: u32 = 1;
+        let exec_cost = 90_000_000_000;
+        let notification_cost = 10_000_000_000;
         println!(">>> [Slim] Sending xbi message to large");
         Slim::execute_with(|| {
             assert_ok!(slim::XbiPortal::send(
-                slim::Origin::signed(ALICE),
+                slim::Origin::signed(CONTRACT_CALLER),
                 xp_channel::ExecutionType::Sync,
                 XbiFormat {
                     instr: XbiInstruction::CallEvm {
@@ -587,7 +597,7 @@ mod tests {
                         SLIM_PARA_ID,
                         LARGE_PARA_ID,
                         Default::default(),
-                        Fees::new(Some(1), Some(90_000_000_000), Some(10_000_000_000)),
+                        Fees::new(Some(asset), Some(exec_cost), Some(notification_cost)),
                         None,
                         Default::default(),
                         Default::default(),
@@ -597,6 +607,8 @@ mod tests {
 
             crate::slim::log_all_events("Slim");
             assert_xcmp_sent!(slim);
+            // Assert owner paid for the execution fees
+            assert_asset_burned!(slim, asset, CONTRACT_CALLER, exec_cost + notification_cost);
             assert_xbi_sent!(slim);
             slim::System::reset_events();
         });
@@ -614,6 +626,7 @@ mod tests {
             System::reset_events();
         });
 
+        println!(">>> [Slim] checking events for resulting costs");
         Slim::execute_with(|| {
             crate::slim::log_all_events("Slim");
             assert_response_stored!(slim, Status::Success);
@@ -625,6 +638,13 @@ mod tests {
     fn slim_executes_a_wasm_contract_on_large() {
         setup();
         setup_default_assets();
+
+        let asset: u32 = 1;
+        let exec_cost = 90_000_000_000;
+        let notification_cost = 10_000_000_000;
+
+        // Weight for the contract call as identity fee
+        let execution_fees = 32063234;
 
         Large::execute_with(|| {
             let contract_path = "fixtures/transfer_return_code.wat";
@@ -662,7 +682,7 @@ mod tests {
                         SLIM_PARA_ID,
                         LARGE_PARA_ID,
                         Default::default(),
-                        Fees::new(Some(1), Some(90_000_000_000), Some(10_000_000_000)),
+                        Fees::new(Some(1), Some(exec_cost), Some(notification_cost)),
                         None,
                         Default::default(),
                         Default::default(),
@@ -671,6 +691,8 @@ mod tests {
             ));
             crate::slim::log_all_events("Slim");
             assert_xcmp_sent!(slim);
+            // Assert owner paid for the execution fees
+            assert_asset_burned!(slim, asset, ALICE, exec_cost + notification_cost);
             assert_xbi_sent!(slim);
             slim::System::reset_events();
         });
@@ -678,6 +700,13 @@ mod tests {
         println!(">>> [Large] checking events for xbi message");
         Large::execute_with(|| {
             log_all_events();
+            // Assert we burned the max fees on behalf of SLIM
+            assert_asset_burned!(
+                large,
+                asset,
+                para_id_to_account(ParaKind::Sibling(SLIM_PARA_ID)),
+                exec_cost + notification_cost
+            );
             assert_xbi_received!(large);
             assert_xbi_request_handled!(large);
             assert_xbi_instruction_handled!(large);
@@ -692,6 +721,13 @@ mod tests {
         Slim::execute_with(|| {
             crate::slim::log_all_events("Slim");
             assert_response_stored!(slim, Status::Success);
+            // Assert that alice was returned her fees - execution fees
+            assert_asset_issued!(
+                slim,
+                asset,
+                ALICE,
+                (exec_cost + notification_cost) - execution_fees
+            );
             slim::System::reset_events();
         });
     }

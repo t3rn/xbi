@@ -29,8 +29,12 @@ where
     Queue: Queueable<(Message, QueueSignal)>,
     Currency: ReservableCurrency<T::AccountId>,
     Assets: Mutate<T::AccountId>,
-    ChargeForMessage:
-        xp_channel::traits::ChargeForMessage<T::AccountId, Currency, Assets, AssetReserveCustodian>,
+    ChargeForMessage: xp_channel::traits::MonetaryForMessage<
+        T::AccountId,
+        Currency,
+        Assets,
+        AssetReserveCustodian,
+    >,
     AssetReserveCustodian: Get<T::AccountId>,
 {
     type Outcome = DispatchResult;
