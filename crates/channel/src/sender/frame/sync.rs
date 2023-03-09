@@ -1,8 +1,8 @@
 use super::ReceiveCallProvider;
-use crate::sender::{xbi_origin, Sender as SenderExt};
+use crate::sender::Sender as SenderExt;
 use codec::{Decode, Encode};
 use frame_support::traits::{
-    fungibles::{BalancedHold, Inspect, Mutate, MutateHold},
+    fungibles::{Inspect, Mutate},
     Get, ReservableCurrency,
 };
 use frame_system::Config;
@@ -73,8 +73,12 @@ where
     Currency: ReservableCurrency<T::AccountId>,
     Assets: Mutate<T::AccountId>,
     AssetLookup: xp_xcm::frame_traits::AssetLookup<<Assets as Inspect<T::AccountId>>::AssetId>,
-    ChargeForMessage:
-        xp_channel::traits::ChargeForMessage<T::AccountId, Currency, Assets, AssetReserveCustodian>,
+    ChargeForMessage: xp_channel::traits::MonetaryForMessage<
+        T::AccountId,
+        Currency,
+        Assets,
+        AssetReserveCustodian,
+    >,
     AssetReserveCustodian: Get<T::AccountId>,
 {
     type Outcome = DispatchResult;
@@ -90,8 +94,6 @@ where
 
         match &mut msg {
             Message::Request(format) => {
-                let o: T::AccountId = xbi_origin(&format.metadata)?;
-
                 // Progress the timestamps in one go
                 format.metadata.progress(Submitted(current_block));
                 format.metadata.progress(Sent(current_block));
@@ -99,8 +101,6 @@ where
                 let o: T::AccountId = crate::xbi_origin(&format.metadata)?;
                 ChargeForMessage::charge(&o, &format.metadata.fees)?;
 
-                // TODO: charge as reserve because we pay as sovereign
-                // TODO: actually reserve fees
                 let payment_asset = match format.metadata.fees.asset {
                     Some(id) => {
                         let id: AssetIdOf<T, Assets> = Decode::decode(&mut &id.encode()[..])
@@ -113,14 +113,23 @@ where
                 let xbi_format_msg = XcmBuilder::<()>::default()
                     .with_withdraw_concrete_asset(
                         payment_asset.clone(),
-                        format.metadata.fees.notification_cost_limit,
+                        format.metadata.fees.get_aggregated_limit(),
                     )
-                    .with_buy_execution(payment_asset, 1_000_000_000, None) // TODO: same as above
+                    .with_buy_execution(
+                        payment_asset,
+                        format.metadata.fees.notification_cost_limit,
+                        None,
+                    )
                     .with_transact(
                         Some(OriginKind::SovereignAccount),
-                        Some(metadata.fees.execution_cost_limit as u64),
+                        None,
                         CallProvider::provide(format.clone()),
                     )
+                    // TODO deposit whatever is left over in the reserve
+                    // .with_deposit_asset(
+                    //     MultiLocationBuilder::new_parachain(format.metadata.src_para_id).build(),
+                    //     50,
+                    // )
                     .build();
 
                 Xcm::send_xcm(dest, xbi_format_msg)
@@ -129,18 +138,20 @@ where
                         Emitter::emit_sent(msg.clone());
                     })
                     .map_err(|e| {
+                        // TODO: ensure happens on queue
+                        if let Err(e) = ChargeForMessage::refund(&o, &metadata.fees) {
+                            log::error!(target: "xbi-sender", "Failed to refund fees: {:?}", e);
+                        }
+
                         log::error!(target: "xbi-sender", "Failed to send xcm request: {:?}", e);
                         DispatchError::Other("Failed to send xcm request")
                     })
             }
             Message::Response(result, metadata) => {
-                let o: T::AccountId = xbi_origin(&metadata)?;
-
                 // Progress the delivered timestamp
                 metadata.progress(Responded(current_block));
 
-                ChargeForMessage::refund(&o, &metadata.fees)?;
-
+                // Sovereign will pay for this on behalf of the user, this is tricky to get
                 // TODO: Set this and get it from config
                 let require_weight_at_most = 1_000_000_000;
 

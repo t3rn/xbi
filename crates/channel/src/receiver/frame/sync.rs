@@ -1,7 +1,10 @@
 use crate::{
     receiver::frame::invert_destination_from_message, Receiver as ReceiverExt, Sender as SenderExt,
 };
-use frame_support::pallet_prelude::DispatchResultWithPostInfo;
+use frame_support::{
+    pallet_prelude::DispatchResultWithPostInfo,
+    traits::{fungibles::Mutate, Get, ReservableCurrency},
+};
 use frame_system::{ensure_signed, Config};
 use sp_runtime::{traits::UniqueSaturatedInto, Either};
 use sp_std::marker::PhantomData;
@@ -18,13 +21,57 @@ use super::handle_instruction_result;
 /// This is a synchronous backed Frame receiver
 /// It services the `REQ-REP` side of an async channel, that is to say, it receives a message, handles it, then responds with the result
 /// all in one step.
-pub struct Receiver<T, Sender, Emitter, Queue, InstructionHandler, ResultStore> {
-    phantom: PhantomData<(T, Sender, Emitter, Queue, InstructionHandler, ResultStore)>,
+pub struct Receiver<
+    T,
+    Sender,
+    Emitter,
+    Queue,
+    InstructionHandler,
+    ResultStore,
+    Currency,
+    Assets,
+    ChargeForMessage,
+    AssetReserveCustodian,
+> {
+    phantom: PhantomData<(
+        T,
+        Sender,
+        Emitter,
+        Queue,
+        InstructionHandler,
+        ResultStore,
+        Currency,
+        Assets,
+        ChargeForMessage,
+        AssetReserveCustodian,
+    )>,
 }
 
 #[cfg(feature = "frame")]
-impl<T, Sender, Emitter, Queue, InstructionHandler, ResultStore> ReceiverExt
-    for Receiver<T, Sender, Emitter, Queue, InstructionHandler, ResultStore>
+impl<
+        T,
+        Sender,
+        Emitter,
+        Queue,
+        InstructionHandler,
+        ResultStore,
+        Currency,
+        Assets,
+        ChargeForMessage,
+        AssetReserveCustodian,
+    > ReceiverExt
+    for Receiver<
+        T,
+        Sender,
+        Emitter,
+        Queue,
+        InstructionHandler,
+        ResultStore,
+        Currency,
+        Assets,
+        ChargeForMessage,
+        AssetReserveCustodian,
+    >
 where
     T: Config,
     Sender: SenderExt<Message>,
@@ -32,6 +79,11 @@ where
     Queue: Queueable<(Message, QueueSignal)>,
     InstructionHandler: XbiInstructionHandler<T::Origin>,
     ResultStore: Writable<(sp_core::H256, XbiResult)>,
+    Currency: ReservableCurrency<T::AccountId>,
+    Assets: Mutate<T::AccountId>,
+    ChargeForMessage:
+        xp_channel::traits::RefundForMessage<T::AccountId, Currency, Assets, AssetReserveCustodian>,
+    AssetReserveCustodian: Get<T::AccountId>,
 {
     type Origin = T::Origin;
     type Outcome = DispatchResultWithPostInfo;
@@ -39,24 +91,26 @@ where
     /// Request should always run the instruction, and product some dispatch info containing meters for the execution
     fn handle_request(origin: &Self::Origin, msg: &mut XbiFormat) -> DispatchResultWithPostInfo {
         let _who = ensure_signed(origin.clone())?;
-        let current_block: u32 = <frame_system::Pallet<T>>::block_number().unique_saturated_into();
-
-        msg.metadata.progress(Delivered(current_block));
-
+        msg.metadata.progress(Delivered(
+            <frame_system::Pallet<T>>::block_number().unique_saturated_into(),
+        ));
         Emitter::emit_received(Either::Left(msg));
 
         invert_destination_from_message(&mut msg.metadata);
 
-        let instruction_handle = InstructionHandler::handle(origin, msg);
+        let instruction_result = InstructionHandler::handle(origin, msg);
 
-        let xbi_result = handle_instruction_result::<Emitter>(&instruction_handle, msg);
+        let xbi_result = handle_instruction_result::<Emitter>(&instruction_result, msg);
 
-        msg.metadata.progress(Executed(current_block));
+        log::debug!(target: "xp-channel", "Instruction handled: {:?}", xbi_result);
+        msg.metadata.progress(Executed(
+            <frame_system::Pallet<T>>::block_number().unique_saturated_into(),
+        ));
 
         Emitter::emit_request_handled(
             &xbi_result,
             &msg.metadata,
-            &match &instruction_handle {
+            &match &instruction_result {
                 Ok(info) => Some(info.weight),
                 Err(e) => e.post_info.actual_weight,
             }
@@ -65,17 +119,28 @@ where
 
         Sender::send(Message::Response(xbi_result, msg.metadata.clone()));
 
-        instruction_handle.map(HandlerInfo::into)
+        instruction_result
+            .inspect(|info| log::debug!(target: "xp-channel", "Instruction handled: {:?}", info))
+            .map(HandlerInfo::into)
     }
 
     fn handle_response(
         origin: &Self::Origin,
-        msg: &XbiResult,
+        res: &XbiResult,
         metadata: &XbiMetadata,
     ) -> DispatchResultWithPostInfo {
         let _who = ensure_signed(origin.clone())?;
-        Emitter::emit_received(Either::Right(msg));
-        ResultStore::write((metadata.get_id(), msg.clone()))
+        let mut meta = metadata.clone();
+
+        meta.progress(Received(
+            <frame_system::Pallet<T>>::block_number().unique_saturated_into(),
+        ));
+        Emitter::emit_received(Either::Right(res));
+
+        let o: T::AccountId = crate::xbi_origin(&meta)?;
+        ChargeForMessage::refund(&o, &meta.fees)?;
+
+        ResultStore::write((meta.get_id(), res.clone()))
             .map(|_| Default::default())
             .map_err(|e| e.into())
     }

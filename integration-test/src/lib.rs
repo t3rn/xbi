@@ -24,6 +24,7 @@ mod slim;
 
 pub const ALICE: AccountId32 = AccountId32::new([0u8; 32]);
 pub const BOB: AccountId32 = AccountId32::new([1u8; 32]);
+pub const CONTRACT_CALLER: AccountId32 = AccountId32::new([55u8; 32]);
 pub const INITIAL_BALANCE: u128 = 1_000_000_000_000_000;
 
 // 6d6f646c70792f78636d63680000000000000000000000000000000000000000
@@ -139,7 +140,10 @@ pub fn setup() {
     Network::reset();
     simple_logger::SimpleLogger::new()
         .with_level(LevelFilter::Off)
-        .with_module_level("asset-registry", LevelFilter::Off)
+        // .with_module_level("asset-registry", LevelFilter::Debug)
+        // .with_module_level("xcm", LevelFilter::Debug)
+        .with_module_level("xbi", LevelFilter::Debug)
+        .with_module_level("xp-channel", LevelFilter::Debug)
         .with_module_level("frame-receiver", LevelFilter::Debug)
         .with_module_level("trie", LevelFilter::Off)
         .init()

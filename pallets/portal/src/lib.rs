@@ -19,7 +19,9 @@ use frame_support::{
     weights::{PostDispatchInfo, WeightToFee},
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-use sp_runtime::{traits::UniqueSaturatedInto, AccountId32, DispatchErrorWithPostInfo, Either};
+use sp_runtime::{
+    traits::UniqueSaturatedInto, AccountId32, DispatchError, DispatchErrorWithPostInfo, Either,
+};
 use sp_std::{default::Default, prelude::*};
 use xp_channel::{
     queue::ringbuffer::RingBufferTransient,
@@ -61,6 +63,7 @@ pub mod pallet {
     use xcm::v2::SendXcm;
     use xp_channel::{
         queue::{ringbuffer::DefaultIdx, Queue as QueueExt, QueueSignal},
+        traits::RefundForMessage,
         ExecutionType,
     };
     use xp_format::Timestamp;
@@ -112,6 +115,10 @@ pub mod pallet {
         Queue<Pallet<T>>,
         Pallet<T>,
         Pallet<T>,
+        <T as Config>::Currency,
+        <T as Config>::Assets,
+        (),
+        <T as Config>::ReserveBalanceCustodian,
     >;
 
     /// A reexport of the Receiver backed by the Queue
@@ -382,6 +389,9 @@ pub mod pallet {
                             if let Message::Request(format) = &mut msg {
                                 format.metadata.progress(Timestamp::Sent(current_block));
 
+                                // let o: T::AccountId = xbi_origin(&format.metadata)?;
+                                // ChargeForMessage::charge(&o, &format.metadata.fees)?; // FIXME
+
                                 // TODO: make function
                                 let dest = MultiLocationBuilder::new_parachain(
                                     format.metadata.dest_para_id,
@@ -431,23 +441,23 @@ pub mod pallet {
                             }
                         }
                         QueueSignal::PendingExecution => {
-                            if let Message::Request(format) = &mut msg {
-                                invert_destination_from_message(&mut format.metadata);
+                            if let Message::Request(msg) = &mut msg {
+                                invert_destination_from_message(&mut msg.metadata);
 
                                 let instruction_result =
-                                    Pallet::<T>::handle(&T::Origin::root(), format);
+                                    Pallet::<T>::handle(&T::Origin::root(), msg);
 
                                 let xbi_result = handle_instruction_result::<Pallet<T>>(
                                     &instruction_result,
-                                    format,
+                                    msg,
                                 );
 
-                                // progress to executed
-                                format.metadata.progress(Timestamp::Executed(current_block));
+                                log::debug!(target: "xp-channel", "Instruction handled: {:?}", xbi_result);
+                                msg.metadata.progress(Timestamp::Executed(current_block));
 
                                 Pallet::<T>::emit_request_handled(
                                     &xbi_result,
-                                    &format.metadata,
+                                    &msg.metadata,
                                     &match &instruction_result {
                                         Ok(info) => Some(info.weight),
                                         Err(e) => e.post_info.actual_weight,
@@ -456,7 +466,7 @@ pub mod pallet {
                                 );
 
                                 queue.push((
-                                    Message::Response(xbi_result, format.metadata.clone()),
+                                    Message::Response(xbi_result, msg.metadata.clone()),
                                     QueueSignal::PendingResponse,
                                 ));
 
@@ -514,8 +524,16 @@ pub mod pallet {
                             }
                         }
                         QueueSignal::PendingResult => {
-                            if let Message::Response(resp, meta) = msg {
-                                Pallet::<T>::write((meta.get_id(), resp))?;
+                            if let Message::Response(res, meta) = msg {
+                                let o: T::AccountId = xs_channel::xbi_origin(&meta)?;
+                                <() as RefundForMessage<
+                                    T::AccountId,
+                                    T::Currency,
+                                    T::Assets,
+                                    T::ReserveBalanceCustodian,
+                                >>::refund(&o, &meta.fees)?;
+
+                                Pallet::<T>::write((meta.get_id(), res))?;
                             }
                         }
                         QueueSignal::ProtocolError(status) => {
@@ -533,8 +551,10 @@ pub mod pallet {
                     }
                 }
             }
-            // FIXME: this should be added up
-            Ok(Default::default())
+            Ok(PostDispatchInfo {
+                actual_weight: Some(weight),
+                pays_fee: Pays::Yes,
+            })
         }
     }
 

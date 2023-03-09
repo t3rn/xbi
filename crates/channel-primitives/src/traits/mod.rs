@@ -2,7 +2,7 @@ use codec::{Decode, Encode, FullCodec};
 use frame_support::traits::{fungibles::Inspect, Get};
 use sp_runtime::DispatchResult;
 use sp_std::prelude::*;
-use xp_format::{Fees, XbiMetadata};
+use xp_format::Fees;
 
 /// A set of traits containing some loosely typed shims to storage interactions in substrate.
 ///
@@ -17,8 +17,8 @@ pub mod shims;
 /// Which might be relevant to the user.
 ///
 /// This also adds information about weight used by the instruction handler.
-#[derive(Encode, Decode, Default)]
-pub struct HandlerInfo<Weight> {
+#[derive(Encode, Decode, Default, Debug)]
+pub struct HandlerInfo<Weight: core::fmt::Debug> {
     // TODO[Optimisation]: We can bound the size, but ideally this should be configured by the user who sends the message.
     // We have ideas on how to specify this in future releases.
     pub output: Vec<u8>,
@@ -26,7 +26,7 @@ pub struct HandlerInfo<Weight> {
     pub weight: Weight,
 }
 
-impl<Weight> From<(Vec<u8>, Weight)> for HandlerInfo<Weight> {
+impl<Weight: core::fmt::Debug> From<(Vec<u8>, Weight)> for HandlerInfo<Weight> {
     fn from(t: (Vec<u8>, Weight)) -> Self {
         let (bytes, i) = t;
         HandlerInfo {
@@ -84,14 +84,16 @@ where
         if let Some(asset) = fees.asset {
             let asset: <Assets as Inspect<AccountId>>::AssetId =
                 Decode::decode(&mut &asset.encode()[..])
-                    .map_err(|_| "Failed to decode asset from fee")?;
+                    .map_err(|_| "Failed to decode asset from fees")?;
 
             let balance: <Assets as Inspect<AccountId>>::Balance =
                 Decode::decode(&mut &fees.get_aggregated_limit().encode()[..])
-                    .map_err(|_| "Failed to decode balance from fee")?;
+                    .map_err(|_| "Failed to decode balance from fees")?;
 
-            // TODO: ensure that the asset balance is sufficient
-
+            if let Err(x) = Assets::can_withdraw(asset, origin, balance).into_result() {
+                log::warn!(target: "xp-channel", "Insufficient funds to pay fees, {:?}", x);
+                return Err(x);
+            }
             Assets::teleport(asset, origin, &Custodian::get(), balance)?;
 
             log::debug!(target: "channel-primitives", "Charged Asset({:?}, {:?}) for XBI metadata fees {:?}", asset, balance, fees);
@@ -106,25 +108,85 @@ where
         }
         Ok(())
     }
+}
 
-    fn refund(origin: &AccountId, metadata: &Fees) -> DispatchResult {
-        let cost = metadata.get_aggregated_cost();
-        let reserved = metadata.get_aggregated_limit();
-        if cost < reserved {
-            let to_unreserve: Currency::Balance =
-                Decode::decode(&mut &(reserved - cost).encode()[..])
-                    .map_err(|_| "Failed to decode balance from aggregation")?;
-            Currency::unreserve(origin, to_unreserve);
+#[cfg(feature = "frame")]
+pub trait RefundForMessage<AccountId, Currency, Assets, Custodian>
+where
+    Currency: frame_support::traits::ReservableCurrency<AccountId>,
+    Assets: frame_support::traits::fungibles::Mutate<AccountId>,
+    Custodian: Get<AccountId>,
+{
+    fn refund(origin: &AccountId, fees: &Fees) -> DispatchResult {
+        if let Some(asset) = fees.asset {
+            let asset: <Assets as Inspect<AccountId>>::AssetId =
+                Decode::decode(&mut &asset.encode()[..])
+                    .map_err(|_| "Failed to decode asset from fees")?;
+
+            let cost: <Assets as Inspect<AccountId>>::Balance =
+                Decode::decode(&mut &fees.get_aggregated_cost().encode()[..])
+                    .map_err(|_| "Failed to decode balance from fees")?;
+
+            let reserved: <Assets as Inspect<AccountId>>::Balance =
+                Decode::decode(&mut &fees.get_aggregated_limit().encode()[..])
+                    .map_err(|_| "Failed to decode balance from fees")?;
+
+            if cost < reserved {
+                let to_unreserve: <Assets as Inspect<AccountId>>::Balance =
+                    Decode::decode(&mut &(reserved - cost).encode()[..])
+                        .map_err(|_| "Failed to decode balance from aggregation")?;
+
+                Assets::teleport(asset, &Custodian::get(), origin, to_unreserve)?;
+            } else {
+                log::warn!(target: "channel-primitives", "Tried refunding more than was reserved for XBI metadata fees {:?} {:?}", cost, reserved);
+            }
         } else {
-            log::warn!(target: "channel-primitives", "Tried refunding more than was reserved for XBI metadata fees {:?} {:?}", cost, reserved);
-            log::warn!(target: "channel-primitives", "This is a bug, please report it to the developers");
+            let cost = fees.get_aggregated_cost();
+            let reserved = fees.get_aggregated_limit();
+            if cost < reserved {
+                let to_unreserve: Currency::Balance =
+                    Decode::decode(&mut &(reserved - cost).encode()[..])
+                        .map_err(|_| "Failed to decode balance from aggregation")?;
+                Currency::unreserve(origin, to_unreserve);
+            } else {
+                log::warn!(target: "channel-primitives", "Tried refunding more than was reserved for XBI metadata fees {:?} {:?}", cost, reserved);
+            }
         }
         Ok(())
     }
 }
 
+#[cfg(feature = "frame")]
+pub trait MonetaryForMessage<AccountId, Currency, Assets, Custodian>:
+    ChargeForMessage<AccountId, Currency, Assets, Custodian>
+    + RefundForMessage<AccountId, Currency, Assets, Custodian>
+where
+    Currency: frame_support::traits::ReservableCurrency<AccountId>,
+    Assets: frame_support::traits::fungibles::Mutate<AccountId>,
+    Custodian: Get<AccountId>,
+{
+}
+
 impl<AccountId, Currency, Assets, Custodian>
     ChargeForMessage<AccountId, Currency, Assets, Custodian> for ()
+where
+    Currency: frame_support::traits::ReservableCurrency<AccountId>,
+    Assets: frame_support::traits::fungibles::Mutate<AccountId>,
+    Custodian: Get<AccountId>,
+{
+}
+
+impl<AccountId, Currency, Assets, Custodian>
+    RefundForMessage<AccountId, Currency, Assets, Custodian> for ()
+where
+    Currency: frame_support::traits::ReservableCurrency<AccountId>,
+    Assets: frame_support::traits::fungibles::Mutate<AccountId>,
+    Custodian: Get<AccountId>,
+{
+}
+
+impl<AccountId, Currency, Assets, Custodian>
+    MonetaryForMessage<AccountId, Currency, Assets, Custodian> for ()
 where
     Currency: frame_support::traits::ReservableCurrency<AccountId>,
     Assets: frame_support::traits::fungibles::Mutate<AccountId>,

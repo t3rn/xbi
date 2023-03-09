@@ -143,6 +143,22 @@ pub fn create_asset(
 }
 
 #[cfg(test)]
+pub fn mint_asset(id: u32, to: sp_runtime::AccountId32, amount: u128) {
+    assert_ok!(slim::Assets::mint(
+        slim::Origin::signed(ALICE),
+        id,
+        to,
+        amount
+    ));
+    log_all_events("Slim");
+    // assert!(slim::System::events().iter().any(|r| matches!(
+    //     r.event,
+    //     slim::Event::Assets(pallet_assets::Event::ForceCreated { asset_id, .. }) if asset_id == id
+    // )));
+    slim::System::reset_events();
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::{Network, RococoNet};
