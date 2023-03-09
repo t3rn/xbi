@@ -4,7 +4,7 @@ use codec::{Decode, Encode, FullCodec};
 use core::fmt::Debug;
 use scale_info::TypeInfo;
 use sp_core::Hasher;
-use sp_runtime::traits::{BlakeTwo256, Hash};
+use sp_runtime::traits::{BlakeTwo256, Hash, IdentifyAccount};
 use sp_runtime::AccountId32;
 use sp_std::prelude::*;
 use sp_std::vec;
@@ -421,6 +421,15 @@ impl XbiMetadata {
             self.id = Hashing::hash(&hash_contents.concat()[..]);
         } else {
             log::warn!("Can only enrich the id if it has not been enriched already");
+        }
+        self
+    }
+
+    pub fn enrich_origin(&mut self, origin: &AccountId32) -> &mut Self {
+        if self.origin.is_none() {
+            self.origin = Some(origin.clone());
+        } else {
+            log::warn!("Can only enrich the origin if it has not been enriched already");
         }
         self
     }

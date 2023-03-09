@@ -96,6 +96,7 @@ where
                 format.metadata.progress(Submitted(current_block));
                 format.metadata.progress(Sent(current_block));
 
+                let o: T::AccountId = crate::xbi_origin(&format.metadata)?;
                 ChargeForMessage::charge(&o, &format.metadata.fees)?;
 
                 // TODO: charge as reserve because we pay as sovereign

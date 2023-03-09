@@ -1,5 +1,4 @@
-use crate::sender::{xbi_origin, Sender as SenderExt};
-use codec::Decode;
+use crate::sender::Sender as SenderExt;
 use frame_support::traits::{fungibles::Mutate, Get, ReservableCurrency};
 use frame_system::Config;
 use sp_runtime::{traits::UniqueSaturatedInto, DispatchResult};
@@ -43,7 +42,7 @@ where
 
         match &mut msg {
             Message::Request(format) => {
-                let o: T::AccountId = xbi_origin(&format.metadata)?;
+                let o: T::AccountId = crate::xbi_origin(&format.metadata)?;
 
                 format.metadata.progress(Submitted(current_block));
 
@@ -57,7 +56,7 @@ where
                 ));
             }
             Message::Response(result, metadata) => {
-                let o: T::AccountId = xbi_origin(&metadata)?;
+                let o: T::AccountId = crate::xbi_origin(&metadata)?;
 
                 metadata.progress(Responded(current_block));
 
