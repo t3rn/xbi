@@ -1,3 +1,4 @@
+use crate::{Config, Error, Event, Pallet, XbiResponses};
 use codec::{Decode, Encode};
 use contracts_primitives::traits::Contracts;
 use evm_primitives::traits::Evm;
@@ -17,7 +18,26 @@ use xp_channel::{
 use xp_format::{XbiFormat, XbiInstruction, XbiMetadata, XbiResult};
 use xs_channel::sender::frame::ReceiveCallProvider;
 
-use crate::{Config, Error, Event, Pallet, XbiResponses};
+// TODO: move to sabi
+pub fn account_from_account32<T: Config>(
+    account: &AccountId32,
+) -> Result<T::AccountId, DispatchErrorWithPostInfo<PostDispatchInfo>> {
+    T::AccountId::decode(&mut account.as_ref()).map_err(|_| Error::<T>::FailedToCastAddress.into())
+}
+
+// TODO: move to sabi
+pub fn account32_from_account<T: Config>(
+    account: &T::AccountId,
+) -> Result<AccountId32, DispatchError> {
+    let account_bytes = account.encode();
+
+    Ok(AccountId32::new(
+        account_bytes
+            .get(0..32)
+            .and_then(|x| x.try_into().ok())
+            .ok_or(Error::<T>::FailedToCastAddress)?,
+    ))
+}
 
 impl<T: Config> ChannelProgressionEmitter for Pallet<T> {
     fn emit_instruction_handled(msg: &XbiFormat, weight: &u64) {
@@ -71,27 +91,6 @@ impl<C: Config> ReceiveCallProvider for Pallet<C> {
         xbi_call.push_front(200);
         xbi_call.into()
     }
-}
-
-// TODO: move to sabi
-pub fn account_from_account32<T: Config>(
-    account: &AccountId32,
-) -> Result<T::AccountId, DispatchErrorWithPostInfo<PostDispatchInfo>> {
-    T::AccountId::decode(&mut account.as_ref()).map_err(|_| Error::<T>::FailedToCastAddress.into())
-}
-
-// TODO: move to sabi
-pub fn account32_from_account<T: Config>(
-    account: &T::AccountId,
-) -> Result<AccountId32, DispatchError> {
-    let account_bytes = account.encode();
-
-    Ok(AccountId32::new(
-        account_bytes
-            .get(0..32)
-            .and_then(|x| x.try_into().ok())
-            .ok_or(Error::<T>::FailedToCastAddress)?,
-    ))
 }
 
 // TODO: write tests

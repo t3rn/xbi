@@ -105,7 +105,7 @@ where
                     Some(id) => {
                         let id: AssetIdOf<T, Assets> = Decode::decode(&mut &id.encode()[..])
                             .map_err(|_| DispatchError::CannotLookup)?;
-                        AssetLookup::reverse_ref(&id).map_err(|_| DispatchError::CannotLookup)?
+                        AssetLookup::reverse_ref(id).map_err(|_| DispatchError::CannotLookup)?
                     }
                     None => MultiLocationBuilder::new_native().build(),
                 };
@@ -161,7 +161,7 @@ where
                     Some(id) => {
                         let id: AssetIdOf<T, Assets> = Decode::decode(&mut &id.encode()[..])
                             .map_err(|_| DispatchError::CannotLookup)?;
-                        AssetLookup::reverse_ref(&id).map_err(|_| DispatchError::CannotLookup)?
+                        AssetLookup::reverse_ref(id).map_err(|_| DispatchError::CannotLookup)?
                     }
                     None => MultiLocationBuilder::new_native().build(),
                 };

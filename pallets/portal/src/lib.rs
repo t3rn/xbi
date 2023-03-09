@@ -164,8 +164,6 @@ pub mod pallet {
         type XcmSovereignOrigin: Get<Self::AccountId>;
         /// Access to XCM functionality outside of this consensus system TODO: use XcmSender && ExecuteXcm for self execution
         type Xcm: SendXcm;
-        /// Access to XCM functionality
-        // type XcmExecutor: XcmExecutor<Self::Call>;
         /// Provide access to the contracts pallet or some pallet like it
         type Contracts: contracts_primitives::traits::Contracts<
             Self::AccountId,
@@ -178,42 +176,30 @@ pub mod pallet {
             Self::Origin,
             Outcome = Result<(evm_primitives::CallInfo, Weight), DispatchError>,
         >;
-
         type Currency: ReservableCurrency<Self::AccountId>;
-
         type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
-
         /// Provide access to the asset registry so we can lookup, not really specific to XBI just helps us at this stage
         type AssetRegistry: AssetLookup<<Self::Assets as Inspect<Self::AccountId>>::AssetId>;
-
         /// Provide access to DeFI
         type DeFi: DeFi<Self>;
-
         // TODO: might not actually need this
         type Callback: XBICallback<Self>;
-
-        /// Convert XBI messages to fees
+        /// Convert XBI instruction weights to fees
         type FeeConversion: WeightToFee;
-
         /// A place to store reserved funds whilst we approach a nicer way of reserving asset funds
         type ReserveBalanceCustodian: Get<Self::AccountId>;
 
         // Queue management constants, needs revisiting TODO
         #[pallet::constant]
         type ExpectedBlockTimeMs: Get<u32>;
-
         #[pallet::constant]
         type CheckInterval: Get<Self::BlockNumber>;
-
         #[pallet::constant]
         type TimeoutChecksLimit: Get<u32>;
-
         #[pallet::constant]
         type CheckInLimit: Get<u32>;
-
         #[pallet::constant]
         type CheckOutLimit: Get<u32>;
-
         #[pallet::constant]
         type ParachainId: Get<u32>;
     }
@@ -368,7 +354,7 @@ pub mod pallet {
             let mut weight: u64 = 0;
 
             // TODO: terminal operations
-            let max_events_to_process = T::CheckOutLimit::get();
+            let _max_events_to_process = T::CheckOutLimit::get();
 
             let mut queue = <Queue<Pallet<T>>>::default();
 
@@ -402,7 +388,7 @@ pub mod pallet {
                                         let id: AssetIdOf<T> =
                                             Decode::decode(&mut &id.encode()[..])
                                                 .map_err(|_| DispatchError::CannotLookup)?;
-                                        T::AssetRegistry::reverse_ref(&id)
+                                        T::AssetRegistry::reverse_ref(id)
                                             .map_err(|_| DispatchError::CannotLookup)?
                                     }
                                     None => MultiLocationBuilder::new_native().build(),
@@ -492,7 +478,7 @@ pub mod pallet {
                                         let id: AssetIdOf<T> =
                                             Decode::decode(&mut &id.encode()[..])
                                                 .map_err(|_| DispatchError::CannotLookup)?;
-                                        T::AssetRegistry::reverse_ref(&id)
+                                        T::AssetRegistry::reverse_ref(id)
                                             .map_err(|_| DispatchError::CannotLookup)?
                                     }
                                     None => MultiLocationBuilder::new_native().build(),

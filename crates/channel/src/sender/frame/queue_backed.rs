@@ -60,7 +60,7 @@ where
                 ));
             }
             Message::Response(result, metadata) => {
-                let o: T::AccountId = crate::xbi_origin(&metadata)?;
+                let o: T::AccountId = crate::xbi_origin(metadata)?;
 
                 metadata.progress(Responded(current_block));
 
