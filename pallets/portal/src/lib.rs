@@ -431,11 +431,11 @@ pub mod pallet {
 
                                 T::Xcm::send_xcm(dest, xbi_format_msg)
                                     .map(|_| {
-                                        log::trace!(target: "xbi-portal", "Successfully sent xcm message");
+                                        log::trace!(target: "xbi", "Successfully sent xcm message");
                                         Pallet::<T>::emit_sent(msg.clone());
                                     })
                                     .unwrap_or_else(|e| {
-                                        log::error!(target: "xbi-portal", "Failed to send xcm request: {:?}", e);
+                                        log::error!(target: "xbi", "Failed to send xcm request: {:?}", e);
                                         queue.push((msg, QueueSignal::ProtocolError(Status::DispatchFailed)));
                                     });
                             }
@@ -452,7 +452,7 @@ pub mod pallet {
                                     msg,
                                 );
 
-                                log::debug!(target: "xp-channel", "Instruction handled: {:?}", xbi_result);
+                                log::debug!(target: "xbi", "Instruction handled: {:?}", xbi_result);
                                 msg.metadata.progress(Timestamp::Executed(current_block));
 
                                 Pallet::<T>::emit_request_handled(
@@ -514,11 +514,11 @@ pub mod pallet {
 
                                 T::Xcm::send_xcm(dest, xbi_format_msg)
                                     .map(|_| {
-                                        log::trace!(target: "xbi-portal", "Successfully sent xcm message");
+                                        log::trace!(target: "xbi", "Successfully sent xcm message");
                                         Pallet::<T>::emit_sent(msg.clone())
                                     })
                                     .unwrap_or_else(|e| {
-                                        log::error!(target: "xbi-sender", "Failed to send xcm request: {:?}", e);
+                                        log::error!(target: "xbi", "Failed to send xcm request: {:?}", e);
                                         queue.push((msg, QueueSignal::ProtocolError(Status::DispatchFailed)));
                                     });
                             }

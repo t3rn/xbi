@@ -388,7 +388,7 @@ impl<T: Config, WeightToFeeConverter: WeightToFee<Balance = BalanceOf<T>>> Weigh
     }
 
     fn buy_weight(&mut self, weight: XCMWeight, payment: Assets) -> Result<Assets, XcmError> {
-        log::trace!(target: "xcm::weight", "TakeFirstAssetTrader::buy_weight weight: {:?}, payment: {:?}", weight, payment);
+        log::trace!(target: "asset-registry", "TakeFirstAssetTrader::buy_weight weight: {:?}, payment: {:?}", weight, payment);
 
         // We take the very first multiasset from payment, sorted by .into()
         let multiassets: MultiAssets = payment.clone().into();
@@ -443,7 +443,7 @@ impl<T: Config, WeightToFeeConverter: WeightToFee<Balance = BalanceOf<T>>> Weigh
 
     fn refund_weight(&mut self, weight: Weight) -> Option<MultiAsset> {
         log::trace!(
-            target: "xcm::weight", "MultiCurrencyTrader::refund_weight weight: {:?}, paid_assets: {:?}",
+            target: "asset-registry", "MultiCurrencyTrader::refund_weight weight: {:?}, paid_assets: {:?}",
             weight, self.location
         );
 

@@ -96,7 +96,7 @@ where
             }
             Assets::teleport(asset, origin, &Custodian::get(), balance)?;
 
-            log::debug!(target: "channel-primitives", "Charged Asset({:?}, {:?}) for XBI metadata fees {:?}", asset, balance, fees);
+            log::debug!(target: "xp-channel", "Charged Asset({:?}, {:?}) for XBI metadata fees {:?}", asset, balance, fees);
         } else {
             let balance: Currency::Balance =
                 Decode::decode(&mut &fees.get_aggregated_limit().encode()[..])
@@ -104,7 +104,7 @@ where
 
             // TODO: ensure that the balance is sufficient
             Currency::reserve(origin, balance)?;
-            log::debug!(target: "channel-primitives", "Charged {:?} for XBI metadata fees {:?}", balance, fees);
+            log::debug!(target: "xp-channel", "Charged {:?} for XBI metadata fees {:?}", balance, fees);
         }
         Ok(())
     }
@@ -138,7 +138,7 @@ where
 
                 Assets::teleport(asset, &Custodian::get(), origin, to_unreserve)?;
             } else {
-                log::warn!(target: "channel-primitives", "Tried refunding more than was reserved for XBI metadata fees {:?} {:?}", cost, reserved);
+                log::warn!(target: "xp-channel", "Tried refunding more than was reserved for XBI metadata fees {:?} {:?}", cost, reserved);
             }
         } else {
             let cost = fees.get_aggregated_cost();
@@ -149,7 +149,7 @@ where
                         .map_err(|_| "Failed to decode balance from aggregation")?;
                 Currency::unreserve(origin, to_unreserve);
             } else {
-                log::warn!(target: "channel-primitives", "Tried refunding more than was reserved for XBI metadata fees {:?} {:?}", cost, reserved);
+                log::warn!(target: "xp-channel", "Tried refunding more than was reserved for XBI metadata fees {:?} {:?}", cost, reserved);
             }
         }
         Ok(())

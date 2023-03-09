@@ -128,7 +128,7 @@ where
     /// Will insert the new item, but will not update the bounds in storage.
     fn push(&mut self, item: Item) {
         log::debug!(
-            target: "xp_channel::queue",
+            target: "xp-channel",
             "pushing item: {:?} at index {:?}",
             item.encode(),
             self.end.encode()
