@@ -649,7 +649,7 @@ impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
 
         log::debug!(target: "xbi", "Handling instruction for caller {:?} and message {:?}", caller, xbi);
 
-        match xbi.instr {
+        let result = match xbi.instr {
             XbiInstruction::Transfer { ref dest, value } => T::Currency::transfer(
                 &caller,
                 &account_from_account32::<T>(dest)?,
@@ -759,7 +759,24 @@ impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
                 log::debug!(target: "xbi", "unhandled instruction: {:?}", x);
                 Ok(Default::default())
             }
+        };
+
+        match &result {
+            Ok(info) => {
+                xbi.metadata.fees.push_aggregate(
+                    T::FeeConversion::weight_to_fee(&info.weight).unique_saturated_into(),
+                );
+            }
+            Err(err) => {
+                xbi.metadata.fees.push_aggregate(
+                    T::FeeConversion::weight_to_fee(
+                        &err.post_info.actual_weight.unwrap_or_default(),
+                    )
+                    .unique_saturated_into(),
+                );
+            }
         }
+        result
     }
 }
 
