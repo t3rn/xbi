@@ -1,6 +1,7 @@
+use crate::Queue;
 use crate::{mock::*, xbi_abi::AccountId32, BufferRange, Error, Pallet, XbiResponses};
-use crate::{Queue, H256};
 use frame_support::{assert_err, assert_ok};
+use sp_core::H256;
 use xp_channel::traits::Writable;
 use xp_channel::Message;
 use xp_channel::XbiResult;
