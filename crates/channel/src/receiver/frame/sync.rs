@@ -99,6 +99,7 @@ where
         invert_destination_from_message(&mut msg.metadata);
 
         let instruction_result = InstructionHandler::handle(origin, msg);
+        log::debug!(target: "xbi", "Instruction result: {:?}", instruction_result);
 
         let xbi_result = handle_instruction_result::<Emitter>(&instruction_result, msg);
 
@@ -119,9 +120,9 @@ where
 
         Sender::send(Message::Response(xbi_result, msg.metadata.clone()));
 
-        instruction_result
+        Ok(instruction_result
             .inspect(|info| log::debug!(target: "xs-channel", "Instruction handled: {:?}", info))
-            .map(HandlerInfo::into)
+            .map_or_else(|e| e.post_info, HandlerInfo::into))
     }
 
     fn handle_response(

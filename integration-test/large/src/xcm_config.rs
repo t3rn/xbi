@@ -234,4 +234,5 @@ impl pallet_xbi_portal::Config for Runtime {
     type XcmSovereignOrigin = XbiSovereign;
     type FeeConversion = IdentityFee<Balance>;
     type ReserveBalanceCustodian = ReserveBalanceCustodian;
+    type NotificationWeight = ConstU64<100_000_000>;
 }
