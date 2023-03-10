@@ -33,6 +33,7 @@ pub struct Receiver<
     ChargeForMessage,
     AssetReserveCustodian,
 > {
+    #[allow(clippy::type_complexity)]
     phantom: PhantomData<(
         T,
         Sender,

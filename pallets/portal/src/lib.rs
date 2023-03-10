@@ -118,6 +118,8 @@ pub mod pallet {
         <T as Config>::ReserveBalanceCustodian,
     >;
 
+    // JUSTIFICATION: will be used and is used in tests
+    #[allow(dead_code)]
     /// A reexport of the Receiver backed by the Queue
     pub(crate) type AsyncReceiver<T> =
         xs_channel::receiver::frame::queue_backed::Receiver<T, Queue<Pallet<T>>, Pallet<T>>;
