@@ -6,7 +6,7 @@ homepage    = "https://t3rn.io"
 license     = "Apache-2.0"
 name        = "xp-format"
 repository  = "https://github.com/t3rn/xbi/"
-version     = "0.3.6"
+version     = "0.3.7"
 
 [dependencies]
 codec      = { package = "parity-scale-codec", version = "3", default-features = false }
