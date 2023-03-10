@@ -124,6 +124,7 @@ impl pallet_xbi_portal::Config for Test {
     type FeeConversion = IdentityFee<Balance>;
     type DeFi = ();
     type ReserveBalanceCustodian = ReserveBalanceCustodian;
+    type NotificationWeight = ConstU64<1>;
 }
 
 parameter_types! {

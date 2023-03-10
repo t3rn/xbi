@@ -740,7 +740,7 @@ mod tests {
                 slim,
                 ASSET_ID,
                 ALICE,
-                (EXEC_COST + NOTIFICATION_COST) - WASM_EXECUTION_FEE
+                (EXEC_COST + NOTIFICATION_COST) - WASM_EXECUTION_FEE - NOTIFICATION_WEIGHT
             );
             slim::System::reset_events();
         });
