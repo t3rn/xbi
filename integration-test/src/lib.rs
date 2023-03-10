@@ -117,9 +117,9 @@ pub fn setup() {
         .with_level(LevelFilter::Off)
         // .with_module_level("xcm", LevelFilter::Debug)
         .with_module_level("xbi", LevelFilter::Debug)
-        .with_module_level("xp-channel", LevelFilter::Debug)
+        // .with_module_level("xp-channel", LevelFilter::Debug)
         .with_module_level("xs-channel", LevelFilter::Debug)
-        .with_module_level("asset-registry", LevelFilter::Debug)
+        // .with_module_level("asset-registry", LevelFilter::Debug)
         .with_module_level("trie", LevelFilter::Off)
         .init()
         .ok();

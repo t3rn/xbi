@@ -72,6 +72,7 @@ mod tests {
     const ASSET_ID: u32 = 1;
     const EXEC_COST: u128 = 90_000_000_000;
     const NOTIFICATION_COST: u128 = 10_000_000_000;
+    const NOTIFICATION_WEIGHT: u128 = 100_000_000;
     // Weight for the contract call as identity fee
     const WASM_EXECUTION_FEE: u128 = 32063234;
     const BALANCE_CUSTODIAN: sp_runtime::AccountId32 = sp_runtime::AccountId32::new([64u8; 32]);
@@ -1015,9 +1016,86 @@ mod tests {
         });
     }
 
-    // TODO:
     #[test]
-    fn user_is_refunded_most_of_fees_on_target_fail() {}
+    fn user_is_refunded_most_of_fees_on_target_fail() {
+        setup();
+        setup_default_assets();
+        init_wasm_fixture();
+
+        let made_up_dest = sp_runtime::AccountId32::new([99u8; 32]);
+
+        println!(">>> [Slim] Queueing xbi message");
+        Slim::execute_with(|| {
+            assert_ok!(slim::XbiPortal::send(
+                slim::Origin::signed(ALICE),
+                xp_channel::ExecutionType::Async,
+                XbiFormat {
+                    instr: XbiInstruction::CallWasm {
+                        dest: made_up_dest,
+                        value: 0,
+                        gas_limit: 500_000_000_000,
+                        storage_deposit_limit: None,
+                        data: b"".to_vec()
+                    },
+                    metadata: XbiMetadata::new(
+                        SLIM_PARA_ID,
+                        LARGE_PARA_ID,
+                        Default::default(),
+                        Fees::new(Some(ASSET_ID), Some(EXEC_COST), Some(NOTIFICATION_COST)),
+                        None,
+                        Default::default(),
+                        Default::default(),
+                    ),
+                }
+            ));
+
+            assert_ok!(slim::XbiPortal::process_queue(slim::Origin::root()));
+
+            crate::slim::log_all_events("Slim");
+            // Assert owner paid for the execution fees
+            assert_asset_burned!(slim, ASSET_ID, ALICE, EXEC_COST + NOTIFICATION_COST);
+            // Balance custodian received
+            assert_asset_issued!(
+                slim,
+                ASSET_ID,
+                BALANCE_CUSTODIAN,
+                EXEC_COST + NOTIFICATION_COST
+            );
+            slim::System::reset_events();
+        });
+
+        println!(">>> [Large] checking large for message fees application");
+        Large::execute_with(|| {
+            log_all_events();
+            // Assert owner paid for the execution fees
+            assert_asset_burned!(
+                large,
+                ASSET_ID,
+                para_id_to_account(ParaKind::Sibling(SLIM_PARA_ID)),
+                EXEC_COST + NOTIFICATION_COST
+            );
+            System::reset_events();
+        });
+
+        println!(">>> [Slim] Checking result");
+        Slim::execute_with(|| {
+            crate::slim::log_all_events("Slim");
+            assert_asset_burned!(
+                slim,
+                ASSET_ID,
+                BALANCE_CUSTODIAN,
+                EXEC_COST + NOTIFICATION_COST - NOTIFICATION_WEIGHT
+            );
+            // TODO: figure out why BuyExecution is just dumped
+            assert_asset_issued!(
+                slim,
+                ASSET_ID,
+                ALICE,
+                EXEC_COST + NOTIFICATION_COST - NOTIFICATION_WEIGHT
+            );
+            slim::System::reset_events();
+        });
+    }
 
     // TODO:
     #[test]

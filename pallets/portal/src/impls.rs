@@ -8,6 +8,7 @@ use frame_support::{
 };
 use frame_system::ensure_signed;
 use sp_core::H256;
+use sp_runtime::traits::Get;
 use sp_runtime::{
     traits::UniqueSaturatedInto, AccountId32, DispatchError, DispatchErrorWithPostInfo, Either,
 };
@@ -219,6 +220,9 @@ impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
             }
         };
 
+        xbi.metadata.fees.push_aggregate(
+            T::FeeConversion::weight_to_fee(&T::NotificationWeight::get()).unique_saturated_into(),
+        );
         match &result {
             Ok(info) => {
                 xbi.metadata.fees.push_aggregate(
@@ -226,11 +230,9 @@ impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
                 );
             }
             Err(err) => {
+                let weight = err.post_info.actual_weight.unwrap_or(0);
                 xbi.metadata.fees.push_aggregate(
-                    T::FeeConversion::weight_to_fee(
-                        &err.post_info.actual_weight.unwrap_or_default(),
-                    )
-                    .unique_saturated_into(),
+                    T::FeeConversion::weight_to_fee(&weight).unique_saturated_into(),
                 );
             }
         }

@@ -189,6 +189,9 @@ pub mod pallet {
         /// A place to store reserved funds whilst we approach a nicer way of reserving asset funds
         type ReserveBalanceCustodian: Get<Self::AccountId>;
 
+        #[pallet::constant]
+        type NotificationWeight: Get<Weight>;
+
         // Queue management constants, needs revisiting TODO
         #[pallet::constant]
         type ExpectedBlockTimeMs: Get<u32>;
@@ -228,9 +231,6 @@ pub mod pallet {
 
         fn on_finalize(_n: T::BlockNumber) {}
 
-        // A runtime code run after every block and have access to extended set of APIs.
-        //
-        // For instance you can generate extrinsics for the upcoming produced block.
         fn offchain_worker(_n: T::BlockNumber) {}
     }
 
@@ -429,6 +429,7 @@ pub mod pallet {
 
                                 let instruction_result =
                                     Pallet::<T>::handle(&T::Origin::root(), msg);
+                                log::debug!(target: "xbi", "Instruction result: {:?}", instruction_result);
 
                                 let xbi_result = handle_instruction_result::<Pallet<T>>(
                                     &instruction_result,

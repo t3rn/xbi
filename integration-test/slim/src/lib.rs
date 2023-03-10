@@ -88,7 +88,6 @@ parameter_types! {
     pub const RelayNetwork: NetworkId = NetworkId::Any;
         pub const SelfLocation: MultiLocation = MultiLocation::here();
     pub CheckingAccount: AccountId = PolkadotXcm::check_account();
-    pub CheckingAccount2: AccountId = AccountId::new([254_u8; 32]);
     pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 }
@@ -143,7 +142,7 @@ pub type FungiblesTransactor = FungiblesAdapter<
     // that this asset is known.
     NonZeroIssuance<AccountId, Assets>,
     // The account to use for tracking teleports.
-    CheckingAccount2,
+    CheckingAccount,
 >;
 
 pub type AssetTransactors = (LocalAssetTransactor, FungiblesTransactor);
@@ -297,6 +296,7 @@ impl pallet_xbi_portal::Config for Runtime {
     type XcmSovereignOrigin = XbiSovereign;
     type FeeConversion = IdentityFee<Balance>;
     type ReserveBalanceCustodian = ReserveBalanceCustodian;
+    type NotificationWeight = ConstU64<100_000_000>;
 }
 
 pub type AssetId = u32;
