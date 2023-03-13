@@ -51,6 +51,9 @@ jobs:
       - name: Push tag
         run: git push origin v${{ steps.version.outputs.version }}
 
+      - name: Push tag
+        run: git push origin main
+
       # - name: Send telegram message on primitives release failure
       #   if: failure() && steps.release.outcome == 'failure'
       #   uses: appleboy/telegram-action@master
