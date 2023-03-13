@@ -2,6 +2,7 @@ use crate::sender::Sender as SenderExt;
 use frame_support::traits::{fungibles::Mutate, Get, ReservableCurrency};
 use frame_system::Config;
 use sp_runtime::{traits::UniqueSaturatedInto, DispatchResult};
+use sp_std::borrow::ToOwned;
 use sp_std::marker::PhantomData;
 use xp_channel::{
     queue::{QueueSignal, Queueable},

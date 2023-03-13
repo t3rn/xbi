@@ -2,6 +2,7 @@ use crate::receiver::Receiver as ReceiverExt;
 use frame_support::pallet_prelude::DispatchResultWithPostInfo;
 use frame_system::{ensure_signed_or_root, Config};
 use sp_runtime::{traits::UniqueSaturatedInto, Either};
+use sp_std::borrow::ToOwned;
 use sp_std::marker::PhantomData;
 use xp_channel::{
     queue::{QueueSignal, Queueable},
