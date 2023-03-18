@@ -23,10 +23,8 @@ jobs:
         uses: paulhatch/semantic-version@v5.0.2
         with:
           tag_prefix: "v"
-          major_pattern: "/feat!:|refactor!:"
-          major_regexp_flags: "g"
-          minor_pattern: "/feat:|refactor:"
-          minor_regexp_flags: "g"
+          major_pattern: "/^((feat)|(refactor))(\\([a-z]+\\))?!:/"
+          minor_pattern: "/^((feat)|(refactor))(\\([a-z]+\\))?:/"
           version_format: "${major}.${minor}.${patch}"
           bump_each_commit: false
           search_commit_body: false
