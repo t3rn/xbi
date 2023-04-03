@@ -222,19 +222,19 @@ impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
         };
 
         xbi.metadata.fees.push_aggregate(
-            T::FeeConversion::weight_to_fee(&T::NotificationWeight::get()).unique_saturated_into(),
+            T::Weigher::weight_to_fee(&T::NotificationWeight::get()).unique_saturated_into(),
         );
         match &result {
             Ok(info) => {
                 xbi.metadata.fees.push_aggregate(
-                    T::FeeConversion::weight_to_fee(&info.weight).unique_saturated_into(),
+                    T::Weigher::weight_to_fee(&info.weight).unique_saturated_into(),
                 );
             }
             Err(err) => {
                 let weight = err.post_info.actual_weight.unwrap_or(0);
-                xbi.metadata.fees.push_aggregate(
-                    T::FeeConversion::weight_to_fee(&weight).unique_saturated_into(),
-                );
+                xbi.metadata
+                    .fees
+                    .push_aggregate(T::Weigher::weight_to_fee(&weight).unique_saturated_into());
             }
         }
         result

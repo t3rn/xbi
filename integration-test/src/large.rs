@@ -1097,6 +1097,65 @@ mod tests {
         });
     }
 
+    #[test]
+    fn test_everything_from_buy_execution_should_not_be_dumped() {
+        setup();
+        setup_default_assets();
+        init_wasm_fixture();
+
+        let exec_cost = 5_500_000;
+        // 50_000_020
+        let not_cost = 4_500_000;
+
+        let made_up_dest = sp_runtime::AccountId32::new([99u8; 32]);
+
+        Slim::execute_with(|| {
+            assert_ok!(slim::XbiPortal::send(
+                slim::Origin::signed(ALICE),
+                xp_channel::ExecutionType::Async,
+                XbiFormat {
+                    instr: XbiInstruction::CallWasm {
+                        dest: made_up_dest,
+                        value: 0,
+                        gas_limit: 500_000_000_000,
+                        storage_deposit_limit: None,
+                        data: b"".to_vec()
+                    },
+                    metadata: XbiMetadata::new(
+                        SLIM_PARA_ID,
+                        LARGE_PARA_ID,
+                        Default::default(),
+                        Fees::new(Some(ASSET_ID), Some(exec_cost), Some(not_cost)),
+                        None,
+                        Default::default(),
+                        Default::default(),
+                    ),
+                }
+            ));
+
+            assert_ok!(slim::XbiPortal::process_queue(slim::Origin::root()));
+            slim::System::reset_events();
+        });
+
+        println!(">>> [Large] checking large for message fees application");
+        println!(">>> [Large] ");
+        println!(">>> [Large] ");
+        println!(">>> [Large] ");
+        println!(">>> [Large] ");
+        println!(">>> [Large] ");
+
+        Large::execute_with(|| {
+            log_all_events();
+
+            System::reset_events();
+        });
+
+        Slim::execute_with(|| {
+            // crate::slim::log_all_events("Slim");
+            slim::System::reset_events();
+        });
+    }
+
     // TODO:
     #[test]
     fn xbi_call_can_timeout() {

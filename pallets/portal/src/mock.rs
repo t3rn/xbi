@@ -121,7 +121,7 @@ impl pallet_xbi_portal::Config for Test {
     type ParachainId = ConstU32<3333>;
     type TimeoutChecksLimit = ConstU32<3000>;
     type Assets = Assets;
-    type FeeConversion = IdentityFee<Balance>;
+    type Weigher = IdentityFee<Balance>;
     type DeFi = ();
     type ReserveBalanceCustodian = ReserveBalanceCustodian;
     type NotificationWeight = ConstU64<1>;

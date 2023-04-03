@@ -232,7 +232,7 @@ impl pallet_xbi_portal::Config for Runtime {
     type TimeoutChecksLimit = ConstU32<3000>;
     type Xcm = XcmRouter;
     type XcmSovereignOrigin = XbiSovereign;
-    type FeeConversion = IdentityFee<Balance>;
+    type Weigher = IdentityFee<Balance>;
     type ReserveBalanceCustodian = ReserveBalanceCustodian;
     type NotificationWeight = ConstU64<100_000_000>;
 }

@@ -1,2 +1,24 @@
 [workspace]
 members = [ "crates/*", 'client', "integration-test", 'pallets/portal', 'pallets/asset-registry' ]
+
+[profile.dev]
+# Disabling debug info speeds up builds a bunch,
+# and we don't rely on it for debugging that much.
+debug = 0
+
+[profile.dev.package]
+# These speed up local tests.
+kusama-runtime.opt-level     = 3
+large.opt-level              = 3
+librocksdb-sys.opt-level     = 3
+polkadot-runtime.opt-level   = 3
+rococo-runtime.opt-level     = 3
+rustc-hash.opt-level         = 3
+slim.opt-level               = 3
+tikv-jemalloc-sys.opt-level  = 3
+wasmtime-cranelift.opt-level = 3
+wasmtime.opt-level           = 3
+
+[profile.release]
+debug       = 0 # Set this to 1 or 2 to get more useful backtraces in debugger.
+incremental = true

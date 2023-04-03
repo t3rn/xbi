@@ -32,7 +32,8 @@ xp-format               = { path = "../../crates/format", default-features = fal
 xp-xcm                  = { path = "../../crates/xcm-primitives", default-features = false, features = [ "frame" ], version = "0.3" }
 xs-channel              = { path = "../../crates/channel", default-features = false, features = [ "frame" ], version = "0.3" }
 
-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0", default-features = false }
+xcm          = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0", default-features = false }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0", default-features = false }
 
 contracts-primitives = { git = "https://github.com/t3rn/t3rn", branch = "development", default-features = false, package = "pallet-contracts-primitives", version = "5" }
 evm-primitives       = { git = "https://github.com/t3rn/t3rn", branch = "development", default-features = false, package = "fp-evm", version = "3.0.0-dev" }
@@ -64,6 +65,7 @@ std = [
   "sp-core/std",
   "sp-runtime/std",
   "frame-support/std",
+  "xcm-executor/std",
   "frame-system/std",
   "contracts-primitives/std",
   "evm-primitives/std",

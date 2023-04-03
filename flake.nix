@@ -18,6 +18,7 @@
           rustc = rustVersion;
         };
       in {
+        stdenv = pkgs.clangStdenv;
         devShell = pkgs.mkShell {
           LIBCLANG_PATH = "${pkgs.llvmPackages_11.libclang.lib}/lib";
           nativeBuildInputs = with pkgs; [ 

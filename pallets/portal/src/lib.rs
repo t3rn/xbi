@@ -58,6 +58,7 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
     use sp_runtime::traits::{BlakeTwo256, Zero};
     use xcm::v2::SendXcm;
+    use xcm_executor::traits::TransactAsset;
     use xp_channel::{
         queue::{ringbuffer::DefaultIdx, Queue as QueueExt, QueueSignal},
         traits::RefundForMessage,
@@ -163,9 +164,20 @@ pub mod pallet {
         // TODO: disable SendTransactionTypes<Call<Self>> for now
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         type Call: From<Call<Self>>;
+
+        // XCM options
         type XcmSovereignOrigin: Get<Self::AccountId>;
         /// Access to XCM functionality outside of this consensus system TODO: use XcmSender && ExecuteXcm for self execution
         type Xcm: SendXcm;
+
+        /// Provide access to the asset registry so we can lookup, not really specific to XBI just helps us at this stage
+        type AssetRegistry: AssetLookup<<Self::Assets as Inspect<Self::AccountId>>::AssetId>;
+        /// Convert XBI instruction weights to fees
+        type Weigher: WeightToFee;
+        /// A place to store reserved funds whilst we approach a nicer way of reserving asset funds
+        type ReserveBalanceCustodian: Get<Self::AccountId>;
+
+        // Native execution options
         /// Provide access to the contracts pallet or some pallet like it
         type Contracts: contracts_primitives::traits::Contracts<
             Self::AccountId,
@@ -180,16 +192,10 @@ pub mod pallet {
         >;
         type Currency: ReservableCurrency<Self::AccountId>;
         type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
-        /// Provide access to the asset registry so we can lookup, not really specific to XBI just helps us at this stage
-        type AssetRegistry: AssetLookup<<Self::Assets as Inspect<Self::AccountId>>::AssetId>;
         /// Provide access to DeFI
         type DeFi: DeFi<Self>;
         // TODO: might not actually need this
         type Callback: XBICallback<Self>;
-        /// Convert XBI instruction weights to fees
-        type FeeConversion: WeightToFee;
-        /// A place to store reserved funds whilst we approach a nicer way of reserving asset funds
-        type ReserveBalanceCustodian: Get<Self::AccountId>;
 
         #[pallet::constant]
         type NotificationWeight: Get<Weight>;
@@ -374,9 +380,6 @@ pub mod pallet {
                             if let Message::Request(format) = &mut msg {
                                 format.metadata.progress(Timestamp::Sent(current_block));
 
-                                // let o: T::AccountId = xbi_origin(&format.metadata)?;
-                                // ChargeForMessage::charge(&o, &format.metadata.fees)?; // FIXME
-
                                 // TODO: make function
                                 let dest = MultiLocationBuilder::new_parachain(
                                     format.metadata.dest_para_id,
@@ -385,7 +388,7 @@ pub mod pallet {
                                 .build();
 
                                 // TODO: make function
-                                let payment_asset = match format.metadata.fees.asset {
+                                let xcm_asset = match format.metadata.fees.asset {
                                     Some(id) => {
                                         let id: AssetIdOf<T> =
                                             Decode::decode(&mut &id.encode()[..])
@@ -399,19 +402,20 @@ pub mod pallet {
                                 // TODO: make function
                                 let xbi_format_msg = XcmBuilder::<()>::default()
                                     .with_withdraw_concrete_asset(
-                                        payment_asset.clone(),
+                                        xcm_asset.clone(),
                                         format.metadata.fees.get_aggregated_limit(),
                                     )
                                     .with_buy_execution(
-                                        payment_asset,
-                                        format.metadata.fees.notification_cost_limit,
+                                        xcm_asset,
+                                        format.metadata.fees.get_aggregated_limit(),
                                         None,
                                     )
                                     .with_transact(
                                         Some(OriginKind::SovereignAccount),
-                                        Some(format.metadata.fees.execution_cost_limit as u64),
+                                        Some(599800161),
                                         Pallet::<T>::provide(format.clone()),
                                     )
+                                    .with_refund_surplus()
                                     .build();
 
                                 T::Xcm::send_xcm(dest, xbi_format_msg)

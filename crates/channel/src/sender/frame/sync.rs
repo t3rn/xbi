@@ -98,6 +98,10 @@ where
                 format.metadata.progress(Submitted(current_block));
                 format.metadata.progress(Sent(current_block));
 
+                // TODO: this is more for the sync call
+                // 				// Convert origin to multilocation
+                // let origin_as_mult = T::AccountIdToMultiLocation::convert(fee_payer);
+                // T::Transactor::withdraw_asset(&xcm_asset, &format.metadata.origin);
                 let o: T::AccountId = crate::xbi_origin(&format.metadata)?;
                 ChargeForMessage::charge(&o, &format.metadata.fees)?;
 
@@ -125,6 +129,7 @@ where
                         None,
                         CallProvider::provide(format.clone()),
                     )
+                    .with_refund_surplus()
                     // TODO deposit whatever is left over in the reserve
                     // .with_deposit_asset(
                     //     MultiLocationBuilder::new_parachain(format.metadata.src_para_id).build(),
