@@ -28,7 +28,7 @@ jobs:
         uses: mshick/add-pr-comment@v2
         with:
           message: |
-            ### :sparkles: Next version based on commits in this PR
+            ### :sparkles: Next version based on commits since last tag
             ##  ${{ steps.version.outputs.version_tag }}
           message-id: semantic-version-${{ github.ref_name }}
         env:
