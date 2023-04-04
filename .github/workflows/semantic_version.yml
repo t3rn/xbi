@@ -14,7 +14,7 @@ jobs:
 
       - name: Calculate semantic version
         id: version
-        uses: paulhatch/semantic-version@v5.0.2
+        uses: t3rn/semantic-version@v6.0.3
         with:
           tag_prefix: "v"
           major_pattern: "/^((feat)|(refactor))(\\([a-z]+\\))?!:/"
