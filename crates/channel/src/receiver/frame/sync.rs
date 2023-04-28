@@ -78,7 +78,7 @@ where
     Sender: SenderExt<Message>,
     Emitter: ChannelProgressionEmitter,
     Queue: Queueable<(Message, QueueSignal)>,
-    InstructionHandler: XbiInstructionHandler<T::Origin>,
+    InstructionHandler: XbiInstructionHandler<T::RuntimeOrigin>,
     ResultStore: Writable<(sp_core::H256, XbiResult)>,
     Currency: ReservableCurrency<T::AccountId>,
     Assets: Mutate<T::AccountId>,
@@ -86,7 +86,7 @@ where
         xp_channel::traits::RefundForMessage<T::AccountId, Currency, Assets, AssetReserveCustodian>,
     AssetReserveCustodian: Get<T::AccountId>,
 {
-    type Origin = T::Origin;
+    type Origin = T::RuntimeOrigin;
     type Outcome = DispatchResultWithPostInfo;
 
     /// Request should always run the instruction, and product some dispatch info containing meters for the execution

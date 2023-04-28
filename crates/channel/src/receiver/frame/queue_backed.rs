@@ -23,7 +23,7 @@ where
     Queue: Queueable<(Message, QueueSignal)>,
     Emitter: ChannelProgressionEmitter,
 {
-    type Origin = T::Origin;
+    type Origin = T::RuntimeOrigin;
     type Outcome = DispatchResultWithPostInfo;
 
     /// Request should always run the instruction, and produce some info containing meters for the execution

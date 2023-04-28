@@ -223,7 +223,7 @@ pub mod pallet {
         fn on_initialize(block: T::BlockNumber) -> Weight {
             // TODO: enable when confident it works
             if block % T::CheckInterval::get() == Zero::zero() {
-                Pallet::<T>::process_queue(T::Origin::root())
+                Pallet::<T>::process_queue(T::RuntimeOrigin::root())
                     .map(|i| i.actual_weight.unwrap_or_default())
                     .unwrap_or_else(|e| e.post_info.actual_weight.unwrap_or_default())
             } else {
@@ -430,7 +430,7 @@ pub mod pallet {
                                 invert_destination_from_message(&mut msg.metadata);
 
                                 let instruction_result =
-                                    Pallet::<T>::handle(&T::Origin::root(), msg);
+                                    Pallet::<T>::handle(&T::RuntimeOrigin::root(), msg);
                                 log::debug!(target: "xbi", "Instruction result: {:?}", instruction_result);
 
                                 let xbi_result = handle_instruction_result::<Pallet<T>>(

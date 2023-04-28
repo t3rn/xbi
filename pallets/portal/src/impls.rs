@@ -97,9 +97,9 @@ impl<C: Config> ReceiveCallProvider for Pallet<C> {
 
 // TODO: write tests
 // TODO: emit errors
-impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
+impl<T: Config> XbiInstructionHandler<T::RuntimeOrigin> for Pallet<T> {
     fn handle(
-        origin: &T::Origin,
+        origin: &T::RuntimeOrigin,
         xbi: &mut XbiFormat,
     ) -> Result<
         HandlerInfo<frame_support::weights::Weight>,
