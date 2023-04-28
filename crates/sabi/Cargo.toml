@@ -15,9 +15,9 @@ codec      = { package = "parity-scale-codec", version = "3.0.0", default-featur
 log        = { version = "0.4", default-features = false }
 scale-info = { version = "2.1.1", default-features = false, features = [ "derive" ] }
 
-sp-core    = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "6.0.0" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "6.0.0" }
-sp-std     = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0" }
+sp-core    = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.39", default-features = false, version = "6.0.0" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.39", default-features = false, version = "6.0.0" }
+sp-std     = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.39", default-features = false, version = "4.0.0" }
 
 [features]
 default = [ "std" ]

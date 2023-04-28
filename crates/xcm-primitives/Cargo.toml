@@ -10,10 +10,10 @@ version     = "0.3.7"
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [ 'derive' ] }
 
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0" }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.39", default-features = false, version = "4.0.0" }
 
-xcm          = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0", default-features = false }
-xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0", default-features = false, optional = true }
+xcm          = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39", version = "0", default-features = false }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39", version = "0", default-features = false, optional = true }
 
 [features]
 default   = [ "std", "frame", "frame-std" ]
