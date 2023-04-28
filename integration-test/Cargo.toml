@@ -31,11 +31,11 @@ cumulus-pallet-xcmp-queue = { git = "https://github.com/paritytech/cumulus", bra
 cumulus-primitives-core   = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.39" }
 parachain-info            = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.39" }
 
-pallet-xcm                  = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39", version = "0.9.39" }
-polkadot-parachain          = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39", version = "0.9.39" }
-polkadot-primitives         = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39", version = "0.9.39" }
-polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39", version = "0.9.39" }
-rococo-runtime              = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39", version = "0.9.39" }
+pallet-xcm                  = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39" }
+polkadot-parachain          = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39" }
+polkadot-primitives         = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39" }
+polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39" }
+rococo-runtime              = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39" }
 
 # XBI
 pallet-asset-registry   = { path = "../pallets/asset-registry" }
