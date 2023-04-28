@@ -45,7 +45,7 @@ impl Into<frame_support::weights::PostDispatchInfo>
     fn into(self) -> frame_support::weights::PostDispatchInfo {
         frame_support::weights::PostDispatchInfo {
             actual_weight: Some(self.weight),
-            pays_fee: frame_support::weights::Pays::Yes,
+            pays_fee: frame_support::dispatch::Pays::Yes,
         }
     }
 }

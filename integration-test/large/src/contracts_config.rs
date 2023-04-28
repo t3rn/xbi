@@ -49,7 +49,7 @@ parameter_types! {
 
 impl pallet_3vm_contracts::Config for Runtime {
     type AddressGenerator = pallet_3vm_contracts::DefaultAddressGenerator;
-    type Call = Call;
+    type RuntimeCall = RuntimeCall;
     type CallFilter = frame_support::traits::Nothing;
     type CallStack = [pallet_3vm_contracts::Frame<Self>; 31];
     type ChainExtension = ();
@@ -58,7 +58,7 @@ impl pallet_3vm_contracts::Config for Runtime {
     type DeletionWeightLimit = DeletionWeightLimit;
     type DepositPerByte = DepositPerByte;
     type DepositPerItem = DepositPerItem;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Randomness = RandomnessCollectiveFlip;
     type Schedule = Schedule;
     type ThreeVm = t3rn_primitives::threevm::NoopThreeVm;
@@ -121,7 +121,7 @@ impl pallet_3vm_evm::Config for Runtime {
     type CallOrigin = EnsureAddressNever<Self::AccountId>;
     type ChainId = ChainId;
     type Currency = Balances;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type FeeCalculator = FreeGasPrice;
     type FindAuthor = FindAuthorTruncated<Aura>;
     type GasWeightMapping = FreeGasWeightMapping;

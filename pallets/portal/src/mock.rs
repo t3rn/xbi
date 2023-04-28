@@ -42,9 +42,9 @@ impl system::Config for Test {
     type BlockLength = ();
     type BlockNumber = u64;
     type BlockWeights = ();
-    type Call = Call;
+    type RuntimeCall = RuntimeCall;
     type DbWeight = ();
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Hash = H256;
     type Hashing = BlakeTwo256;
     type Header = Header;
@@ -54,7 +54,7 @@ impl system::Config for Test {
     type OnKilledAccount = ();
     type OnNewAccount = ();
     type OnSetCode = ();
-    type Origin = Origin;
+    type RuntimeOrigin = RuntimeOrigin;
     type PalletInfo = PalletInfo;
     type SS58Prefix = ConstU16<42>;
     type SystemWeightInfo = ();
@@ -105,8 +105,8 @@ parameter_types! {
 }
 
 impl pallet_xbi_portal::Config for Test {
-    type Call = Call;
-    type Event = Event;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
     type XcmSovereignOrigin = XcmSovereignOrigin;
     type Xcm = ();
     type Contracts = ();
@@ -137,7 +137,7 @@ impl pallet_balances::Config for Test {
     type AccountStore = System;
     type Balance = Balance;
     type DustRemoval = ();
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type ExistentialDeposit = ExistentialDeposit;
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
@@ -163,7 +163,7 @@ impl pallet_assets::Config for Test {
     type AssetId = AssetId;
     type Balance = Balance;
     type Currency = Balances;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Extra = ();
     type ForceOrigin = EnsureRoot<Self::AccountId>;
     type Freezer = ();

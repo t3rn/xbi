@@ -72,7 +72,7 @@ impl pallet_3vm_evm::Config for Runtime {
     type CallOrigin = EnsureAddressNever<Self::AccountId>;
     type ChainId = ChainId;
     type Currency = Balances;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type FeeCalculator = FreeGasPrice;
     type FindAuthor = FindAuthorTruncated<Aura>;
     type GasWeightMapping = FreeGasWeightMapping;

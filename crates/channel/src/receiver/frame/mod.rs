@@ -35,7 +35,7 @@ pub(crate) fn handler_to_xbi_result<Emitter: ChannelProgressionEmitter>(
     info: &HandlerInfo<frame_support::weights::Weight>,
     msg: &mut XbiFormat,
 ) -> XbiResult {
-    Emitter::emit_instruction_handled(msg, &info.weight);
+    Emitter::emit_instruction_handled(msg, &info.weight.ref_time());
 
     let status: Status = Status::from(&msg.metadata.fees);
 

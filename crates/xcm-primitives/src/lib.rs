@@ -7,6 +7,7 @@ use xcm::prelude::*;
 use xcm::DoubleEncoded;
 
 pub use xcm;
+use xcm::v3::Weight;
 
 #[cfg(feature = "frame")]
 pub mod frame_traits;
@@ -19,7 +20,7 @@ pub struct MultiLocationBuilder {
 
 impl MultiLocationBuilder {
     pub fn get_relaychain_dest() -> VersionedMultiLocation {
-        VersionedMultiLocation::V1(MultiLocationBuilder::new_native().with_parents(1).build())
+        VersionedMultiLocation::V3(MultiLocationBuilder::new_native().with_parents(1).build())
     }
 
     pub fn new_native() -> Self {
@@ -45,7 +46,7 @@ impl MultiLocationBuilder {
             inner: MultiLocation {
                 parents: parent.unwrap_or_default(),
                 interior: X1(AccountId32 {
-                    network: Any,
+                    network: None,
                     id: account,
                 }),
             },
@@ -95,8 +96,8 @@ impl<T: Codec> XcmBuilder<T> {
         weight_limit: Option<u64>,
     ) -> Self {
         let reserve_xcm = XcmBuilder::default()
-            .with_buy_execution(dest.clone(), fee, weight_limit.map(WeightLimit::Limited))
-            .with_deposit_asset(recipient, assets.len() as u32)
+            .with_buy_execution(dest.clone(), fee, weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))))
+            .with_deposit_asset(recipient)
             .build();
         self.inner.0.push(TransferReserveAsset {
             assets,
@@ -116,8 +117,8 @@ impl<T: Codec> XcmBuilder<T> {
         weight_limit: Option<u64>,
     ) -> Self {
         let injected_xcm = XcmBuilder::default()
-            .with_buy_execution(reserve.clone(), fee, weight_limit.map(WeightLimit::Limited))
-            .with_deposit_asset(recipient, assets.len() as u32)
+            .with_buy_execution(reserve.clone(), fee, weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))))
+            .with_deposit_asset(recipient)
             .build();
         self.inner.0.push(InitiateReserveWithdraw {
             assets: Wild(All),
@@ -161,7 +162,7 @@ impl<T: Codec> XcmBuilder<T> {
             reserve: reserve.clone(),
             xcm: if should_teleport {
                 XcmBuilder::default()
-                    .with_buy_execution(reserve, execution_fee / 2, weight_limit.map(Limited))
+                    .with_buy_execution(reserve, execution_fee / 2, weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))))
                     .with_initiate_teleport(
                         reanchored_dest,
                         recipient,
@@ -172,7 +173,7 @@ impl<T: Codec> XcmBuilder<T> {
                     .build()
             } else {
                 XcmBuilder::default()
-                    .with_buy_execution(reserve, execution_fee / 2, weight_limit.map(Limited))
+                    .with_buy_execution(reserve, execution_fee / 2, weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))))
                     .with_deposit_reserve_asset(
                         reanchored_dest,
                         recipient,
@@ -198,8 +199,8 @@ impl<T: Codec> XcmBuilder<T> {
             assets: Wild(All), // TODO: this needs fixing
             dest: dest.clone(),
             xcm: XcmBuilder::default()
-                .with_buy_execution(dest, execution_fee, weight_limit.map(WeightLimit::Limited))
-                .with_deposit_asset(recipient, assets.len() as u32)
+                .with_buy_execution(dest, execution_fee, weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))))
+                .with_deposit_asset(recipient)
                 .build(),
         });
         self
@@ -215,11 +216,10 @@ impl<T: Codec> XcmBuilder<T> {
     ) -> XcmBuilder<T> {
         self.inner.0.push(DepositReserveAsset {
             assets: Wild(All),
-            max_assets: assets.len() as u32,
             dest: dest.clone(),
             xcm: XcmBuilder::default()
-                .with_buy_execution(dest, execution_fee, weight_limit.map(WeightLimit::Limited))
-                .with_deposit_asset(recipient, assets.len() as u32)
+                .with_buy_execution(dest, execution_fee, weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))))
+                .with_deposit_asset(recipient)
                 .build(),
         });
         self
@@ -263,8 +263,8 @@ impl<T: Codec> XcmBuilder<T> {
     ) -> XcmBuilder<T> {
         let call: DoubleEncoded<T> = call.into();
         self.inner.0.push(Transact {
-            origin_type: origin_type.unwrap_or(OriginKind::Native),
-            require_weight_at_most: max_weight.unwrap_or(1_000_000_000),
+            origin_kind: origin_type.unwrap_or(OriginKind::Native),
+            require_weight_at_most: Weight::from_ref_time(max_weight.unwrap_or(1_000_000_000)),
             call,
         });
         self
@@ -273,11 +273,10 @@ impl<T: Codec> XcmBuilder<T> {
     pub fn with_deposit_asset(
         mut self,
         beneficiary: MultiLocation,
-        max_assets: u32,
+        
     ) -> XcmBuilder<T> {
         self.inner.0.push(DepositAsset {
             assets: Wild(All),
-            max_assets,
             beneficiary,
         });
         self

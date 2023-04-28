@@ -130,7 +130,7 @@ impl Config for XcmConfig {
     type AssetTransactor = AssetTransactors;
     type AssetTrap = ();
     type Barrier = Barrier;
-    type Call = Call;
+    type RuntimeCall = RuntimeCall;
     type IsReserve = ();
     type IsTeleporter = TrustedTeleporters;
     type LocationInverter = LocationInverter<Ancestry>;
@@ -150,7 +150,7 @@ parameter_types! {
 impl cumulus_pallet_parachain_system::Config for Runtime {
     type CheckAssociatedRelayNumber = cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
     type DmpMessageHandler = DmpQueue;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type OnSystemEvent = ();
     type OutboundXcmpMessageSource = XcmpQueue;
     type ReservedDmpWeight = ReservedDmpWeight;
@@ -163,7 +163,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
     type ChannelInfo = ParachainSystem;
     type ControllerOrigin = EnsureRoot<AccountId>;
     type ControllerOriginConverter = XcmOriginToCallOrigin;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
     type VersionWrapper = ();
     type WeightInfo = ();
@@ -171,13 +171,13 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 }
 
 impl cumulus_pallet_dmp_queue::Config for Runtime {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
     type XcmExecutor = XcmExecutor<XcmConfig>;
 }
 
 impl cumulus_pallet_xcm::Config for Runtime {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type XcmExecutor = XcmExecutor<XcmConfig>;
 }
 
@@ -185,11 +185,11 @@ pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, RelayNet
 
 impl pallet_xcm::Config for Runtime {
     type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
-    type Call = Call;
-    type Event = Event;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
     type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
     type LocationInverter = LocationInverter<Ancestry>;
-    type Origin = Origin;
+    type RuntimeOrigin = RuntimeOrigin;
     type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
     type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
     type XcmExecuteFilter = Everything;
@@ -217,7 +217,7 @@ parameter_types! {
 impl pallet_xbi_portal::Config for Runtime {
     type AssetRegistry = AssetRegistry;
     type Assets = Assets;
-    type Call = Call;
+    type RuntimeCall = RuntimeCall;
     type Callback = ();
     type CheckInLimit = ConstU32<100>;
     type CheckInterval = ConstU64<3>;
@@ -225,7 +225,7 @@ impl pallet_xbi_portal::Config for Runtime {
     type Contracts = Contracts;
     type Currency = Balances;
     type DeFi = ();
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type Evm = Evm;
     type ExpectedBlockTimeMs = ConstU32<6000>;
     type ParachainId = ConstU32<3333>;
