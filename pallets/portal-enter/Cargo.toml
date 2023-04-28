@@ -6,13 +6,13 @@ name        = "pallet-xbi-portal-enter"
 version     = "0.9.19"
 
 [dependencies]
-codec                 = { package = "parity-scale-codec", version = "3", default-features = false }
+codec                 = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
 impl-trait-for-tuples = "0.2.2"
 log                   = { version = "0.4", default-features = false }
 scale-info            = { version = "2", default-features = false, features = [ "derive" ] }
 
 pallet-xbi-portal = { path = "../portal", default-features = false }
-t3rn-primitives   = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development" }
+t3rn-primitives   = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow" }
 
 pallet-xcm = { git = "https://github.com/paritytech/polkadot", tag = "v0.9.19", default-features = false }
 xcm        = { git = "https://github.com/paritytech/polkadot", tag = "v0.9.19", default-features = false }

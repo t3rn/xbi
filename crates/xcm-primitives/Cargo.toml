@@ -8,7 +8,7 @@ repository  = "https://github.com/t3rn/xbi"
 version     = "0.3.7"
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3", default-features = false, features = [ 'derive' ] }
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [ 'derive' ] }
 
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0" }
 

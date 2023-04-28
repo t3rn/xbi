@@ -41,10 +41,10 @@ xcm                         = { git = "https://github.com/paritytech/polkadot", 
 xcm-builder                 = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.27", version = "0.9.27" }
 xcm-executor                = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.27", version = "0.9.27" }
 
-evm-precompile-util       = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development", package = "precompile-util", version = "1.0.0" }
-pallet-3vm-evm            = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development", package = "pallet-evm", version = "0.1.0" }
-pallet-3vm-evm-primitives = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development", package = "fp-evm", version = "3.0.0-dev" }
-t3rn-primitives           = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development", version = "1.0.0-alpha.1" }
+evm-precompile-util       = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow", package = "precompile-util" }
+pallet-3vm-evm            = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow", package = "pallet-evm" }
+pallet-3vm-evm-primitives = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow", package = "fp-evm" }
+t3rn-primitives           = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow" }
 
 # evm-precompile-util       = { path = "../../../../3vm/pallets/evm/precompile/util", package = "precompile-util" }
 # pallet-3vm-evm            = { path = "../../../../3vm/pallets/evm", package = "pallet-evm" }

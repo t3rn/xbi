@@ -19,7 +19,7 @@ clap   = { version = "4.0.9", features = [ "derive" ] }
 config = "0.13.2"
 
 # Codec
-codec      = { package = "parity-scale-codec", version = "3.1.5", features = [ 'derive' ] }
+codec      = { package = "parity-scale-codec", version = "3.0.0", features = [ 'derive' ] }
 hex        = { version = "0.4.3", features = [ "serde" ] }
 scale-info = { version = "2.1.2", features = [ "derive" ] }
 serde      = { version = "1.0.136", features = [ "derive" ] }

@@ -16,7 +16,7 @@ proc-macro2   = "1.0.40"
 simple_logger = "*"
 wat           = "1"
 
-codec      = { package = "parity-scale-codec", version = "3", default-features = false }
+codec      = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
 scale-info = { version = "2.1.2", default-features = false }
 serde      = { version = "1.0.144", optional = true }
 

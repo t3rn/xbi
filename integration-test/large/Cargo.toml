@@ -48,13 +48,13 @@ xcm-executor                = { git = "https://github.com/paritytech/polkadot", 
 pallet-asset-registry = { path = "../../pallets/asset-registry", default-features = false, version = "0.3" }
 pallet-xbi-portal     = { path = "../../pallets/portal", default-features = false, version = "0.3" }
 
-evm-precompile-util             = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development", package = "precompile-util", version = "1.0.0" }
-pallet-3vm                      = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development", package = "pallet-3vm", version = "0.1.0" }
-pallet-3vm-contracts            = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development", package = "pallet-contracts", version = "1.0.0-alpha.0" }
-pallet-3vm-contracts-primitives = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development", package = "pallet-contracts-primitives", version = "5.0.0" }
-pallet-3vm-evm                  = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development", package = "pallet-evm", version = "0.1.0" }
-pallet-3vm-evm-primitives       = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development", package = "fp-evm", version = "3.0.0-dev" }
-t3rn-primitives                 = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development", version = "1.0.0-alpha.1" }
+evm-precompile-util             = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow", package = "precompile-util" }
+pallet-3vm                      = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow", package = "pallet-3vm" }
+pallet-3vm-contracts            = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow", package = "pallet-contracts" }
+pallet-3vm-contracts-primitives = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow", package = "pallet-contracts-primitives" }
+pallet-3vm-evm                  = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow", package = "pallet-evm" }
+pallet-3vm-evm-primitives       = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow", package = "fp-evm" }
+t3rn-primitives                 = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow" }
 
 # evm-precompile-util             = { path = "../../../../3vm/pallets/evm/precompile/util", package = "precompile-util" }
 # pallet-3vm                      = { path = "../../../../3vm/pallets/3vm" }
