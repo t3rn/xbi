@@ -19,7 +19,7 @@ xp-format = { path = "../format", default-features = false, version = "0.3.7" }
 
 # Optional frame specific deps
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.39", default-features = false, optional = true, version = "4.0.0-dev" }
-xcm           = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39", default-features = false, optional = true, version = "0" }
+xcm           = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39", default-features = false, optional = true }
 
 [dev-dependencies]
 lazy_static = "1.4.0"

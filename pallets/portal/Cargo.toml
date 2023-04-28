@@ -32,7 +32,7 @@ xp-format               = { path = "../../crates/format", default-features = fal
 xp-xcm                  = { path = "../../crates/xcm-primitives", default-features = false, features = [ "frame" ], version = "0.3" }
 xs-channel              = { path = "../../crates/channel", default-features = false, features = [ "frame" ], version = "0.3" }
 
-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39", version = "0", default-features = false }
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39", default-features = false }
 
 contracts-primitives = { git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow", default-features = false, package = "pallet-contracts-primitives", version = "5" }
 evm-primitives       = { git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow", default-features = false, package = "fp-evm", version = "1.4.0-rc.0" }
