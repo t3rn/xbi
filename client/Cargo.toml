@@ -37,7 +37,7 @@ actix-web            = { version = "4", optional = true }
 futures              = "0.3.24"
 signal-hook          = "0.3.14"
 signal-hook-tokio    = { version = "0.3.1", features = [ "futures-v0_3" ] }
-substrate-api-client = { git = "https://github.com/scs/substrate-api-client.git", branch = "polkadot-v0.9.39", features = [ "std" ], version = "0.6.0" }
+substrate-api-client = { git = "https://github.com/scs/substrate-api-client.git", branch = "polkadot-v0.9.27", features = [ "std" ], version = "0.6.0" }
 tokio                = { version = "1", features = [ "full" ] }
 
 # XBI
