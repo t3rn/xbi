@@ -11,7 +11,6 @@ pub trait Scabi<T: pallet::Config> {
     #[allow(clippy::too_many_arguments)] // Simply has a lot of args
     fn args_evm_2_xbi_call_evm(
         origin: OriginFor<T>,
-        source: H160,
         target: H160,
         input: Vec<u8>,
         value: U256,
@@ -64,7 +63,6 @@ pub trait Scabi<T: pallet::Config> {
 impl<T: crate::Config + frame_system::Config> Scabi<T> for XbiAbi<T> {
     fn args_evm_2_xbi_call_evm(
         _origin: OriginFor<T>,
-        source: H160,
         target: H160,
         input: Vec<u8>,
         value: U256,
@@ -75,7 +73,6 @@ impl<T: crate::Config + frame_system::Config> Scabi<T> for XbiAbi<T> {
         access_list: Vec<(H160, Vec<H256>)>,
     ) -> Result<XbiInstruction, Error<T>> {
         Ok(XbiInstruction::CallEvm {
-            source,
             target,
             value,
             input,
@@ -99,7 +96,7 @@ impl<T: crate::Config + frame_system::Config> Scabi<T> for XbiAbi<T> {
         Ok(XbiInstruction::CallWasm {
             dest: XbiAbi::account_local_2_global_32(dest)?,
             value: XbiAbi::value_local_2_global(value)?,
-            gas_limit,
+            gas_limit: gas_limit.ref_time(),
             storage_deposit_limit: XbiAbi::maybe_value_local_2_maybe_global(storage_deposit_limit)?,
             data,
         })
@@ -142,11 +139,10 @@ impl<T: crate::Config + frame_system::Config> Scabi<T> for XbiAbi<T> {
         _debug: bool,
     ) -> Result<XbiInstruction, Error<T>> {
         Ok(XbiInstruction::CallEvm {
-            source: XbiAbi::account_local_2_global_20(origin)?,
             target: XbiAbi::account_local_2_global_20(dest)?,
             value: XbiAbi::value_local_2_global_evm(value)?,
             input: data,
-            gas_limit,
+            gas_limit: gas_limit.ref_time(),
             // Hacky :( - take max_fee_per_gas from storage_deposit_limit?
             max_fee_per_gas: XbiAbi::maybe_value_local_2_global_evm(storage_deposit_limit)?,
             max_priority_fee_per_gas: None,

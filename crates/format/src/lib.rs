@@ -98,7 +98,6 @@ pub enum XbiInstruction {
     CallNative { payload: Data },
     /// A call to an EVM contract
     CallEvm {
-        source: AccountId20, // Could use either [u8; 20] or Junction::AccountKey20
         target: AccountId20, // Could use either [u8; 20] or Junction::AccountKey20
         value: ValueEvm,
         input: Data,

@@ -62,7 +62,6 @@ impl Decode for XbiInstruction {
                 input.read(&mut data[..])?;
 
                 Ok(XbiInstruction::CallEvm {
-                    source: AccountId20::from(source),
                     target: AccountId20::from(dest),
                     value: Decode::decode(&mut &value[..])?,
                     input: Decode::decode(&mut &data[..])?,
@@ -327,7 +326,6 @@ impl Encode for XbiInstruction {
                 payload.encode_to(dest_bytes);
             }
             XbiInstruction::CallEvm {
-                source,
                 target,
                 value,
                 input,
@@ -338,7 +336,6 @@ impl Encode for XbiInstruction {
                 access_list,
             } => {
                 dest_bytes.push_byte(2);
-                source.encode_to(dest_bytes);
                 target.encode_to(dest_bytes);
                 value.encode_to(dest_bytes);
                 gas_limit.encode_to(dest_bytes);

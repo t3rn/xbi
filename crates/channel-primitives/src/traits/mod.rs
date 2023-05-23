@@ -39,11 +39,11 @@ impl<Weight: core::fmt::Debug> From<(Vec<u8>, Weight)> for HandlerInfo<Weight> {
 // Justification: no need for from here
 #[allow(clippy::from_over_into)]
 #[cfg(feature = "frame")]
-impl Into<frame_support::weights::PostDispatchInfo>
+impl Into<frame_support::dispatch::PostDispatchInfo>
     for HandlerInfo<frame_support::weights::Weight>
 {
-    fn into(self) -> frame_support::weights::PostDispatchInfo {
-        frame_support::weights::PostDispatchInfo {
+    fn into(self) -> frame_support::dispatch::PostDispatchInfo {
+        frame_support::dispatch::PostDispatchInfo {
             actual_weight: Some(self.weight),
             pays_fee: frame_support::dispatch::Pays::Yes,
         }

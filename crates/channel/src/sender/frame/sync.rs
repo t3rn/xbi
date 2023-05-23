@@ -88,7 +88,7 @@ where
 
         let metadata = msg.get_metadata().clone();
 
-        let dest = MultiLocationBuilder::new_parachain(metadata.dest_para_id)
+        let mut dest = MultiLocationBuilder::new_parachain(metadata.dest_para_id)
             .with_parents(1)
             .build();
 
@@ -132,7 +132,7 @@ where
                     // )
                     .build();
 
-                Xcm::send_xcm(dest, xbi_format_msg)
+                Xcm::validate(&mut Some(dest), &mut Some(xbi_format_msg))
                     .map(|_| {
                         log::trace!(target: "xs-channel", "Successfully sent xcm message");
                         Emitter::emit_sent(msg.clone());
@@ -177,7 +177,7 @@ where
                     )
                     .build();
 
-                Xcm::send_xcm(dest, xbi_format_msg)
+                Xcm::validate(&mut Some(dest), &mut Some(xbi_format_msg))
                     .map(|_| Emitter::emit_sent(msg.clone()))
                     .map_err(|e| {
                         log::error!(target: "xs-channel", "Failed to send xcm request: {:?}", e);

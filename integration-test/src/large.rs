@@ -67,7 +67,7 @@ mod tests {
     use substrate_abi::{SubstrateAbiConverter, TryConvert};
     use xcm::{latest::prelude::*, VersionedMultiLocation, VersionedXcm};
     use xcm_emulator::TestExt;
-    use xp_format::{Fees, Status, XbiFormat, XbiInstruction, XbiMetadata};
+    use xp_format::{Fees, Status, Timeouts, XbiFormat, XbiInstruction, XbiMetadata};
 
     const ASSET_ID: u32 = 1;
     const EXEC_COST: u128 = 90_000_000_000;
@@ -1026,23 +1026,27 @@ mod tests {
 
         println!(">>> [Slim] Queueing xbi message");
         Slim::execute_with(|| {
-            assert_ok!(slim::XbiPortal::send(
-                slim::Origin::signed(ALICE),
+            assert_ok!(XbiPortal::send(
+                Origin::signed(ALICE),
                 xp_channel::ExecutionType::Async,
                 XbiFormat {
                     instr: XbiInstruction::CallWasm {
-                        dest: made_up_dest,
-                        value: 0,
+                        dest: UNISWAP,
+                        value: 5,
                         gas_limit: 500_000_000_000,
                         storage_deposit_limit: None,
-                        data: b"".to_vec()
+                        data: SWAP_CALL
                     },
                     metadata: XbiMetadata::new(
-                        SLIM_PARA_ID,
-                        LARGE_PARA_ID,
-                        Default::default(),
+                        SOURCE_PARA,
+                        t3rn,
+                        Timeouts {
+                            sent: 10,
+                            delivered: 20,
+                            executed: 30,
+                            ..Default::default()
+                        },
                         Fees::new(Some(ASSET_ID), Some(EXEC_COST), Some(NOTIFICATION_COST)),
-                        None,
                         Default::default(),
                         Default::default(),
                     ),
