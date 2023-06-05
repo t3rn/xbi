@@ -46,7 +46,7 @@ impl<T: Config> ChannelProgressionEmitter for Pallet<T> {
         use crate::Event::*;
         Self::deposit_event(XbiInstructionHandled {
             msg: msg.clone(),
-            weight: Weight::from(*weight),
+            weight: Weight::from_ref_time(*weight),
         })
     }
 
@@ -73,7 +73,7 @@ impl<T: Config> ChannelProgressionEmitter for Pallet<T> {
         Self::deposit_event(XbiRequestHandled {
             result: result.clone(),
             metadata: metadata.clone(),
-            weight: Weight::from(*weight),
+            weight: Weight::from_ref_time(*weight),
         });
     }
 
@@ -129,7 +129,7 @@ impl<T: Config> XbiInstructionHandler<T::RuntimeOrigin> for Pallet<T> {
                     caller,
                     account_from_account32::<T>(dest)?,
                     value.unique_saturated_into(),
-                    Weight::from(gas_limit),
+                    Weight::from_ref_time(gas_limit),
                     storage_deposit_limit.map(UniqueSaturatedInto::unique_saturated_into),
                     data.clone(),
                     false, // ALWAYS FALSE, could panic the runtime unless over rpc

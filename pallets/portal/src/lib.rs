@@ -163,7 +163,7 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         // TODO: disable SendTransactionTypes<Call<Self>> for now
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-        type Call: From<Call<Self>>;
+        type RuntimeCall: From<Call<Self>>;
         type XcmSovereignOrigin: Get<Self::AccountId>;
         /// Access to XCM functionality outside of this consensus system TODO: use XcmSender && ExecuteXcm for self execution
         type Xcm: SendXcm;
@@ -312,7 +312,7 @@ pub mod pallet {
     /// TODO: implement benchmarks
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        #[pallet::weight(Weight::from(50_000) + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
+        #[pallet::weight(T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
         #[pallet::call_index(0)]
         pub fn send(origin: OriginFor<T>, kind: ExecutionType, msg: XbiFormat) -> DispatchResult {
             let who = ensure_signed(origin)?;
@@ -340,7 +340,7 @@ pub mod pallet {
         /// There are additional ways this can be called:
         ///     - expose the same interface but allow some pathway to it: Contracts::call {..}
         ///     - expose a way to call a pallet method
-        #[pallet::weight(Weight::from(50_000) + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
+        #[pallet::weight(T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
         #[pallet::call_index(1)]
         pub fn receive(origin: OriginFor<T>, msg: Message) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin.clone())?;
@@ -348,7 +348,7 @@ pub mod pallet {
         }
 
         /// TODO: implement benchmarks
-        #[pallet::weight(Weight::from(50_000) + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
+        #[pallet::weight(T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
         #[pallet::call_index(2)]
         pub fn process_queue(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;

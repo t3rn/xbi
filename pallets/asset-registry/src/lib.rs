@@ -16,12 +16,11 @@ use sp_runtime::{
     DispatchError, Either,
 };
 use sp_std::{marker::PhantomData, prelude::*};
+use xcm::latest::Weight as XCMWeight;
 use xcm_executor::{
     traits::{ShouldExecute, WeightTrader},
     Assets,
 };
-
-use xcm::latest::Weight as XCMWeight;
 
 pub mod convert;
 
@@ -110,9 +109,9 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-        type Call: From<Call<Self>>;
+        type RuntimeCall: From<Call<Self>>;
 
         type Currency: ReservableCurrency<Self::AccountId>;
 
@@ -172,7 +171,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// A dispatchable that allows anyone to register a mapping for an asset
-        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn register(
             origin: OriginFor<T>,
             location: MultiLocation,
@@ -206,7 +205,7 @@ pub mod pallet {
         // TODO: expand this to allow over XBI
         /// A dispatchable that allows sudo to register asset information
         /// In the future this can be updated either by owners, parachains over xcm or by sudo
-        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn register_info(
             origin: OriginFor<T>,
             info: AssetInfo<AssetIdOf<T>, T::AccountId, BalanceOf<T>>,
@@ -323,11 +322,11 @@ impl<T: Config> AssetRegistry<OriginFor<T>, T::AccountId, BalanceOf<T>, AssetIdO
 impl<T: Config> ShouldExecute for Pallet<T> {
     fn should_execute<Call>(
         origin: &MultiLocation,
-        message: &mut Xcm<Call>,
+        instructions: &mut [Instruction<Call>],
         _max_weight: Weight,
         _weight_credit: &mut Weight,
     ) -> Result<(), ()> {
-        log::debug!(target: "asset-registry", "Should execute for origin({:?}) and message({:?})", origin, message);
+        log::debug!(target: "asset-registry", "Should execute for origin({:?}) and message({:?})", origin, instructions);
         // first, get ID from location
         let id = <Pallet<T>>::lookup(Either::Left(origin.clone()))
             .map_err(|_| ())?
@@ -343,8 +342,7 @@ impl<T: Config> ShouldExecute for Pallet<T> {
         let mut has_checked = [false; CAPABILITY_COUNT];
 
         //ensure the capabilities are permitted for given asset
-        let (_, errors) = message
-            .0
+        let (_, errors) = instructions
             .iter()
             .filter_map(|i| Capability::<T::AccountId, BalanceOf<T>>::try_from(i).ok())
             .map(|capability: Capability<T::AccountId, BalanceOf<T>>| {
@@ -450,7 +448,7 @@ impl<T: Config, WeightToFeeConverter: WeightToFee<Balance = BalanceOf<T>>> Weigh
         // ensure weight <= self.weight, which is the amount that was bought
         let weight = weight.min(self.weight);
 
-        if weight <= Zero::zero() {
+        if weight.ref_time() <= Zero::zero() {
             return None; // return if no weight can be refunded
         }
 
