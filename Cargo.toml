@@ -1,2 +1,2 @@
 [workspace]
-members = [ "crates/*", 'pallets/portal', 'pallets/asset-registry' ] # FIXME: put this back "integration-test", "client"
+members = [ "crates/*", 'pallets/portal', 'pallets/asset-registry', "integration-test" ] # FIXME: put this back  "client"

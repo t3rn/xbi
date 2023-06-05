@@ -1,6 +1,7 @@
 use super::*;
-use frame_support::parameter_types;
+use frame_support::{parameter_types, traits::AsEnsureOriginWithArg};
 use frame_system::EnsureRoot;
+use sp_core::ConstU32;
 
 pub type AssetId = u32;
 
@@ -30,6 +31,10 @@ impl pallet_assets::Config for Runtime {
     type MetadataDepositPerByte = MetadataDepositPerByte;
     type StringLimit = AssetsStringLimit;
     type WeightInfo = ();
+    type RemoveItemsLimit = ConstU32<1>;
+    type AssetIdParameter = AssetId;
+    type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
+    type CallbackHandle = ();
 }
 
 parameter_types! {

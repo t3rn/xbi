@@ -48,7 +48,7 @@ xp-xcm                  = { path = "../crates/xcm-primitives" }
 
 # XCM
 xcm          = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39" }
-xcm-emulator = { git = "https://github.com/AwesomeIbex/xcm-simulator.git", branch = "polkadot-v0.9.27" }
+xcm-emulator = { git = "https://github.com/t3rn/xcm-simulator.git", rev = "aa13dce47596e150806dfc3af99096dae6ffc65e" }
 
 large = { path = "large" }
 slim  = { path = "slim" }

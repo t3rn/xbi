@@ -116,7 +116,8 @@ where
                 Ok(info) => Some(info.weight),
                 Err(e) => e.post_info.actual_weight,
             }
-            .unwrap_or_default().ref_time(),
+            .unwrap_or_default()
+            .ref_time(),
         );
 
         Sender::send(Message::Response(xbi_result, msg.metadata.clone()));

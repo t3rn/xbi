@@ -96,7 +96,11 @@ impl<T: Codec> XcmBuilder<T> {
         weight_limit: Option<u64>,
     ) -> Self {
         let reserve_xcm = XcmBuilder::default()
-            .with_buy_execution(dest.clone(), fee, weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))))
+            .with_buy_execution(
+                dest.clone(),
+                fee,
+                weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))),
+            )
             .with_deposit_asset(recipient)
             .build();
         self.inner.0.push(TransferReserveAsset {
@@ -117,7 +121,11 @@ impl<T: Codec> XcmBuilder<T> {
         weight_limit: Option<u64>,
     ) -> Self {
         let injected_xcm = XcmBuilder::default()
-            .with_buy_execution(reserve.clone(), fee, weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))))
+            .with_buy_execution(
+                reserve.clone(),
+                fee,
+                weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))),
+            )
             .with_deposit_asset(recipient)
             .build();
         self.inner.0.push(InitiateReserveWithdraw {
@@ -162,7 +170,11 @@ impl<T: Codec> XcmBuilder<T> {
             reserve: reserve.clone(),
             xcm: if should_teleport {
                 XcmBuilder::default()
-                    .with_buy_execution(reserve, execution_fee / 2, weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))))
+                    .with_buy_execution(
+                        reserve,
+                        execution_fee / 2,
+                        weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))),
+                    )
                     .with_initiate_teleport(
                         reanchored_dest,
                         recipient,
@@ -173,7 +185,11 @@ impl<T: Codec> XcmBuilder<T> {
                     .build()
             } else {
                 XcmBuilder::default()
-                    .with_buy_execution(reserve, execution_fee / 2, weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))))
+                    .with_buy_execution(
+                        reserve,
+                        execution_fee / 2,
+                        weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))),
+                    )
                     .with_deposit_reserve_asset(
                         reanchored_dest,
                         recipient,
@@ -199,7 +215,11 @@ impl<T: Codec> XcmBuilder<T> {
             assets: Wild(All), // TODO: this needs fixing
             dest: dest.clone(),
             xcm: XcmBuilder::default()
-                .with_buy_execution(dest, execution_fee, weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))))
+                .with_buy_execution(
+                    dest,
+                    execution_fee,
+                    weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))),
+                )
                 .with_deposit_asset(recipient)
                 .build(),
         });
@@ -218,7 +238,11 @@ impl<T: Codec> XcmBuilder<T> {
             assets: Wild(All),
             dest: dest.clone(),
             xcm: XcmBuilder::default()
-                .with_buy_execution(dest, execution_fee, weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))))
+                .with_buy_execution(
+                    dest,
+                    execution_fee,
+                    weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))),
+                )
                 .with_deposit_asset(recipient)
                 .build(),
         });
@@ -270,11 +294,7 @@ impl<T: Codec> XcmBuilder<T> {
         self
     }
 
-    pub fn with_deposit_asset(
-        mut self,
-        beneficiary: MultiLocation,
-        
-    ) -> XcmBuilder<T> {
+    pub fn with_deposit_asset(mut self, beneficiary: MultiLocation) -> XcmBuilder<T> {
         self.inner.0.push(DepositAsset {
             assets: Wild(All),
             beneficiary,

@@ -1,6 +1,7 @@
 use super::{AccountId, Balance};
 use crate::{
-    Aura, Balances, Call, Event, RandomnessCollectiveFlip, Runtime, RuntimeBlockWeights, Timestamp,
+    Aura, Balances, Call, Event, RandomnessCollectiveFlip, Runtime, RuntimeBlockWeights,
+    RuntimeCall, RuntimeEvent, Timestamp,
 };
 use cumulus_parachains_common::AVERAGE_ON_INITIALIZE_RATIO;
 use frame_support::{parameter_types, traits::FindAuthor, weights::Weight};
@@ -10,7 +11,7 @@ use pallet_3vm_evm::{
     ThreeVMCurrencyAdapter,
 };
 use pallet_3vm_evm_primitives::FeeCalculator;
-use sp_core::{H160, U256};
+use sp_core::{ConstBool, ConstU32, H160, U256};
 use sp_runtime::{ConsensusEngineId, RuntimeAppPublic};
 
 #[cfg(feature = "std")]
@@ -31,16 +32,9 @@ parameter_types! {
     pub const SS58Prefix: u16 = 42;
     pub DeletionWeightLimit: Weight = AVERAGE_ON_INITIALIZE_RATIO *
         RuntimeBlockWeights::get().max_block;
-    pub DeletionQueueDepth: u32 = ((DeletionWeightLimit::get() / (
-            <Runtime as pallet_3vm_contracts::Config>::WeightInfo::on_initialize_per_queue_item(1) -
-            <Runtime as pallet_3vm_contracts::Config>::WeightInfo::on_initialize_per_queue_item(0)
-        )) / 5) as u32;
+    pub const DeletionQueueDepth: u32 = 128;
+    pub Schedule: pallet_3vm_contracts::Schedule<Runtime> = Default::default();
 
-    pub Schedule: pallet_3vm_contracts::Schedule<Runtime> = {
-        let mut schedule = pallet_3vm_contracts::Schedule::<Runtime>::default();
-        schedule.limits.code_len = 256 * 1024;
-        schedule
-    };
     pub const MaxCodeSize: u32 = 2 * 1024;
     pub const DepositPerItem: Balance = deposit(1, 0);
     pub const DepositPerByte: Balance = deposit(0, 1);
@@ -65,6 +59,10 @@ impl pallet_3vm_contracts::Config for Runtime {
     type Time = Timestamp;
     type WeightInfo = pallet_3vm_contracts::weights::SubstrateWeight<Self>;
     type WeightPrice = pallet_transaction_payment::Pallet<Self>;
+    type MaxCodeLen = ConstU32<{ 256 * 1024 }>;
+    type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
+    type MaxStorageKeyLen = ConstU32<128>;
+    type UnsafeUnstableInterface = ConstBool<true>;
 }
 
 pub struct FindAuthorTruncated<F>(sp_std::marker::PhantomData<F>);
@@ -83,19 +81,12 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
 
 pub struct FreeGasWeightMapping;
 impl GasWeightMapping for FreeGasWeightMapping {
-    fn gas_to_weight(_gas: u64) -> Weight {
-        0
+    fn gas_to_weight(_gas: u64, without_base_weight: bool) -> Weight {
+        Default::default()
     }
 
     fn weight_to_gas(_weight: Weight) -> u64 {
-        0
-    }
-}
-
-pub struct FreeGasPrice;
-impl FeeCalculator for FreeGasPrice {
-    fn min_gas_price() -> U256 {
-        0.into()
+        Default::default()
     }
 }
 
@@ -112,6 +103,7 @@ parameter_types! {
         (6_u64, evm_precompile_util::KnownPrecompile::Sha3FIPS512),
         (7_u64, evm_precompile_util::KnownPrecompile::ECRecoverPublicKey),
     ].into_iter().collect());
+    pub WeightPerGas: Weight = Weight::from_ref_time(20_000);
 }
 
 impl pallet_3vm_evm::Config for Runtime {
@@ -122,11 +114,15 @@ impl pallet_3vm_evm::Config for Runtime {
     type ChainId = ChainId;
     type Currency = Balances;
     type RuntimeEvent = RuntimeEvent;
-    type FeeCalculator = FreeGasPrice;
+    type FeeCalculator = ();
     type FindAuthor = FindAuthorTruncated<Aura>;
     type GasWeightMapping = FreeGasWeightMapping;
     type OnChargeTransaction = ThreeVMCurrencyAdapter<Balances, ()>;
     type PrecompilesType = evm_precompile_util::Precompiles;
+    type Timestamp = Timestamp;
+    type WeightPerGas = WeightPerGas;
+    type OnCreate = ();
+    type WeightInfo = ();
     type PrecompilesValue = PrecompilesValue;
     type Runner = pallet_3vm_evm::runner::stack::Runner<Self>;
     type ThreeVm = t3rn_primitives::threevm::NoopThreeVm;
