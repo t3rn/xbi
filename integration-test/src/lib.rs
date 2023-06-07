@@ -12,10 +12,7 @@ use polkadot_primitives::runtime_api::runtime_decl_for_ParachainHost::ParachainH
 pub use rococo_runtime as rococo;
 use sp_runtime::AccountId32;
 use xcm::prelude::{Junction, Junctions, MultiLocation};
-use xcm_emulator::{
-    decl_test_network, decl_test_parachain, decl_test_relay_chain, TestExt_Messenger,
-    _hrmp_channel_parachain_inherent_data, _process_messages,
-};
+use xcm_emulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain, TestExt};
 
 mod large;
 pub mod macros;
@@ -142,31 +139,31 @@ decl_test_relay_chain! {
 
 decl_test_parachain! {
     pub struct Large {
-        Runtime = large::Runtime,
-        RuntimeOrigin = large::RuntimeOrigin,
-        XcmpMessageHandler = large::XcmpQueue,
-        DmpMessageHandler = large::DmpQueue,
-        new_ext = large_ext(LARGE_PARA_ID),
+        Runtime = ::large::Runtime,
+        RuntimeOrigin = ::large::RuntimeOrigin,
+        XcmpMessageHandler = ::large::XcmpQueue,
+        DmpMessageHandler = ::large::DmpQueue,
+        new_ext = large::large_ext(LARGE_PARA_ID),
     }
 }
 
 decl_test_parachain! {
     pub struct Slim {
-        Runtime = slim::Runtime,
-        RuntimeOrigin = slim::RuntimeOrigin,
-        XcmpMessageHandler = slim::XcmpQueue,
-        DmpMessageHandler = slim::DmpQueue,
-        new_ext = slim_ext(SLIM_PARA_ID),
+        Runtime = ::slim::Runtime,
+        RuntimeOrigin = ::slim::RuntimeOrigin,
+        XcmpMessageHandler = ::slim::XcmpQueue,
+        DmpMessageHandler = ::slim::DmpQueue,
+        new_ext = slim::slim_ext(SLIM_PARA_ID),
     }
 }
 
 decl_test_parachain! {
     pub struct Slender {
-        Runtime = slim::Runtime,
-        RuntimeOrigin = slim::RuntimeOrigin,
-        XcmpMessageHandler = slim::XcmpQueue,
-        DmpMessageHandler = slim::DmpQueue,
-        new_ext = slim_ext(SLENDER_PARA_ID),
+        Runtime = ::slim::Runtime,
+        RuntimeOrigin = ::slim::RuntimeOrigin,
+        XcmpMessageHandler = ::slim::XcmpQueue,
+        DmpMessageHandler = ::slim::DmpQueue,
+        new_ext = slim::slim_ext(SLENDER_PARA_ID),
     }
 }
 
@@ -174,9 +171,9 @@ decl_test_network! {
     pub struct Network {
         relay_chain = RococoNet,
         parachains = vec![
-            (1, slim::Slim),
-            (2, slim::Slender),
-            (3, large::Large),
+            (1, Slim),
+            (2, Slender),
+            (3, Large),
         ],
     }
 }

@@ -57,12 +57,12 @@ pub fn log_all_events(chain: &str) {
 #[cfg(test)]
 pub fn register_asset(id: u32, location: MultiLocation, which: &str) {
     assert_ok!(slim::AssetRegistry::register(
-        slim::Origin::root(),
+        slim::RuntimeOrigin::root(),
         location.clone(),
         id
     ));
     assert_ok!(slim::AssetRegistry::register_info(
-        slim::Origin::root(),
+        slim::RuntimeOrigin::root(),
         pallet_asset_registry::AssetInfo::new(id, location.clone(), vec![]) // FIXME: add capabilities
     ));
 
@@ -89,14 +89,14 @@ pub fn create_asset(
     which: &str,
 ) {
     assert_ok!(slim::Assets::force_create(
-        slim::Origin::root(),
+        slim::RuntimeOrigin::root(),
         id,
         owner.unwrap_or(ALICE),
         true,
         min_balance
     ));
     assert_ok!(slim::Assets::set_metadata(
-        slim::Origin::signed(ALICE),
+        slim::RuntimeOrigin::signed(ALICE),
         id,
         name.encode(),
         symbol.encode(),
@@ -125,7 +125,7 @@ pub fn create_asset(
 #[cfg(test)]
 pub fn mint_asset(id: u32, to: sp_runtime::AccountId32, amount: u128) {
     assert_ok!(slim::Assets::mint(
-        slim::Origin::signed(ALICE),
+        slim::RuntimeOrigin::signed(ALICE),
         id,
         to,
         amount
