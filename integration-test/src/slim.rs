@@ -16,26 +16,6 @@ use xcm::prelude::*;
 pub const SLIM_PARA_ID: u32 = 1;
 pub const SLENDER_PARA_ID: u32 = 2;
 
-decl_test_parachain! {
-    pub struct Slim {
-        Runtime = slim::Runtime,
-        Origin = slim::Origin,
-        XcmpMessageHandler = slim::XcmpQueue,
-        DmpMessageHandler = slim::DmpQueue,
-        new_ext = slim_ext(SLIM_PARA_ID),
-    }
-}
-
-decl_test_parachain! {
-    pub struct Slender {
-        Runtime = slim::Runtime,
-        Origin = slim::Origin,
-        XcmpMessageHandler = slim::XcmpQueue,
-        DmpMessageHandler = slim::DmpQueue,
-        new_ext = slim_ext(SLENDER_PARA_ID),
-    }
-}
-
 pub fn slim_ext(para_id: u32) -> sp_io::TestExternalities {
     use slim::{Runtime, System};
 

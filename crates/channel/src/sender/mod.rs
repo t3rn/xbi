@@ -78,10 +78,10 @@ mod tests {
     impl Dispatchable for DummyDispatch {
         type Config = Vec<u8>;
         type Info = Vec<u8>;
-        type Origin = u64;
+        type RuntimeOrigin = u64;
         type PostInfo = u8;
 
-        fn dispatch(self, origin: Self::Origin) -> DispatchResultWithInfo<Self::PostInfo> {
+        fn dispatch(self, origin: Self::RuntimeOrigin) -> DispatchResultWithInfo<Self::PostInfo> {
             let mut guard = DISPATCH_RESULTS.lock().unwrap();
             guard.insert(origin, self.0);
 

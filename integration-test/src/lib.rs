@@ -1,17 +1,20 @@
 #![feature(box_syntax)]
 
+use crate::{
+    large::LARGE_PARA_ID,
+    slim::{SLENDER_PARA_ID, SLIM_PARA_ID},
+};
 use bytes::buf::Buf;
 use frame_support::{assert_ok, pallet_prelude::Weight, traits::GenesisBuild};
 use hex::ToHex;
 use log::LevelFilter;
+use polkadot_primitives::runtime_api::runtime_decl_for_ParachainHost::ParachainHostV4;
 pub use rococo_runtime as rococo;
 use sp_runtime::AccountId32;
-use xcm::v1::{Junction, Junctions, MultiLocation};
-use xcm_emulator::{decl_test_network, decl_test_relay_chain, TestExt};
-
-use crate::{
-    large::LARGE_PARA_ID,
-    slim::{SLENDER_PARA_ID, SLIM_PARA_ID},
+use xcm::prelude::{Junction, Junctions, MultiLocation};
+use xcm_emulator::{
+    decl_test_network, decl_test_parachain, decl_test_relay_chain, TestExt_Messenger,
+    _hrmp_channel_parachain_inherent_data, _process_messages,
 };
 
 mod large;
@@ -68,7 +71,7 @@ fn log_all_roco_events() {
 pub fn force_xcm_version(para: u32, version: u32) {
     RococoNet::execute_with(|| {
         assert_ok!(rococo::XcmPallet::force_xcm_version(
-            rococo::Origin::root(),
+            rococo::RuntimeOrigin::root(),
             box MultiLocation {
                 parents: 0,
                 interior: Junctions::X1(Junction::Parachain(para)),
@@ -83,7 +86,7 @@ pub fn force_xcm_version(para: u32, version: u32) {
 pub fn force_default_xcm_version(version: u32) {
     RococoNet::execute_with(|| {
         assert_ok!(rococo::XcmPallet::force_default_xcm_version(
-            rococo::Origin::signed(ALICE),
+            rococo::RuntimeOrigin::signed(ALICE),
             Some(version),
         ));
         log_all_roco_events();
@@ -94,14 +97,14 @@ pub fn force_default_xcm_version(version: u32) {
 pub fn transfer_to(dest: AccountId32, amt: u128) {
     RococoNet::execute_with(|| {
         assert_ok!(rococo::Balances::transfer(
-            rococo::Origin::signed(ALICE),
+            rococo::RuntimeOrigin::signed(ALICE),
             sp_runtime::MultiAddress::Id(dest.clone()),
             amt,
         ));
         log_all_roco_events();
         assert!(rococo::System::events().iter().any(|r| matches!(
             &r.event,
-            rococo::Event::Balances(pallet_balances::Event::Transfer {
+            rococo::RuntimeEvent::Balances(pallet_balances::Event::Transfer {
                 from: ALICE,
                 to,
                 amount
@@ -134,6 +137,36 @@ decl_test_relay_chain! {
         Runtime = rococo_runtime::Runtime,
         XcmConfig = rococo_runtime::xcm_config::XcmConfig,
         new_ext = rococo_ext(),
+    }
+}
+
+decl_test_parachain! {
+    pub struct Large {
+        Runtime = large::Runtime,
+        RuntimeOrigin = large::RuntimeOrigin,
+        XcmpMessageHandler = large::XcmpQueue,
+        DmpMessageHandler = large::DmpQueue,
+        new_ext = large_ext(LARGE_PARA_ID),
+    }
+}
+
+decl_test_parachain! {
+    pub struct Slim {
+        Runtime = slim::Runtime,
+        RuntimeOrigin = slim::RuntimeOrigin,
+        XcmpMessageHandler = slim::XcmpQueue,
+        DmpMessageHandler = slim::DmpQueue,
+        new_ext = slim_ext(SLIM_PARA_ID),
+    }
+}
+
+decl_test_parachain! {
+    pub struct Slender {
+        Runtime = slim::Runtime,
+        RuntimeOrigin = slim::RuntimeOrigin,
+        XcmpMessageHandler = slim::XcmpQueue,
+        DmpMessageHandler = slim::DmpQueue,
+        new_ext = slim_ext(SLENDER_PARA_ID),
     }
 }
 
@@ -192,7 +225,7 @@ fn default_parachains_host_configuration(
         max_upward_queue_count: 8,
         max_upward_queue_size: 1024 * 1024,
         max_downward_message_size: 1024,
-        ump_service_total_weight: Weight::from(4_u32 * 1_000_000_000_u32),
+        ump_service_total_weight: Weight::from_ref_time(4_u64 * 1_000_000_000_u64),
         max_upward_message_size: 50 * 1024,
         max_upward_message_num_per_candidate: 5,
         hrmp_sender_deposit: 0,

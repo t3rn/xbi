@@ -114,7 +114,7 @@ fn test_async_receiver_pushes_execution_to_queue() {
             ..Default::default()
         };
         assert_ok!(crate::pallet::AsyncReceiver::<Test>::handle_request(
-            &<Test as frame_system::Config>::Origin::root(),
+            &<Test as frame_system::Config>::RuntimeOrigin::root(),
             &mut format.clone()
         ));
         format.metadata.progress(Timestamp::Delivered(0));
@@ -137,7 +137,7 @@ fn test_async_receiver_pushes_result_to_queue() {
         let result = XbiResult::default();
 
         assert_ok!(crate::pallet::AsyncReceiver::<Test>::handle_response(
-            &<Test as frame_system::Config>::Origin::root(),
+            &<Test as frame_system::Config>::RuntimeOrigin::root(),
             &result,
             &metadata
         ));

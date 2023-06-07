@@ -26,7 +26,7 @@ impl<T: Config> xcm_executor::traits::Convert<MultiLocation, AssetIdOf<T>> for P
 mod tests {
     use super::*;
 
-    use crate::mock::{new_test_ext, AssetRegistry, Origin, Test};
+    use crate::mock::{new_test_ext, AssetRegistry, RuntimeOrigin, Test};
     use frame_support::{assert_err, assert_ok};
     use xcm_executor::traits::Convert;
 
@@ -34,17 +34,17 @@ mod tests {
         let location = MultiLocation {
             parents: 0,
             interior: X1(AccountId32 {
-                network: NetworkId::Polkadot,
+                network: Some(NetworkId::Polkadot),
                 id: [1_u8; 32],
             }),
         };
         assert_ok!(AssetRegistry::register(
-            Origin::signed(1),
+            RuntimeOrigin::signed(1),
             location.clone(),
             1
         ));
         assert_ok!(AssetRegistry::register_info(
-            Origin::root(),
+            RuntimeOrigin::root(),
             AssetInfo::new(1, location.clone(), vec![])
         ));
         (location, 1)

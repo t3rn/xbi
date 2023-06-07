@@ -178,8 +178,8 @@ macro_rules! assert_asset_issued {
             $runtime::Event::Assets(pallet_assets::Event::Issued {
                 asset_id,
                 owner,
-                total_supply,
-            }) if asset_id == &$id && owner == &$who && total_supply == &$amt))
+                amount,
+            }) if asset_id == &$id && owner == &$who && amount == &$amt))
         );
     };
 }

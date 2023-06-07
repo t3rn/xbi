@@ -2,19 +2,23 @@ use crate::{
     mock::*, AssetInfo, BalanceOf, Capability, Error, ShouldExecute, WeightAssetConvert,
     WeightTrader,
 };
-use frame_support::{assert_err, assert_ok, weights::IdentityFee};
+use frame_support::{
+    assert_err, assert_ok,
+    weights::{IdentityFee, Weight},
+};
 use sp_runtime::{DispatchError, Either};
 use std::collections::BTreeMap;
-use xcm::{prelude::*, v1::AssetId};
+use xcm::prelude::AssetId;
+use xcm::prelude::*;
 use xcm_executor::Assets;
 
 fn default_registration() {
     assert_ok!(AssetRegistry::register(
-        Origin::signed(1),
+        RuntimeOrigin::signed(1),
         MultiLocation {
             parents: 0,
             interior: Junctions::X1(Junction::AccountId32 {
-                network: NetworkId::Polkadot,
+                network: Some(NetworkId::Polkadot),
                 id: [5_u8; 32]
             })
         },
@@ -26,7 +30,7 @@ fn default_register_info() -> (u32, MultiLocation) {
     let location = MultiLocation {
         parents: 0,
         interior: Junctions::X1(Junction::AccountId32 {
-            network: NetworkId::Polkadot,
+            network: Some(NetworkId::Polkadot),
             id: [5_u8; 32],
         }),
     };
@@ -42,7 +46,7 @@ fn default_register_info() -> (u32, MultiLocation) {
     let id: u32 = 1;
 
     assert_ok!(AssetRegistry::register_info(
-        Origin::root(),
+        RuntimeOrigin::root(),
         AssetInfo {
             id,
             capabilities,
@@ -58,7 +62,7 @@ fn cant_register_relay() {
     new_test_ext().execute_with(|| {
         // Ensure the expected error is thrown when no value is present.
         assert_err!(
-            AssetRegistry::register(Origin::signed(1), MultiLocation::parent(), 1),
+            AssetRegistry::register(RuntimeOrigin::signed(1), MultiLocation::parent(), 1),
             Error::<Test>::LocationUnallowed
         );
     });
@@ -69,7 +73,7 @@ fn cant_register_self() {
     new_test_ext().execute_with(|| {
         // Ensure the expected error is thrown when no value is present.
         assert_err!(
-            AssetRegistry::register(Origin::signed(1), MultiLocation::here(), 1),
+            AssetRegistry::register(RuntimeOrigin::signed(1), MultiLocation::here(), 1),
             Error::<Test>::LocationUnallowed
         );
     });
@@ -80,7 +84,7 @@ fn cant_register_parachain() {
         // Ensure the expected error is thrown when no value is present.
         assert_err!(
             AssetRegistry::register(
-                Origin::signed(1),
+                RuntimeOrigin::signed(1),
                 MultiLocation {
                     parents: 0,
                     interior: Junctions::X1(Junction::Parachain(1))
@@ -98,13 +102,13 @@ fn cant_register_parachain_ever() {
         // Ensure the expected error is thrown when no value is present.
         assert_err!(
             AssetRegistry::register(
-                Origin::signed(1),
+                RuntimeOrigin::signed(1),
                 MultiLocation {
                     parents: 0,
                     interior: Junctions::X3(
                         Junction::PalletInstance(50),
                         Junction::AccountId32 {
-                            network: NetworkId::Polkadot,
+                            network: Some(NetworkId::Polkadot),
                             id: [5_u8; 32]
                         },
                         Junction::Parachain(1)
@@ -124,7 +128,7 @@ fn cant_put_duplicate_capabilities() {
 
         assert_err!(
             AssetRegistry::register_info(
-                Origin::root(),
+                RuntimeOrigin::root(),
                 AssetInfo {
                     id: 1,
                     capabilities: vec![
@@ -134,7 +138,7 @@ fn cant_put_duplicate_capabilities() {
                     location: MultiLocation {
                         parents: 0,
                         interior: Junctions::X1(Junction::AccountId32 {
-                            network: NetworkId::Polkadot,
+                            network: Some(NetworkId::Polkadot),
                             id: [5_u8; 32]
                         })
                     },
@@ -154,7 +158,7 @@ fn cant_put_capabilities_as_non_root() {
 
         assert_err!(
             AssetRegistry::register_info(
-                Origin::signed(2),
+                RuntimeOrigin::signed(2),
                 AssetInfo {
                     id: 1,
                     capabilities: vec![
@@ -164,7 +168,7 @@ fn cant_put_capabilities_as_non_root() {
                     location: MultiLocation {
                         parents: 0,
                         interior: Junctions::X1(Junction::AccountId32 {
-                            network: NetworkId::Polkadot,
+                            network: Some(NetworkId::Polkadot),
                             id: [5_u8; 32]
                         })
                     },
@@ -200,7 +204,7 @@ fn cant_check_capability_for_unknown_location() {
                 Either::Right(MultiLocation {
                     parents: 0,
                     interior: Junctions::X1(Junction::AccountId32 {
-                        network: NetworkId::Polkadot,
+                        network: Some(NetworkId::Polkadot),
                         id: [2_u8; 32]
                     })
                 },),
@@ -258,14 +262,14 @@ fn can_put_new_capabilities() {
 
         assert_eq!(AssetRegistry::asset_metadata(1), None);
         assert_ok!(AssetRegistry::register_info(
-            Origin::root(),
+            RuntimeOrigin::root(),
             AssetInfo {
                 id: 1,
                 capabilities: vec![Capability::Reserve(Some(1u64))],
                 location: MultiLocation {
                     parents: 0,
                     interior: Junctions::X1(Junction::AccountId32 {
-                        network: NetworkId::Polkadot,
+                        network: Some(NetworkId::Polkadot),
                         id: [5_u8; 32]
                     })
                 },
@@ -280,7 +284,7 @@ fn can_put_new_capabilities() {
                 location: MultiLocation {
                     parents: 0,
                     interior: Junctions::X1(Junction::AccountId32 {
-                        network: NetworkId::Polkadot,
+                        network: Some(NetworkId::Polkadot),
                         id: [5_u8; 32]
                     })
                 },
@@ -308,7 +312,7 @@ fn can_overwrite_capabilities() {
                 location: MultiLocation {
                     parents: 0,
                     interior: Junctions::X1(Junction::AccountId32 {
-                        network: NetworkId::Polkadot,
+                        network: Some(NetworkId::Polkadot),
                         id: [5_u8; 32]
                     })
                 },
@@ -316,14 +320,14 @@ fn can_overwrite_capabilities() {
         );
 
         assert_ok!(AssetRegistry::register_info(
-            Origin::root(),
+            RuntimeOrigin::root(),
             AssetInfo {
                 id: 1,
                 capabilities: vec![Capability::Reserve(Some(1u64))],
                 location: MultiLocation {
                     parents: 0,
                     interior: Junctions::X1(Junction::AccountId32 {
-                        network: NetworkId::Polkadot,
+                        network: Some(NetworkId::Polkadot),
                         id: [5_u8; 32]
                     })
                 },
@@ -338,7 +342,7 @@ fn can_overwrite_capabilities() {
                 location: MultiLocation {
                     parents: 0,
                     interior: Junctions::X1(Junction::AccountId32 {
-                        network: NetworkId::Polkadot,
+                        network: Some(NetworkId::Polkadot),
                         id: [5_u8; 32]
                     })
                 },
@@ -374,7 +378,7 @@ fn can_check_available_capabilities_with_location() {
                 Either::Right(MultiLocation {
                     parents: 0,
                     interior: Junctions::X1(Junction::AccountId32 {
-                        network: NetworkId::Polkadot,
+                        network: Some(NetworkId::Polkadot),
                         id: [5_u8; 32]
                     })
                 },),
@@ -492,13 +496,16 @@ fn can_execute_xcm_message_with_matching_capabilities() {
         default_registration();
         let (_, location) = default_register_info();
 
-        let mut msg = Xcm(vec![
+        let mut msg = vec![
             WithdrawAsset((Here, 1).into()),
             WithdrawAsset((Here, 1).into()),
-        ]);
+        ];
 
         assert_ok!(crate::Pallet::<Test>::should_execute::<()>(
-            &location, &mut msg, 0, &mut 0
+            &location,
+            &mut msg,
+            Default::default(),
+            &mut Default::default()
         ));
     })
 }
@@ -510,13 +517,13 @@ fn cant_execute_xcm_message_with_wrong_capabilities() {
         let location = MultiLocation {
             parents: 0,
             interior: Junctions::X1(Junction::AccountId32 {
-                network: NetworkId::Polkadot,
+                network: Some(NetworkId::Polkadot),
                 id: [5_u8; 32],
             }),
         };
 
         assert_ok!(AssetRegistry::register_info(
-            Origin::root(),
+            RuntimeOrigin::root(),
             AssetInfo {
                 id: 1,
                 capabilities: vec![Capability::Reserve(Some(1u64))],
@@ -524,10 +531,15 @@ fn cant_execute_xcm_message_with_wrong_capabilities() {
             }
         ));
 
-        let mut msg = Xcm(vec![WithdrawAsset((Here, 1).into())]);
+        let mut msg = vec![WithdrawAsset((Here, 1).into())];
 
         assert_err!(
-            crate::Pallet::<Test>::should_execute::<()>(&location, &mut msg, 0, &mut 0),
+            crate::Pallet::<Test>::should_execute::<()>(
+                &location,
+                &mut msg,
+                Default::default(),
+                &mut Default::default()
+            ),
             ()
         )
     })
@@ -542,7 +554,7 @@ fn can_buy_and_refund_weight_multiple_assets() {
         let location_two = MultiLocation {
             parents: 0,
             interior: Junctions::X1(Junction::AccountId32 {
-                network: NetworkId::Kusama,
+                network: Some(NetworkId::Kusama),
                 id: [4_u8; 32],
             }),
         };
@@ -555,7 +567,7 @@ fn can_buy_and_refund_weight_multiple_assets() {
         let id: u32 = 2;
 
         assert_ok!(AssetRegistry::register_info(
-            Origin::root(),
+            RuntimeOrigin::root(),
             AssetInfo {
                 id,
                 capabilities,
@@ -575,7 +587,9 @@ fn can_buy_and_refund_weight_multiple_assets() {
         balance.insert(location_one.clone().into(), 2_000_000u128);
         balance.insert(location_two.into(), 4_000_000u128);
 
-        assets = trader.buy_weight(2_000_000u64, assets.clone()).unwrap();
+        assets = trader
+            .buy_weight(Weight::from_ref_time(2_000_000u64), assets.clone())
+            .unwrap();
         assert_eq!(
             assets,
             Assets {
@@ -585,12 +599,14 @@ fn can_buy_and_refund_weight_multiple_assets() {
         );
 
         assert_eq!(
-            trader.refund_weight(2_000_000u64).unwrap(),
+            trader
+                .refund_weight(Weight::from_ref_time(2_000_000u64))
+                .unwrap(),
             (Concrete(location_one), 2_000_000u128).into()
         );
 
-        assert_eq!(trader.weight, 0u64);
-        assert_eq!(trader.refund_weight(1u64), None);
+        assert_eq!(trader.weight, Default::default());
+        assert_eq!(trader.refund_weight(Weight::from_ref_time(1u64)), None);
     })
 }
 
@@ -601,7 +617,7 @@ fn can_buy_weight_for_partial_balance() {
         let (_, location) = default_register_info();
 
         // We are going to buy 4e9 weight
-        let weight_to_buy = 2_000_000u64;
+        let weight_to_buy = Weight::from_ref_time(2_000_000u64);
         let asset: MultiAsset = (Concrete(location.clone()), 4_000_000u128).into();
 
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
@@ -620,18 +636,18 @@ fn can_buy_weight_for_partial_balance() {
 
         // can refund in multiple steps
         assert_eq!(
-            trader.refund_weight(1_000_000u64),
+            trader.refund_weight(Weight::from_ref_time(1_000_000u64)),
             Some((Concrete(location.clone()), 1_000_000u128).into())
         );
 
         assert_eq!(
-            trader.refund_weight(1_000_000u64),
+            trader.refund_weight(Weight::from_ref_time(1_000_000u64)),
             Some((Concrete(location), 1_000_000u128).into())
         );
 
         // Weight has been deducted correctly
-        assert_eq!(trader.weight, 0u64);
-        assert_eq!(trader.refund_weight(1u64), None);
+        assert_eq!(trader.weight, Default::default());
+        assert_eq!(trader.refund_weight(Weight::from_ref_time(1u64)), None);
     })
 }
 
@@ -642,7 +658,7 @@ fn can_buy_and_refund_weight_with_fee_weight_multiplier() {
         let location = MultiLocation {
             parents: 0,
             interior: Junctions::X1(Junction::AccountId32 {
-                network: NetworkId::Polkadot,
+                network: Some(NetworkId::Polkadot),
                 id: [5_u8; 32],
             }),
         };
@@ -658,7 +674,7 @@ fn can_buy_and_refund_weight_with_fee_weight_multiplier() {
         let id: u32 = 1;
 
         assert_ok!(AssetRegistry::register_info(
-            Origin::root(),
+            RuntimeOrigin::root(),
             AssetInfo {
                 id,
                 capabilities,
@@ -666,7 +682,7 @@ fn can_buy_and_refund_weight_with_fee_weight_multiplier() {
             }
         ));
 
-        let weight_to_buy = 1_000_000u64;
+        let weight_to_buy = Weight::from_ref_time(1_000_000u64);
         let mut assets: Assets = vec![(Concrete(location.clone()), 6_000_000u128).into()].into();
 
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
@@ -684,7 +700,7 @@ fn can_buy_and_refund_weight_with_fee_weight_multiplier() {
                 non_fungible: Default::default()
             }
         );
-        assert_eq!(trader.weight, 1_000_000u64);
+        assert_eq!(trader.weight, Weight::from_ref_time(1_000_000u64));
 
         // buy second half
         assets = trader.buy_weight(weight_to_buy, assets.clone()).unwrap();
@@ -695,14 +711,14 @@ fn can_buy_and_refund_weight_with_fee_weight_multiplier() {
                 non_fungible: Default::default()
             }
         );
-        assert_eq!(trader.weight, 2_000_000u64);
+        assert_eq!(trader.weight, Weight::from_ref_time(2_000_000u64));
 
         assert_eq!(
-            trader.refund_weight(2_000_000u64),
+            trader.refund_weight(Weight::from_ref_time(2_000_000u64)),
             Some((Concrete(location), 6_000_000u128).into())
         );
 
-        assert_eq!(trader.weight, 0u64);
+        assert_eq!(trader.weight, Default::default());
         assert_eq!(trader.refund_weight(weight_to_buy), None);
     })
 }
@@ -714,8 +730,11 @@ fn can_buy_and_refund_weight_for_whole_balance() {
         let (_, location) = default_register_info();
 
         // We are going to buy 4e9 weight
-        let bought = 4_000_000u64;
-        let asset: MultiAsset = (Concrete(location), bought as u128).into();
+        let bought = Weight::from_ref_time(4_000_000u64);
+        let asset: MultiAsset = MultiAsset {
+            id: Concrete(location),
+            fun: Fungibility::Fungible(bought.ref_time() as u128),
+        };
 
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
 
@@ -730,8 +749,8 @@ fn can_buy_and_refund_weight_for_whole_balance() {
         assert_eq!(trader.refund_weight(bought), Some(asset));
 
         // Weight has been deducted correctly
-        assert_eq!(trader.weight, 0u64);
-        assert_eq!(trader.refund_weight(1u64), None);
+        assert_eq!(trader.weight, Default::default());
+        assert_eq!(trader.refund_weight(Weight::from_ref_time(1)), None);
     })
 }
 
@@ -741,7 +760,7 @@ fn cant_buy_weight_for_insufficient_balance() {
         default_registration();
         let (_, location) = default_register_info();
 
-        let weight_to_buy = 2_000_000u64;
+        let weight_to_buy = Weight::from_ref_time(2_000_000u64);
         let asset: MultiAsset = (Concrete(location), 1_000_000u128).into();
 
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
@@ -751,7 +770,7 @@ fn cant_buy_weight_for_insufficient_balance() {
             XcmError::TooExpensive
         );
 
-        assert_eq!(trader.weight, 0u64);
+        assert_eq!(trader.weight, Default::default());
         assert_eq!(trader.refund_weight(weight_to_buy), None);
     })
 }
@@ -761,7 +780,7 @@ fn cant_buy_weight_without_asset() {
     new_test_ext().execute_with(|| {
         default_registration();
 
-        let weight_to_buy = 1_000_000u64;
+        let weight_to_buy = Weight::from_ref_time(1_000_000u64);
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
 
         assert_err!(
@@ -778,8 +797,8 @@ fn cant_buy_weight_with_abstract_asset() {
         let (_, _) = default_register_info();
 
         // We are going to buy 4e9 weight
-        let weight_to_buy = 1_000_000u64;
-        let asset: MultiAsset = (Abstract(vec![]), 1_000_000u128).into();
+        let weight_to_buy = Weight::from_ref_time(1_000_000u64);
+        let asset: MultiAsset = (Abstract(Default::default()), 1_000_000u128).into();
 
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
 
@@ -797,13 +816,13 @@ fn cant_buy_weight_with_unknown_asset() {
         let location = MultiLocation {
             parents: 0,
             interior: Junctions::X1(Junction::AccountId32 {
-                network: NetworkId::Polkadot,
+                network: Some(NetworkId::Polkadot),
                 id: [5_u8; 32],
             }),
         };
 
         // We are going to buy 4e9 weight
-        let weight_to_buy = 1_000_000u64;
+        let weight_to_buy = Weight::from_ref_time(1_000_000u64);
         let asset: MultiAsset = (Concrete(location), 1_000_000u128).into();
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
 
@@ -812,7 +831,7 @@ fn cant_buy_weight_with_unknown_asset() {
             XcmError::AssetNotFound
         );
 
-        assert_eq!(trader.weight, 0u64);
+        assert_eq!(trader.weight, Default::default());
         assert_eq!(trader.refund_weight(weight_to_buy), None);
     })
 }
@@ -824,7 +843,7 @@ fn cant_buy_weight_without_payable_capability() {
         let location = MultiLocation {
             parents: 0,
             interior: Junctions::X1(Junction::AccountId32 {
-                network: NetworkId::Polkadot,
+                network: Some(NetworkId::Polkadot),
                 id: [5_u8; 32],
             }),
         };
@@ -837,7 +856,7 @@ fn cant_buy_weight_without_payable_capability() {
         let id: u32 = 1;
 
         assert_ok!(AssetRegistry::register_info(
-            Origin::root(),
+            RuntimeOrigin::root(),
             AssetInfo {
                 id,
                 capabilities,
@@ -846,7 +865,7 @@ fn cant_buy_weight_without_payable_capability() {
         ));
 
         // We are going to buy 4e9 weight
-        let weight_to_buy = 2_000_000u64;
+        let weight_to_buy = Weight::from_ref_time(2_000_000u64);
         let asset: MultiAsset = (Concrete(location), 1_000_000u128).into();
 
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
@@ -856,7 +875,7 @@ fn cant_buy_weight_without_payable_capability() {
             XcmError::WeightNotComputable
         );
 
-        assert_eq!(trader.weight, 0u64);
+        assert_eq!(trader.weight, Default::default());
         assert_eq!(trader.refund_weight(weight_to_buy), None);
     })
 }
@@ -868,7 +887,7 @@ fn cant_buy_weight_with_non_payable_capability() {
         let location = MultiLocation {
             parents: 0,
             interior: Junctions::X1(Junction::AccountId32 {
-                network: NetworkId::Polkadot,
+                network: Some(NetworkId::Polkadot),
                 id: [5_u8; 32],
             }),
         };
@@ -884,7 +903,7 @@ fn cant_buy_weight_with_non_payable_capability() {
         let id: u32 = 1;
 
         assert_ok!(AssetRegistry::register_info(
-            Origin::root(),
+            RuntimeOrigin::root(),
             AssetInfo {
                 id,
                 capabilities,
@@ -893,7 +912,7 @@ fn cant_buy_weight_with_non_payable_capability() {
         ));
 
         // We are going to buy 4e9 weight
-        let weight_to_buy = 1_000_000u64;
+        let weight_to_buy = Weight::from_ref_time(1_000_000u64);
         let asset: MultiAsset = (Concrete(location), 1_000_000u128).into();
 
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
@@ -903,7 +922,7 @@ fn cant_buy_weight_with_non_payable_capability() {
             XcmError::WeightNotComputable
         );
 
-        assert_eq!(trader.weight, 0u64);
+        assert_eq!(trader.weight, Default::default());
         assert_eq!(trader.refund_weight(weight_to_buy), None);
     })
 }

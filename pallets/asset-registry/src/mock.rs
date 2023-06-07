@@ -1,15 +1,17 @@
 use crate as pallet_asset_registry;
 use frame_support::{
     parameter_types,
-    traits::{ConstU16, ConstU64},
+    traits::{AsEnsureOriginWithArg, ConstU16, ConstU64},
 };
 use frame_system as system;
 use frame_system::EnsureRoot;
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
-    traits::{BlakeTwo256, IdentityLookup},
+    traits::{BlakeTwo256, ConstU32, IdentityLookup},
+    AccountId32,
 };
+use t3rn_primitives::AccountId;
 
 pub type Balance = u128;
 pub type AssetId = u32;
@@ -113,6 +115,10 @@ impl pallet_assets::Config for Test {
     type MetadataDepositPerByte = MetadataDepositPerByte;
     type StringLimit = AssetsStringLimit;
     type WeightInfo = ();
+    type RemoveItemsLimit = ConstU32<1>;
+    type AssetIdParameter = AssetId;
+    type CallbackHandle = ();
+    type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<u64>>;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

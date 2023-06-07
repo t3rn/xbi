@@ -459,7 +459,6 @@ mod tests {
     #[test]
     fn custom_encodes_decodes_xbi_evm() {
         let xbi_evm = XbiInstruction::CallEvm {
-            source: AccountId20::repeat_byte(3),
             target: AccountId20::repeat_byte(2),
             value: sp_core::U256([1, 0, 0, 0]),
             input: vec![8, 9],
@@ -479,7 +478,6 @@ mod tests {
     fn custom_encodes_decodes_xbi_evm_and_metadata() {
         let xbi_evm_format = XbiFormat {
             instr: XbiInstruction::CallEvm {
-                source: AccountId20::repeat_byte(3),
                 target: AccountId20::repeat_byte(2),
                 value: sp_core::U256([1, 0, 0, 0]),
                 input: vec![8, 9],
@@ -532,7 +530,6 @@ mod tests {
     #[test]
     fn custom_encodes_decodes_empty_xbi_evm() {
         let xbi_evm = XbiInstruction::CallEvm {
-            source: AccountId20::repeat_byte(3),
             target: AccountId20::repeat_byte(2),
             value: sp_core::U256([1, 0, 0, 0]),
             input: vec![],

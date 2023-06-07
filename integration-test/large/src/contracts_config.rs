@@ -1,16 +1,14 @@
 use super::{AccountId, Balance};
 use crate::{
-    Aura, Balances, Call, Event, RandomnessCollectiveFlip, Runtime, RuntimeBlockWeights,
-    RuntimeCall, RuntimeEvent, Timestamp,
+    Aura, Balances, RandomnessCollectiveFlip, Runtime, RuntimeBlockWeights, RuntimeCall,
+    RuntimeEvent, Timestamp,
 };
 use cumulus_parachains_common::AVERAGE_ON_INITIALIZE_RATIO;
 use frame_support::{parameter_types, traits::FindAuthor, weights::Weight};
-use pallet_3vm_contracts::weights::WeightInfo;
 use pallet_3vm_evm::{
     EnsureAddressNever, GasWeightMapping, StoredHashAddressMapping, SubstrateBlockHashMapping,
     ThreeVMCurrencyAdapter,
 };
-use pallet_3vm_evm_primitives::FeeCalculator;
 use sp_core::{ConstBool, ConstU32, H160, U256};
 use sp_runtime::{ConsensusEngineId, RuntimeAppPublic};
 

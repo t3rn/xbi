@@ -1,4 +1,4 @@
-use crate::{Aura, Balances, Event, Runtime, RuntimeEvent};
+use crate::{Aura, Balances, Runtime, RuntimeEvent, Timestamp};
 use frame_support::{parameter_types, traits::FindAuthor, weights::Weight};
 use pallet_3vm_evm::{
     EnsureAddressNever, GasWeightMapping, StoredHashAddressMapping, SubstrateBlockHashMapping,

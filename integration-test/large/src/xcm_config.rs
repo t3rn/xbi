@@ -17,7 +17,7 @@ use sp_runtime::{
 use xcm_builder::{
     AccountId32Aliases, AllowUnpaidExecutionFrom, ConvertedConcreteAssetId, ConvertedConcreteId,
     CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds, FungiblesAdapter, IsConcrete, LocalMint,
-    LocationInverter, NativeAsset, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
+    NativeAsset, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
     SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
     SovereignSignedViaLocation, UsingComponents,
 };

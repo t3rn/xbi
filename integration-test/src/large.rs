@@ -1,20 +1,10 @@
 use crate::{
-    _Messenger, _hrmp_channel_parachain_inherent_data, _process_messages, ALICE, INITIAL_BALANCE,
+    ALICE, INITIAL_BALANCE,
 };
 use frame_support::traits::GenesisBuild;
 use xcm_emulator::decl_test_parachain;
 
 pub const LARGE_PARA_ID: u32 = 3;
-
-decl_test_parachain! {
-    pub struct Large {
-        Runtime = large::Runtime,
-        Origin = large::Origin,
-        XcmpMessageHandler = large::XcmpQueue,
-        DmpMessageHandler = large::DmpQueue,
-        new_ext = large_ext(LARGE_PARA_ID),
-    }
-}
 
 pub fn large_ext(para_id: u32) -> sp_io::TestExternalities {
     use large::{Runtime, System};

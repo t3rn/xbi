@@ -1,8 +1,8 @@
 use crate as pallet_xbi_portal;
 use frame_support::{
     parameter_types,
-    traits::{ConstU16, ConstU64},
-    weights::IdentityFee,
+    traits::{AsEnsureOriginWithArg, ConstU16, ConstU64},
+    weights::{IdentityFee, Weight},
 };
 use frame_system as system;
 use frame_system::EnsureRoot;
@@ -66,7 +66,9 @@ parameter_types! {
 }
 
 pub struct NonsenseNoopEvm;
-impl evm_primitives::traits::Evm<<Test as frame_system::Config>::Origin> for NonsenseNoopEvm {
+impl evm_primitives::traits::Evm<<Test as frame_system::Config>::RuntimeOrigin>
+    for NonsenseNoopEvm
+{
     type Outcome = Result<
         (
             evm_primitives::CallInfo,
@@ -75,8 +77,7 @@ impl evm_primitives::traits::Evm<<Test as frame_system::Config>::Origin> for Non
         sp_runtime::DispatchError,
     >;
     fn call(
-        _origin: <Test as frame_system::Config>::Origin,
-        _source: sp_core::H160,
+        _origin: <Test as frame_system::Config>::RuntimeOrigin,
         _target: sp_core::H160,
         _input: Vec<u8>,
         _value: sp_core::U256,
@@ -95,13 +96,14 @@ impl evm_primitives::traits::Evm<<Test as frame_system::Config>::Origin> for Non
                 used_gas: Default::default(),
                 logs: vec![],
             },
-            0,
+            0.into(),
         ))
     }
 }
 
 parameter_types! {
     pub ReserveBalanceCustodian: AccountId = 64;
+    pub NotificationWeight: Weight = Weight::from_ref_time(1);
 }
 
 impl pallet_xbi_portal::Config for Test {
@@ -124,7 +126,7 @@ impl pallet_xbi_portal::Config for Test {
     type FeeConversion = IdentityFee<Balance>;
     type DeFi = ();
     type ReserveBalanceCustodian = ReserveBalanceCustodian;
-    type NotificationWeight = ConstU64<1>;
+    type NotificationWeight = NotificationWeight;
 }
 
 parameter_types! {
@@ -171,6 +173,10 @@ impl pallet_assets::Config for Test {
     type MetadataDepositPerByte = MetadataDepositPerByte;
     type StringLimit = AssetsStringLimit;
     type WeightInfo = ();
+    type RemoveItemsLimit = ConstU32<1>;
+    type AssetIdParameter = AssetId;
+    type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
+    type CallbackHandle = ();
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
