@@ -1,6 +1,6 @@
-use crate::Large;
-use crate::{ALICE, INITIAL_BALANCE};
+use crate::{Large, ALICE, INITIAL_BALANCE};
 use frame_support::traits::GenesisBuild;
+use frame_support::weights::Weight;
 
 pub const LARGE_PARA_ID: u32 = 3;
 
@@ -43,12 +43,13 @@ mod tests {
         assert_xbi_received, assert_xbi_request_handled, assert_xbi_sent,
         assert_xcmp_receipt_success, assert_xcmp_sent, log_all_roco_events, para_id_to_account,
         rococo, setup,
-        slim::{Slender, Slim, SLENDER_PARA_ID, SLIM_PARA_ID},
-        teleport_from_relay_to, transfer_to, ParaKind, RococoNet, ALICE, CONTRACT_CALLER,
+        slim::{SLENDER_PARA_ID, SLIM_PARA_ID},
+        teleport_from_relay_to, transfer_to, Large, ParaKind, RococoNet, Slender, Slim, ALICE,
+        CONTRACT_CALLER,
     };
     use codec::Encode;
     use frame_support::{assert_ok, traits::Currency};
-    use large::{Event, Origin, PolkadotXcm, System, XbiPortal};
+    use large::{PolkadotXcm, RuntimeEvent, RuntimeOrigin, System, XbiPortal};
     use pallet_xbi_portal::Message;
     use polkadot_primitives::v2::Id as ParaId;
     use sp_runtime::traits::{AccountIdConversion, Convert, UniqueSaturatedInto};
@@ -76,9 +77,9 @@ mod tests {
             let contract_path = "fixtures/transfer_return_code.wat";
             let wasm = wat::parse_file(contract_path).expect("Failed to parse file");
             assert_ok!(large::Contracts::instantiate_with_code(
-                Origin::signed(ALICE),
+                RuntimeOrigin::signed(ALICE),
                 0,
-                100_000_000_000_000,
+                100_000_000_000_000.into(),
                 None,
                 wasm,
                 vec![],
@@ -91,23 +92,23 @@ mod tests {
 
     fn register_asset(id: u32, location: MultiLocation) {
         assert_ok!(large::AssetRegistry::register(
-            large::Origin::root(),
+            large::RuntimeOrigin::root(),
             location.clone(),
             id
         ));
         assert_ok!(large::AssetRegistry::register_info(
-            large::Origin::root(),
+            large::RuntimeOrigin::root(),
             pallet_asset_registry::AssetInfo::new(id, location.clone(), vec![]) // FIXME: add capabilities
         ));
 
         log_all_events();
         assert!(large::System::events().iter().any(|r| matches!(
             &r.event,
-            large::Event::AssetRegistry(pallet_asset_registry::Event::Registered { asset_id, location: loc }) if asset_id == &id && &location == loc
+            large::RuntimeEvent::AssetRegistry(pallet_asset_registry::Event::Registered { asset_id, location: loc }) if asset_id == &id && &location == loc
         )));
         assert!(large::System::events().iter().any(|r| matches!(
             &r.event,
-            large::Event::AssetRegistry(pallet_asset_registry::Event::Info { asset_id, location: loc }) if asset_id == &id && &location == loc
+            large::RuntimeEvent::AssetRegistry(pallet_asset_registry::Event::Info { asset_id, location: loc }) if asset_id == &id && &location == loc
         )));
         System::reset_events();
     }
@@ -121,14 +122,14 @@ mod tests {
         min_balance: u128,
     ) {
         assert_ok!(large::Assets::force_create(
-            large::Origin::root(),
+            large::RuntimeOrigin::root(),
             id,
             owner.unwrap_or(ALICE),
             true,
             min_balance
         ));
         assert_ok!(large::Assets::set_metadata(
-            large::Origin::signed(ALICE),
+            large::RuntimeOrigin::signed(ALICE),
             id,
             name.encode(),
             symbol.encode(),
@@ -137,14 +138,14 @@ mod tests {
         log_all_events();
         assert!(large::System::events().iter().any(|r| matches!(
             r.event,
-            large::Event::Assets(pallet_assets::Event::ForceCreated { asset_id, .. }) if asset_id == id
+            large::RuntimeEvent::Assets(pallet_assets::Event::ForceCreated { asset_id, .. }) if asset_id == id
         )));
         let n = name;
         let s = symbol;
 
         assert!(large::System::events().iter().any(|r| matches!(
             &r.event,
-            large::Event::Assets(pallet_assets::Event::MetadataSet {
+            large::RuntimeEvent::Assets(pallet_assets::Event::MetadataSet {
                 asset_id,
                 name,
                 symbol,
@@ -193,7 +194,7 @@ mod tests {
         println!(">>> [Rococo] proving execution success");
         RococoNet::execute_with(|| {
             log_all_roco_events();
-            assert_relay_executed_upward!(Outcome::Complete(4_000_000_000));
+            assert_relay_executed_upward!(Outcome::Complete(4_000_000_000.into()));
             assert_deposit!(rococo, large::PolkadotXcm::check_account()); // Deposited to checking account on relay
             rococo::System::reset_events();
         });
@@ -215,25 +216,25 @@ mod tests {
             );
         });
 
-        let remark = rococo_runtime::Call::System(
-            frame_system::Call::<rococo_runtime::Runtime>::remark_with_event {
-                remark: "Hello from Pumpkin!".as_bytes().to_vec(),
-            },
-        );
+        let remark = rococo_runtime::RuntimeCall::System(frame_system::Call::<
+            rococo_runtime::Runtime,
+        >::remark_with_event {
+            remark: "Hello from Pumpkin!".as_bytes().to_vec(),
+        });
         Large::execute_with(|| {
             assert_ok!(large::PolkadotXcm::send_xcm(
                 Here,
                 Parent,
                 Xcm(vec![Transact {
-                    origin_type: OriginKind::SovereignAccount,
-                    require_weight_at_most: INITIAL_BALANCE as u64,
+                    origin_kind: OriginKind::SovereignAccount,
+                    require_weight_at_most: (INITIAL_BALANCE as u64).into(),
                     call: remark.encode().into(),
                 }]),
             ));
         });
 
         RococoNet::execute_with(|| {
-            use rococo_runtime::{Event, System};
+            use rococo_runtime::{RuntimeEvent, System};
 
             System::events()
                 .iter()
@@ -241,7 +242,7 @@ mod tests {
 
             assert!(System::events().iter().any(|r| matches!(
                 r.event,
-                Event::System(frame_system::Event::NewAccount { account: _ })
+                RuntimeEvent::System(frame_system::Event::NewAccount { account: _ })
             )));
         });
     }
@@ -250,17 +251,18 @@ mod tests {
     fn xcmp() {
         setup();
 
-        let remark = large::Call::System(frame_system::Call::<large::Runtime>::remark_with_event {
-            remark: "Hello from Pumpkin!".as_bytes().to_vec(),
-        });
+        let remark =
+            large::RuntimeCall::System(frame_system::Call::<large::Runtime>::remark_with_event {
+                remark: "Hello from Pumpkin!".as_bytes().to_vec(),
+            });
 
         Large::execute_with(|| {
             assert_ok!(large::PolkadotXcm::send_xcm(
                 Here,
                 MultiLocation::new(1, X1(Parachain(2))),
                 Xcm(vec![Transact {
-                    origin_type: OriginKind::SovereignAccount,
-                    require_weight_at_most: 10_000_000,
+                    origin_kind: OriginKind::SovereignAccount,
+                    require_weight_at_most: 10_000_000.into(),
                     call: remark.encode().into(),
                 }]),
             ));
@@ -269,12 +271,12 @@ mod tests {
         });
 
         Slender::execute_with(|| {
-            use large::{Event, System};
+            use large::{RuntimeEvent, System};
             crate::slim::log_all_events("Slender");
 
             assert!(System::events().iter().any(|r| matches!(
                 r.event,
-                Event::System(frame_system::Event::Remarked { sender: _, hash: _ })
+                RuntimeEvent::System(frame_system::Event::Remarked { sender: _, hash: _ })
             )));
         });
     }
@@ -283,21 +285,21 @@ mod tests {
     fn xcmp_through_a_parachain() {
         setup();
 
-        use large::{Call, PolkadotXcm, Runtime};
+        use large::{PolkadotXcm, Runtime, RuntimeCall};
 
         // The message goes through: Pumpkin --> Mushroom --> Octopus
-        let remark = Call::System(frame_system::Call::<Runtime>::remark_with_event {
+        let remark = RuntimeCall::System(frame_system::Call::<Runtime>::remark_with_event {
             remark: "Hello from Pumpkin!".as_bytes().to_vec(),
         });
 
-        let send_xcm_to_t1rn = Call::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
-            dest: Box::new(VersionedMultiLocation::V1(MultiLocation::new(
+        let send_xcm_to_t1rn = RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
+            dest: Box::new(VersionedMultiLocation::V3(MultiLocation::new(
                 1,
                 X1(Parachain(SLENDER_PARA_ID)),
             ))),
-            message: Box::new(VersionedXcm::V2(Xcm(vec![Transact {
-                origin_type: OriginKind::SovereignAccount,
-                require_weight_at_most: 10_000_000,
+            message: Box::new(VersionedXcm::V3(Xcm(vec![Transact {
+                origin_kind: OriginKind::SovereignAccount,
+                require_weight_at_most: 10_000_000.into(),
                 call: remark.encode().into(),
             }]))),
         });
@@ -306,35 +308,35 @@ mod tests {
                 Here,
                 MultiLocation::new(1, X1(Parachain(LARGE_PARA_ID))),
                 Xcm(vec![Transact {
-                    origin_type: OriginKind::SovereignAccount,
-                    require_weight_at_most: 100_000_000,
+                    origin_kind: OriginKind::SovereignAccount,
+                    require_weight_at_most: 100_000_000.into(),
                     call: send_xcm_to_t1rn.encode().into(),
                 }]),
             ));
         });
 
         Large::execute_with(|| {
-            use large::{Event, System};
+            use large::{RuntimeEvent, System};
             log_all_events();
 
             assert!(System::events().iter().any(|r| matches!(
                 r.event,
-                Event::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. })
+                RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. })
             )));
             assert!(System::events().iter().any(|r| matches!(
                 r.event,
-                Event::PolkadotXcm(pallet_xcm::Event::Sent(_, _, _))
+                RuntimeEvent::PolkadotXcm(pallet_xcm::Event::Sent(_, _, _))
             )));
         });
 
         Slender::execute_with(|| {
-            use large::{Event, System};
+            use large::{RuntimeEvent, System};
             // execution would fail, but good enough to check if the message is received
             crate::slim::log_all_events("Slender");
 
             assert!(System::events().iter().any(|r| matches!(
                 r.event,
-                Event::XcmpQueue(cumulus_pallet_xcmp_queue::Event::Fail { .. })
+                RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::Fail { .. })
             )));
         });
     }
@@ -362,9 +364,9 @@ mod tests {
         println!(">>> [Large] instruct relay to teleport 10 roc to large");
         Large::execute_with(|| {
             assert_ok!(PolkadotXcm::send(
-                large::Origin::root(), // Act on behalf of this parachain sovereign
-                box MultiLocation::parent().versioned(),
-                box VersionedXcm::V2(Xcm(vec![
+                large::RuntimeOrigin::root(), // Act on behalf of this parachain sovereign
+                box MultiLocation::parent().into_versioned(),
+                box VersionedXcm::V3(Xcm(vec![
                     Instruction::WithdrawAsset(MultiAssets::from(vec![MultiAsset {
                         id: AssetId::Concrete(MultiLocation::here()),
                         fun: Fungibility::Fungible(large_initial_balance),
@@ -374,7 +376,7 @@ mod tests {
                             id: AssetId::Concrete(MultiLocation::here()),
                             fun: Fungibility::Fungible(exec_fees_on_relay),
                         },
-                        weight_limit: Limited(5_000_000_000),
+                        weight_limit: Limited(5_000_000_000.into()),
                     },
                     InitiateTeleport {
                         assets: MultiAssetFilter::Wild(All),
@@ -392,11 +394,10 @@ mod tests {
                             },
                             DepositAsset {
                                 assets: Wild(All),
-                                max_assets: 100000,
                                 beneficiary: MultiLocation {
                                     parents: 0,
                                     interior: Junctions::X1(Junction::AccountId32 {
-                                        network: NetworkId::Any,
+                                        network: None,
                                         id: *ALICE.as_ref(),
                                     }),
                                 },
@@ -415,7 +416,7 @@ mod tests {
         println!(">>> [Rococo] proving execution success");
         RococoNet::execute_with(|| {
             log_all_roco_events();
-            assert_relay_executed_upward!(Outcome::Complete(4_000_000_000));
+            assert_relay_executed_upward!(Outcome::Complete(4_000_000_000.into()));
 
             assert_withdrawal!(
                 rococo,
@@ -432,13 +433,13 @@ mod tests {
             log_all_events();
             assert!(System::events().iter().any(|r| matches!(
 				&r.event,
-				Event::Assets(pallet_assets::Event::Issued {
+				RuntimeEvent::Assets(pallet_assets::Event::Issued {
 					asset_id,
 					owner,
-					total_supply
-				}) if asset_id == &ASSET_ID && owner == &ALICE && total_supply >= &(large_initial_balance - exec_fees_on_relay)
+					amount
+				}) if asset_id == &ASSET_ID && owner == &ALICE && amount >= &(large_initial_balance - exec_fees_on_relay)
 			)));
-            assert_relay_executed_downward!(large, Outcome::Complete(50));
+            assert_relay_executed_downward!(large, Outcome::Complete(50.into()));
 
             System::reset_events();
         });
@@ -452,8 +453,8 @@ mod tests {
         Large::execute_with(|| {
             let funds_sent = 2_000_000_000_000;
             assert_ok!(PolkadotXcm::execute(
-                Origin::signed(ALICE),
-                box VersionedXcm::V2(Xcm(vec![
+                RuntimeOrigin::signed(ALICE),
+                box VersionedXcm::V3(Xcm(vec![
                     WithdrawAsset(MultiAssets::from(vec![MultiAsset {
                         id: AssetId::Concrete(MultiLocation::parent()),
                         fun: Fungibility::Fungible(funds_sent),
@@ -481,7 +482,6 @@ mod tests {
                             },
                             DepositAsset {
                                 assets: Wild(All),
-                                max_assets: funds_sent.ilog(12),
                                 beneficiary: MultiLocation {
                                     parents: 1,
                                     interior: Junctions::X1(Parachain(LARGE_PARA_ID)),
@@ -492,19 +492,19 @@ mod tests {
                     },
                     RefundSurplus
                 ])),
-                funds_sent.unique_saturated_into(),
+                Weight::from_ref_time(funds_sent.unique_saturated_into()),
             ));
             log_all_events();
 
             assert_polkadot_attempted!(large);
             assert!(System::events().iter().any(|r| matches!(
                 &r.event,
-                Event::Assets(pallet_assets::Event::Burned { asset_id, owner, balance}) if asset_id == &ASSET_ID && owner == &ALICE && balance == &funds_sent
+                RuntimeEvent::Assets(pallet_assets::Event::Burned { asset_id, owner, balance}) if asset_id == &ASSET_ID && owner == &ALICE && balance == &funds_sent
             )));
             // We issue the asset to slim's checkin account for teleports
             assert!(System::events().iter().any(|r| matches!(
                 &r.event,
-                Event::Assets(pallet_assets::Event::Issued { asset_id, owner, total_supply}) if asset_id == &ASSET_ID && owner == &slim::PolkadotXcm::check_account() && total_supply == &funds_sent
+                RuntimeEvent::Assets(pallet_assets::Event::Issued { asset_id, owner, amount}) if asset_id == &ASSET_ID && owner == &slim::PolkadotXcm::check_account() && amount == &funds_sent
             )));
             System::reset_events();
         });
@@ -514,7 +514,7 @@ mod tests {
             crate::slim::log_all_events("Slim");
             assert!(slim::System::events().iter().any(|r| matches!(
                 &r.event,
-                slim::Event::Assets(pallet_assets::Event::Issued { .. })
+                slim::RuntimeEvent::Assets(pallet_assets::Event::Issued { .. })
             )));
             assert_xcmp_receipt_success!(slim);
             slim::System::reset_events();
@@ -523,11 +523,10 @@ mod tests {
         println!(">>> [Large] Sending xbi message to slim");
         Large::execute_with(|| {
             assert_ok!(XbiPortal::send(
-                large::Origin::signed(ALICE),
+                large::RuntimeOrigin::signed(ALICE),
                 xp_channel::ExecutionType::Sync,
                 XbiFormat {
                     instr: XbiInstruction::CallEvm {
-                        source: SubstrateAbiConverter::try_convert(ALICE).unwrap(),
                         target: substrate_abi::AccountId20::from_low_u64_be(1),
                         value: 0.into(),
                         input: b"hello world".to_vec(),
@@ -587,11 +586,10 @@ mod tests {
         println!(">>> [Slim] Sending xbi message to large");
         Slim::execute_with(|| {
             assert_ok!(slim::XbiPortal::send(
-                slim::Origin::signed(CONTRACT_CALLER),
+                slim::RuntimeOrigin::signed(CONTRACT_CALLER),
                 xp_channel::ExecutionType::Sync,
                 XbiFormat {
                     instr: XbiInstruction::CallEvm {
-                        source: SubstrateAbiConverter::try_convert(ALICE).unwrap(),
                         target: substrate_abi::AccountId20::from_low_u64_be(1),
                         value: 0.into(),
                         input: b"hello world".to_vec(),
@@ -656,7 +654,7 @@ mod tests {
         println!(">>> [Slim] Sending xbi message to large");
         Slim::execute_with(|| {
             assert_ok!(slim::XbiPortal::send(
-                slim::Origin::signed(ALICE),
+                slim::RuntimeOrigin::signed(ALICE),
                 xp_channel::ExecutionType::Sync,
                 XbiFormat {
                     instr: XbiInstruction::CallWasm {
@@ -743,7 +741,7 @@ mod tests {
         println!(">>> [Slim] Sending xbi message to large");
         Slim::execute_with(|| {
             assert_ok!(slim::XbiPortal::send(
-                slim::Origin::signed(ALICE),
+                slim::RuntimeOrigin::signed(ALICE),
                 xp_channel::ExecutionType::Sync,
                 XbiFormat {
                     instr: XbiInstruction::CallWasm {
@@ -802,11 +800,10 @@ mod tests {
         println!(">>> [Slim] Queueing xbi message");
         Slim::execute_with(|| {
             assert_ok!(slim::XbiPortal::send(
-                slim::Origin::signed(ALICE),
+                slim::RuntimeOrigin::signed(ALICE),
                 xp_channel::ExecutionType::Async,
                 XbiFormat {
                     instr: XbiInstruction::CallEvm {
-                        source: SubstrateAbiConverter::try_convert(ALICE).unwrap(),
                         target: substrate_abi::AccountId20::from_low_u64_be(1),
                         value: 0.into(),
                         input: b"hello world".to_vec(),
@@ -834,7 +831,7 @@ mod tests {
 
         println!(">>> [Slim] Processing queue");
         Slim::execute_with(|| {
-            assert_ok!(slim::XbiPortal::process_queue(slim::Origin::root()));
+            assert_ok!(slim::XbiPortal::process_queue(slim::RuntimeOrigin::root()));
             crate::slim::log_all_events("Slim");
             assert_xcmp_sent!(slim);
             assert_xbi_sent!(slim);
@@ -870,7 +867,7 @@ mod tests {
         println!(">>> [Slim] Queueing xbi message");
         Slim::execute_with(|| {
             assert_ok!(slim::XbiPortal::send(
-                slim::Origin::signed(ALICE),
+                slim::RuntimeOrigin::signed(ALICE),
                 xp_channel::ExecutionType::Async,
                 XbiFormat {
                     instr: XbiInstruction::CallWasm {
@@ -909,7 +906,7 @@ mod tests {
 
         println!(">>> [Slim] Processing queue");
         Slim::execute_with(|| {
-            assert_ok!(slim::XbiPortal::process_queue(slim::Origin::root()));
+            assert_ok!(slim::XbiPortal::process_queue(slim::RuntimeOrigin::root()));
             crate::slim::log_all_events("Slim");
             assert_xcmp_sent!(slim);
             assert_xbi_sent!(slim);
@@ -946,7 +943,7 @@ mod tests {
         println!(">>> [Slim] Queueing xbi message");
         Slim::execute_with(|| {
             assert_ok!(slim::XbiPortal::send(
-                slim::Origin::signed(ALICE),
+                slim::RuntimeOrigin::signed(ALICE),
                 xp_channel::ExecutionType::Async,
                 XbiFormat {
                     instr: XbiInstruction::CallWasm {
@@ -977,7 +974,7 @@ mod tests {
 
         println!(">>> [Slim] Processing queue");
         Slim::execute_with(|| {
-            assert_ok!(slim::XbiPortal::process_queue(slim::Origin::root()));
+            assert_ok!(slim::XbiPortal::process_queue(slim::RuntimeOrigin::root()));
             crate::slim::log_all_events("Slim");
             assert_xcmp_sent!(slim);
             assert_xbi_sent!(slim);
@@ -1015,33 +1012,34 @@ mod tests {
         println!(">>> [Slim] Queueing xbi message");
         Slim::execute_with(|| {
             assert_ok!(XbiPortal::send(
-                Origin::signed(ALICE),
+                RuntimeOrigin::signed(ALICE),
                 xp_channel::ExecutionType::Async,
                 XbiFormat {
                     instr: XbiInstruction::CallWasm {
-                        dest: UNISWAP,
+                        dest: made_up_dest,
                         value: 5,
                         gas_limit: 500_000_000_000,
                         storage_deposit_limit: None,
-                        data: SWAP_CALL
+                        data: b"".to_vec()
                     },
                     metadata: XbiMetadata::new(
-                        SOURCE_PARA,
-                        t3rn,
+                        SLIM_PARA_ID,
+                        LARGE_PARA_ID,
                         Timeouts {
-                            sent: 10,
-                            delivered: 20,
-                            executed: 30,
+                            sent: 10.into(),
+                            delivered: 20.into(),
+                            executed: 30.into(),
                             ..Default::default()
                         },
                         Fees::new(Some(ASSET_ID), Some(EXEC_COST), Some(NOTIFICATION_COST)),
                         Default::default(),
+                        0,
                         Default::default(),
                     ),
                 }
             ));
 
-            assert_ok!(slim::XbiPortal::process_queue(slim::Origin::root()));
+            assert_ok!(slim::XbiPortal::process_queue(slim::RuntimeOrigin::root()));
 
             crate::slim::log_all_events("Slim");
             // Assert owner paid for the execution fees

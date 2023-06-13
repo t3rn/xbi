@@ -194,6 +194,15 @@ pub struct ActionNotificationTimeouts {
     pub notification: Timeout,
 }
 
+impl From<u64> for ActionNotificationTimeouts {
+    fn from(timeout: u64) -> Self {
+        ActionNotificationTimeouts {
+            action: timeout as Timeout,
+            notification: timeout as Timeout,
+        }
+    }
+}
+
 const TIMEOUT_NINETY_SIX_SECONDS: Timeout = 96000;
 const TIMEOUT_TWENTY_FOUR_SECONDS: Timeout = 24000;
 
