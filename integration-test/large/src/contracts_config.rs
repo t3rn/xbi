@@ -43,7 +43,7 @@ impl pallet_3vm_contracts::Config for Runtime {
     type AddressGenerator = pallet_3vm_contracts::DefaultAddressGenerator;
     type RuntimeCall = RuntimeCall;
     type CallFilter = frame_support::traits::Nothing;
-    type CallStack = [pallet_3vm_contracts::Frame<Self>; 31];
+    type CallStack = [pallet_3vm_contracts::Frame<Self>; 2];
     type ChainExtension = ();
     type Currency = Balances;
     type DeletionQueueDepth = DeletionQueueDepth;
