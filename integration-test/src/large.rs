@@ -1,6 +1,5 @@
-use crate::{Large, ALICE, INITIAL_BALANCE};
+use crate::{ALICE, INITIAL_BALANCE};
 use frame_support::traits::GenesisBuild;
-use frame_support::weights::Weight;
 
 pub const LARGE_PARA_ID: u32 = 3;
 
@@ -35,6 +34,7 @@ pub fn large_ext(para_id: u32) -> sp_io::TestExternalities {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use frame_support::weights::Weight;
 
     use crate::{
         assert_asset_burned, assert_asset_issued, assert_deposit, assert_polkadot_attempted,
@@ -194,7 +194,7 @@ mod tests {
         println!(">>> [Rococo] proving execution success");
         RococoNet::execute_with(|| {
             log_all_roco_events();
-            assert_relay_executed_upward!(Outcome::Complete(4_000_000_000.into()));
+            assert_relay_executed_upward!(Outcome::Complete(Weight::from_ref_time(767529000)));
             assert_deposit!(rococo, large::PolkadotXcm::check_account()); // Deposited to checking account on relay
             rococo::System::reset_events();
         });
@@ -309,7 +309,7 @@ mod tests {
                 MultiLocation::new(1, X1(Parachain(LARGE_PARA_ID))),
                 Xcm(vec![Transact {
                     origin_kind: OriginKind::SovereignAccount,
-                    require_weight_at_most: 100_000_000.into(),
+                    require_weight_at_most: 100_000_000_000.into(),
                     call: send_xcm_to_t1rn.encode().into(),
                 }]),
             ));

@@ -1,8 +1,5 @@
-use crate::{
-    _Messenger, _hrmp_channel_parachain_inherent_data, _process_messages, INITIAL_BALANCE,
-};
+use crate::INITIAL_BALANCE;
 use frame_support::traits::GenesisBuild;
-use xcm_emulator::decl_test_parachain;
 
 #[cfg(test)]
 use crate::ALICE;

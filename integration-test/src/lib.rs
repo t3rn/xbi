@@ -124,9 +124,9 @@ pub fn setup() {
         .init()
         .ok();
 
-    force_xcm_version(SLIM_PARA_ID, 2);
-    force_xcm_version(SLENDER_PARA_ID, 2);
-    force_xcm_version(LARGE_PARA_ID, 2);
+    force_xcm_version(SLIM_PARA_ID, 3);
+    force_xcm_version(SLENDER_PARA_ID, 3);
+    force_xcm_version(LARGE_PARA_ID, 3);
 }
 
 decl_test_relay_chain! {
