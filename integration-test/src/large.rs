@@ -586,7 +586,7 @@ mod tests {
         println!(">>> [Slim] Sending xbi message to large");
         Slim::execute_with(|| {
             assert_ok!(slim::XbiPortal::send(
-                slim::RuntimeOrigin::signed(CONTRACT_CALLER),
+                slim::RuntimeOrigin::signed(ALICE),
                 xp_channel::ExecutionType::Sync,
                 XbiFormat {
                     instr: XbiInstruction::CallEvm {
@@ -614,12 +614,7 @@ mod tests {
             crate::slim::log_all_events("Slim");
             assert_xcmp_sent!(slim);
             // Assert owner paid for the execution fees
-            assert_asset_burned!(
-                slim,
-                ASSET_ID,
-                CONTRACT_CALLER,
-                EXEC_COST + NOTIFICATION_COST
-            );
+            assert_asset_burned!(slim, ASSET_ID, ALICE, EXEC_COST + NOTIFICATION_COST);
             assert_xbi_sent!(slim);
             slim::System::reset_events();
         });
@@ -659,11 +654,11 @@ mod tests {
                 XbiFormat {
                     instr: XbiInstruction::CallWasm {
                         dest: hex_literal::hex!(
-                            "18a84a38cff91f3345a66802803f8959d11d4d2315a082bfeb2a49ce72b2577f"
+                            "4e519d0d228bc7f0cedcfc3e1707696c97d9430645ab7cb1b2aece11ce7fe2e0"
                         )
                         .into(),
                         value: 0,
-                        gas_limit: 500_000_000_000,
+                        gas_limit: 500_000_000_000_000,
                         storage_deposit_limit: None,
                         data: b"".to_vec()
                     },
@@ -746,7 +741,7 @@ mod tests {
                 XbiFormat {
                     instr: XbiInstruction::CallWasm {
                         dest: hex_literal::hex!(
-                            "18a84a38cff91f3345a66802803f8959d11d4d2315a082bfeb2a49ce72b2577f"
+                            "4e519d0d228bc7f0cedcfc3e1707696c97d9430645ab7cb1b2aece11ce7fe2e0"
                         )
                         .into(),
                         value: 0,
@@ -872,7 +867,7 @@ mod tests {
                 XbiFormat {
                     instr: XbiInstruction::CallWasm {
                         dest: hex_literal::hex!(
-                            "18a84a38cff91f3345a66802803f8959d11d4d2315a082bfeb2a49ce72b2577f"
+                            "4e519d0d228bc7f0cedcfc3e1707696c97d9430645ab7cb1b2aece11ce7fe2e0"
                         )
                         .into(),
                         value: 0,
@@ -948,7 +943,7 @@ mod tests {
                 XbiFormat {
                     instr: XbiInstruction::CallWasm {
                         dest: hex_literal::hex!(
-                            "18a84a38cff91f3345a66802803f8959d11d4d2315a082bfeb2a49ce72b2577f"
+                            "4e519d0d228bc7f0cedcfc3e1707696c97d9430645ab7cb1b2aece11ce7fe2e0"
                         )
                         .into(),
                         value: 0,
