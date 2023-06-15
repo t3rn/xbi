@@ -44,6 +44,7 @@ pub fn account32_from_account<T: Config>(
 impl<T: Config> ChannelProgressionEmitter for Pallet<T> {
     fn emit_instruction_handled(msg: &XbiFormat, weight: &u64) {
         use crate::Event::*;
+        log::debug!(target: "xbi", "emit_instruction_handled {:?}", msg);
         Self::deposit_event(XbiInstructionHandled {
             msg: msg.clone(),
             weight: Weight::from_ref_time(*weight),

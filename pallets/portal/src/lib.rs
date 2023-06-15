@@ -419,6 +419,8 @@ pub mod pallet {
                                     .build();
 
                                 T::Xcm::validate(&mut Some(dest), &mut Some(xbi_format_msg))
+                                    // TODO: now we know the fees before we send the message, update ChargeForAsset to be XCMv3 Friendly
+                                    .and_then(|(ticket, fees_for_message)| T::Xcm::deliver(ticket))
                                     .map(|_| {
                                         log::trace!(target: "xbi", "Successfully sent xcm message");
                                         Pallet::<T>::emit_sent(msg.clone());
@@ -505,6 +507,8 @@ pub mod pallet {
                                     .build();
 
                                 T::Xcm::validate(&mut Some(dest), &mut Some(xbi_format_msg))
+                                    // TODO: now we know the fees before we send the message, update ChargeForAsset to be XCMv3 Friendly
+                                    .and_then(|(ticket, fees_for_message)| T::Xcm::deliver(ticket))
                                     .map(|_| {
                                         log::trace!(target: "xbi", "Successfully sent xcm message");
                                         Pallet::<T>::emit_sent(msg.clone())

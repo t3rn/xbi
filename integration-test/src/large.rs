@@ -416,7 +416,7 @@ mod tests {
         println!(">>> [Rococo] proving execution success");
         RococoNet::execute_with(|| {
             log_all_roco_events();
-            assert_relay_executed_upward!(Outcome::Complete(4_000_000_000.into()));
+            assert_relay_executed_upward!(Outcome::Complete(Weight::from_ref_time(767529000)));
 
             assert_withdrawal!(
                 rococo,
@@ -439,7 +439,7 @@ mod tests {
 					amount
 				}) if asset_id == &ASSET_ID && owner == &ALICE && amount >= &(large_initial_balance - exec_fees_on_relay)
 			)));
-            assert_relay_executed_downward!(large, Outcome::Complete(50.into()));
+            assert_relay_executed_downward!(large, Outcome::Complete(Weight::from_ref_time(50)));
 
             System::reset_events();
         });
@@ -548,10 +548,10 @@ mod tests {
                 }
             ));
 
+            log_all_events();
+
             assert_xcmp_sent!(large);
             assert_xbi_sent!(large);
-
-            log_all_events();
             System::reset_events();
         });
 
@@ -709,9 +709,9 @@ mod tests {
             );
             assert_xbi_received!(large);
             assert_xbi_request_handled!(large);
+            assert_xcmp_sent!(large);
             assert_xbi_instruction_handled!(large);
             assert_xcmp_receipt_success!(large);
-            assert_xcmp_sent!(large);
             assert_xbi_sent!(large, Status::Success);
             assert_xcmp_receipt_success!(large);
             System::reset_events();
@@ -775,11 +775,11 @@ mod tests {
         println!(">>> [Large] checking events for xbi message");
         Large::execute_with(|| {
             log_all_events();
+            assert_xcmp_sent!(large);
             assert_xbi_received!(large);
             assert_xbi_request_handled!(large);
             assert_xbi_instruction_handled!(large);
             assert_xcmp_receipt_success!(large);
-            assert_xcmp_sent!(large);
             assert_xbi_sent!(large, Status::ExecutionLimitExceeded);
             assert_xcmp_receipt_success!(large);
             System::reset_events();
@@ -916,11 +916,11 @@ mod tests {
         println!(">>> [Large] checking events for xbi message");
         Large::execute_with(|| {
             log_all_events();
+            assert_xcmp_sent!(large);
             assert_xbi_received!(large);
             assert_xbi_request_handled!(large);
             assert_xbi_instruction_handled!(large);
             assert_xcmp_receipt_success!(large);
-            assert_xcmp_sent!(large);
             assert_xbi_sent!(large, Status::Success);
             assert_xcmp_receipt_success!(large);
             System::reset_events();

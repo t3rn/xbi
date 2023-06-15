@@ -264,12 +264,12 @@ mod tests {
 
         use slim::{PolkadotXcm, Runtime, RuntimeCall};
 
-        // The message goes through: Pumpkin --> Mushroom --> Octopus
+        // The message goes through: Slim --> Slender
         let remark = RuntimeCall::System(frame_system::Call::<Runtime>::remark_with_event {
             remark: "Hello from Pumpkin!".as_bytes().to_vec(),
         });
 
-        let send_xcm_to_t1rn = RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
+        let call = RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
             dest: Box::new(VersionedMultiLocation::V3(MultiLocation::new(
                 1,
                 X1(Parachain(SLENDER_PARA_ID)),
@@ -286,8 +286,8 @@ mod tests {
                 MultiLocation::new(1, X1(Parachain(SLIM_PARA_ID))),
                 Xcm(vec![Transact {
                     origin_kind: OriginKind::SovereignAccount,
-                    require_weight_at_most: 100_000_000.into(),
-                    call: send_xcm_to_t1rn.encode().into(),
+                    require_weight_at_most: 100_000_000_000.into(),
+                    call: call.encode().into(),
                 }]),
             ));
         });

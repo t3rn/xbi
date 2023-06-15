@@ -133,8 +133,10 @@ where
                     .build();
 
                 Xcm::validate(&mut Some(dest), &mut Some(xbi_format_msg))
-                    .map(|_| {
-                        log::trace!(target: "xs-channel", "Successfully sent xcm message");
+                    // TODO: now we know the fees before we send the message, update ChargeForAsset to be XCMv3 Friendly
+                    .and_then(|(ticket, fees_for_message)| Xcm::deliver(ticket))
+                    .map(|xcm_hash| {
+                        log::trace!(target: "xs-channel", "Successfully sent xcm message with hash {:?}", xcm_hash);
                         Emitter::emit_sent(msg.clone());
                     })
                     .map_err(|e| {
@@ -178,6 +180,8 @@ where
                     .build();
 
                 Xcm::validate(&mut Some(dest), &mut Some(xbi_format_msg))
+                    // TODO: now we know the fees before we send the message, update ChargeForAsset to be XCMv3 Friendly
+                    .and_then(|(ticket, fees_for_message)| Xcm::deliver(ticket))
                     .map(|_| Emitter::emit_sent(msg.clone()))
                     .map_err(|e| {
                         log::error!(target: "xs-channel", "Failed to send xcm request: {:?}", e);
