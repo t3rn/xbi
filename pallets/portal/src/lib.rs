@@ -18,40 +18,38 @@ use crate::{
 };
 use codec::{Decode, Encode};
 use contracts_primitives::ContractExecResult;
-use frame_support::traits::{
-    fungibles::{Inspect, Mutate},
-    OriginTrait,
-};
 use frame_support::{
     pallet_prelude::*,
-    traits::{fungibles::Transfer, ReservableCurrency},
-};
-use frame_support::{
-    traits::Get,
+    traits::{
+        fungibles::{Inspect, Mutate, Transfer},
+        Get, OriginTrait, ReservableCurrency,
+    },
     weights::{PostDispatchInfo, WeightToFee},
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-use sp_runtime::traits::{BlakeTwo256, Zero};
-use sp_runtime::{traits::UniqueSaturatedInto, DispatchError};
+use sp_runtime::{
+    traits::{BlakeTwo256, UniqueSaturatedInto, Zero},
+    DispatchError,
+};
 use sp_std::{default::Default, prelude::*};
 use xcm::prelude::SendXcm;
 use xp_channel::{
-    queue::ringbuffer::RingBufferTransient,
-    traits::{HandlerInfo, Writable, XbiInstructionHandler},
-};
-use xp_channel::{
-    queue::{ringbuffer::DefaultIdx, Queue as QueueExt},
-    traits::RefundForMessage,
+    queue::{
+        ringbuffer::{DefaultIdx, RingBufferTransient},
+        Queue as QueueExt,
+    },
+    traits::{HandlerInfo, RefundForMessage, Writable, XbiInstructionHandler},
     ExecutionType,
 };
-use xp_format::Timestamp;
-use xp_format::{Status, XbiFormat, XbiMetadata, XbiResult};
-use xp_xcm::frame_traits::AssetLookup;
-use xp_xcm::MultiLocationBuilder;
-use xp_xcm::{xcm::prelude::*, XcmBuilder};
-use xs_channel::receiver::frame::{handle_instruction_result, invert_destination_from_message};
-use xs_channel::receiver::Receiver as XbiReceiver;
-use xs_channel::sender::{frame::ReceiveCallProvider, Sender as XbiSender};
+use xp_format::{Status, Timestamp, XbiFormat, XbiMetadata, XbiResult};
+use xp_xcm::{frame_traits::AssetLookup, xcm::prelude::*, MultiLocationBuilder, XcmBuilder};
+use xs_channel::{
+    receiver::{
+        frame::{handle_instruction_result, invert_destination_from_message},
+        Receiver as XbiReceiver,
+    },
+    sender::{frame::ReceiveCallProvider, Sender as XbiSender},
+};
 
 #[cfg(test)]
 mod mock;
@@ -328,9 +326,8 @@ pub mod pallet {
 
             match kind {
                 ExecutionType::Sync => <Sender<T> as XbiSender<_>>::send(Message::Request(msg)),
-                ExecutionType::Async => {
-                    <AsyncSender<T> as XbiSender<_>>::send(Message::Request(msg))
-                }
+                ExecutionType::Async =>
+                    <AsyncSender<T> as XbiSender<_>>::send(Message::Request(msg)),
             }
         }
 
@@ -353,6 +350,7 @@ pub mod pallet {
         pub fn process_queue(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
 
+            println!("DUPA Processing queue");
             let current_block: u32 =
                 <frame_system::Pallet<T>>::block_number().unique_saturated_into();
 
@@ -365,6 +363,7 @@ pub mod pallet {
 
             if queue.is_empty() {
                 log::trace!("XBI queue is empty");
+                println!("DUPA XBI queue is empty");
                 // Self::deposit_event(QueueEmpty);
             } else {
                 while let Some((mut msg, signal)) = queue.pop() {
@@ -396,7 +395,7 @@ pub mod pallet {
                                                 .map_err(|_| DispatchError::CannotLookup)?;
                                         T::AssetRegistry::reverse_ref(id)
                                             .map_err(|_| DispatchError::CannotLookup)?
-                                    }
+                                    },
                                     None => MultiLocationBuilder::new_native().build(),
                                 };
 
@@ -418,20 +417,31 @@ pub mod pallet {
                                     )
                                     .build();
 
+                                // T::Xcm::deliver(ticket).map(|_| {
+                                //     log::trace!(target: "xbi", "Successfully sent xcm message");
+                                //     Pallet::<T>::emit_sent(msg.clone())
+                                // })
+
                                 T::Xcm::validate(&mut Some(dest), &mut Some(xbi_format_msg))
                                     // TODO: now we know the fees before we send the message, update ChargeForAsset to be XCMv3 Friendly
-                                    .and_then(|(ticket, fees_for_message)| T::Xcm::deliver(ticket))
+                                    .and_then(|(ticket, fees_for_message)| {
+                                        println!("DUPA fees_for_message: {:?}", fees_for_message);
+                                        T::Xcm::deliver(ticket)
+                                    })
                                     .map(|_| {
                                         log::trace!(target: "xbi", "Successfully sent xcm message");
                                         Pallet::<T>::emit_sent(msg.clone());
                                     })
                                     .unwrap_or_else(|e| {
-                                        log::error!(target: "xbi", "Failed to send xcm request: {:?}", e);
-                                        queue.push((msg, QueueSignal::ProtocolError(Status::DispatchFailed)));
+                                        println!("Failed to send xcm request: {:?}", e);
+                                        queue.push((
+                                            msg,
+                                            QueueSignal::ProtocolError(Status::DispatchFailed),
+                                        ));
                                     });
                             }
-                        }
-                        QueueSignal::PendingExecution => {
+                        },
+                        QueueSignal::PendingExecution =>
                             if let Message::Request(msg) = &mut msg {
                                 invert_destination_from_message(&mut msg.metadata);
 
@@ -471,8 +481,7 @@ pub mod pallet {
                                         info.actual_weight.unwrap_or_default().ref_time(),
                                     );
                                 }
-                            }
-                        }
+                            },
                         QueueSignal::PendingResponse => {
                             if let Message::Response(result, metadata) = &mut msg {
                                 let require_weight_at_most = 1_000_000_000;
@@ -491,7 +500,7 @@ pub mod pallet {
                                                 .map_err(|_| DispatchError::CannotLookup)?;
                                         T::AssetRegistry::reverse_ref(id)
                                             .map_err(|_| DispatchError::CannotLookup)?
-                                    }
+                                    },
                                     None => MultiLocationBuilder::new_native().build(),
                                 };
 
@@ -506,20 +515,31 @@ pub mod pallet {
                                     )
                                     .build();
 
+                                // T::Xcm::deliver(ticket).map(|_| {
+                                //     log::trace!(target: "xbi", "Successfully sent xcm message");
+                                //     Pallet::<T>::emit_sent(msg.clone())
+                                // })
+
                                 T::Xcm::validate(&mut Some(dest), &mut Some(xbi_format_msg))
                                     // TODO: now we know the fees before we send the message, update ChargeForAsset to be XCMv3 Friendly
-                                    .and_then(|(ticket, fees_for_message)| T::Xcm::deliver(ticket))
+                                    .and_then(|(ticket, fees_for_message)| {
+                                        println!("DUPA fees_for_message: {:?}", fees_for_message);
+                                        T::Xcm::deliver(ticket)
+                                    })
                                     .map(|_| {
                                         log::trace!(target: "xbi", "Successfully sent xcm message");
                                         Pallet::<T>::emit_sent(msg.clone())
                                     })
                                     .unwrap_or_else(|e| {
-                                        log::error!(target: "xbi", "Failed to send xcm request: {:?}", e);
-                                        queue.push((msg, QueueSignal::ProtocolError(Status::DispatchFailed)));
+                                        println!("Failed to send xcm request: {:?}", e);
+                                        queue.push((
+                                            msg,
+                                            QueueSignal::ProtocolError(Status::DispatchFailed),
+                                        ));
                                     });
                             }
-                        }
-                        QueueSignal::PendingResult => {
+                        },
+                        QueueSignal::PendingResult =>
                             if let Message::Response(res, meta) = msg {
                                 let o: T::AccountId = xs_channel::xbi_origin(&meta)?;
                                 <() as RefundForMessage<
@@ -530,8 +550,7 @@ pub mod pallet {
                                 >>::refund(&o, &meta.fees)?;
 
                                 Pallet::<T>::write((meta.get_id(), res))?;
-                            }
-                        }
+                            },
                         QueueSignal::ProtocolError(status) => {
                             // TODO: emit an error
 
@@ -543,7 +562,7 @@ pub mod pallet {
                                 };
                                 Pallet::<T>::write((req.metadata.get_id(), result))?;
                             }
-                        }
+                        },
                     }
                 }
             }

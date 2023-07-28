@@ -8,9 +8,9 @@ use frame_support::{
 };
 use frame_system::ensure_signed;
 use sp_core::H256;
-use sp_runtime::traits::Get;
 use sp_runtime::{
-    traits::UniqueSaturatedInto, AccountId32, DispatchError, DispatchErrorWithPostInfo, Either,
+    traits::{Get, UniqueSaturatedInto},
+    AccountId32, DispatchError, DispatchErrorWithPostInfo, Either,
 };
 use sp_std::{default::Default, prelude::*};
 use xp_channel::{
@@ -59,13 +59,13 @@ impl<T: Config> ChannelProgressionEmitter for Pallet<T> {
                     request: Some(x.clone()),
                     response: None,
                 });
-            }
+            },
             Either::Right(x) => {
                 Self::deposit_event(XbiMessageReceived {
                     request: None,
                     response: Some(x.clone()),
                 });
-            }
+            },
         }
     }
 
@@ -80,6 +80,7 @@ impl<T: Config> ChannelProgressionEmitter for Pallet<T> {
 
     fn emit_sent(msg: Message) {
         use crate::Event::*;
+        println!("DUPA deposit event {:?}", msg);
         Self::deposit_event(XbiMessageSent { msg });
     }
 }
@@ -148,7 +149,7 @@ impl<T: Config> XbiInstructionHandler<T::RuntimeOrigin> for Pallet<T> {
                         },
                         error: e,
                     })
-            }
+            },
             XbiInstruction::CallEvm {
                 target,
                 value,
@@ -184,7 +185,7 @@ impl<T: Config> XbiInstructionHandler<T::RuntimeOrigin> for Pallet<T> {
                         },
                         error: e,
                     })
-            }
+            },
             XbiInstruction::Swap { .. }
             | XbiInstruction::AddLiquidity { .. }
             | XbiInstruction::RemoveLiquidity { .. }
@@ -213,11 +214,11 @@ impl<T: Config> XbiInstructionHandler<T::RuntimeOrigin> for Pallet<T> {
                 )
                 .map(|_| Default::default())
                 .map_err(|_| Error::<T>::TransferFailed.into())
-            }
+            },
             ref x => {
                 log::debug!(target: "xbi", "unhandled instruction: {:?}", x);
                 Ok(Default::default())
-            }
+            },
         };
 
         xbi.metadata.fees.push_aggregate(
@@ -228,13 +229,13 @@ impl<T: Config> XbiInstructionHandler<T::RuntimeOrigin> for Pallet<T> {
                 xbi.metadata.fees.push_aggregate(
                     T::FeeConversion::weight_to_fee(&info.weight).unique_saturated_into(),
                 );
-            }
+            },
             Err(err) => {
                 let weight = err.post_info.actual_weight.unwrap_or(Weight::zero());
                 xbi.metadata.fees.push_aggregate(
                     T::FeeConversion::weight_to_fee(&weight).unique_saturated_into(),
                 );
-            }
+            },
         }
         result
     }

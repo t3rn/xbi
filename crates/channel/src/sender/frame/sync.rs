@@ -8,11 +8,9 @@ use frame_support::traits::{
 use frame_system::Config;
 use sp_runtime::{traits::UniqueSaturatedInto, DispatchError, DispatchResult};
 use sp_std::marker::PhantomData;
-use xp_channel::SendXcm;
-use xp_channel::{ChannelProgressionEmitter, Message};
+use xp_channel::{ChannelProgressionEmitter, Message, SendXcm};
 use xp_format::Timestamp::*;
-use xp_xcm::xcm::prelude::*;
-use xp_xcm::{MultiLocationBuilder, XcmBuilder};
+use xp_xcm::{xcm::prelude::*, MultiLocationBuilder, XcmBuilder};
 
 // TODO: currently there is a spike to investigate this via dispatch send round-trip
 /// A synchronous frame-based channel sender part.
@@ -106,7 +104,7 @@ where
                         let id: AssetIdOf<T, Assets> = Decode::decode(&mut &id.encode()[..])
                             .map_err(|_| DispatchError::CannotLookup)?;
                         AssetLookup::reverse_ref(id).map_err(|_| DispatchError::CannotLookup)?
-                    }
+                    },
                     None => MultiLocationBuilder::new_native().build(),
                 };
 
@@ -132,23 +130,40 @@ where
                     // )
                     .build();
 
+                // Xcm::send_xcm(dest, xbi_format_msg).map(|_| {
+                //     log::trace!(target: "xs-channel", "Successfully sent xcm message with hash {:?}", xcm_hash);
+                //     Emitter::emit_sent(msg.clone());
+                // }).map_err(|e| {
+                //     // TODO: ensure happens on queue
+                //     if let Err(e) = ChargeForMessage::refund(&o, &metadata.fees) {
+                //         println!(target: "xs-channel", "Failed to refund fees: {:?}", e);
+                //     }
+                //
+                //     println!(target: "xs-channel", "Failed to send xcm request: {:?}", e);
+                //     DispatchError::Other("Failed to send xcm request")
+                // })
+
                 Xcm::validate(&mut Some(dest), &mut Some(xbi_format_msg))
                     // TODO: now we know the fees before we send the message, update ChargeForAsset to be XCMv3 Friendly
                     .and_then(|(ticket, fees_for_message)| Xcm::deliver(ticket))
                     .map(|xcm_hash| {
                         log::trace!(target: "xs-channel", "Successfully sent xcm message with hash {:?}", xcm_hash);
+                        println!(
+                            "DUPA EMIT Successfully sent xcm message with hash {:?}",
+                            xcm_hash
+                        );
                         Emitter::emit_sent(msg.clone());
                     })
                     .map_err(|e| {
                         // TODO: ensure happens on queue
                         if let Err(e) = ChargeForMessage::refund(&o, &metadata.fees) {
-                            log::error!(target: "xs-channel", "Failed to refund fees: {:?}", e);
+                            println!( "Failed to refund fees: {:?}", e);
                         }
 
-                        log::error!(target: "xs-channel", "Failed to send xcm request: {:?}", e);
+                        println!( "Failed to send xcm request: {:?}", e);
                         DispatchError::Other("Failed to send xcm request")
                     })
-            }
+            },
             Message::Response(result, metadata) => {
                 // Progress the delivered timestamp
                 metadata.progress(Responded(current_block));
@@ -164,7 +179,7 @@ where
                         let id: AssetIdOf<T, Assets> = Decode::decode(&mut &id.encode()[..])
                             .map_err(|_| DispatchError::CannotLookup)?;
                         AssetLookup::reverse_ref(id).map_err(|_| DispatchError::CannotLookup)?
-                    }
+                    },
                     None => MultiLocationBuilder::new_native().build(),
                 };
 
@@ -179,15 +194,34 @@ where
                     )
                     .build();
 
+                // Xcm::send_xcm(dest, xbi_format_msg).map(|_| {
+                //     log::trace!(target: "xs-channel", "Successfully sent xcm message with hash {:?}", xcm_hash);
+                //     Emitter::emit_sent(msg.clone());
+                // }).map_err(|e| {
+                //     // TODO: ensure happens on queue
+                //     if let Err(e) = ChargeForMessage::refund(&o, &metadata.fees) {
+                //         println!(target: "xs-channel", "Failed to refund fees: {:?}", e);
+                //     }
+                //
+                //     println!(target: "xs-channel", "Failed to send xcm request: {:?}", e);
+                //     DispatchError::Other("Failed to send xcm request")
+                // })
+
                 Xcm::validate(&mut Some(dest), &mut Some(xbi_format_msg))
                     // TODO: now we know the fees before we send the message, update ChargeForAsset to be XCMv3 Friendly
                     .and_then(|(ticket, fees_for_message)| Xcm::deliver(ticket))
-                    .map(|_| Emitter::emit_sent(msg.clone()))
+                    .map(|xcm_hash| {
+                        println!(
+                            "DUPA EMIT Successfully sent xcm message with hash {:?}",
+                            xcm_hash
+                        );
+                        Emitter::emit_sent(msg.clone())
+                    })
                     .map_err(|e| {
-                        log::error!(target: "xs-channel", "Failed to send xcm request: {:?}", e);
+                        println!("Failed to send xcm request: {:?}", e);
                         DispatchError::Other("Failed to send xcm request")
                     })
-            }
+            },
         }
     }
 }
