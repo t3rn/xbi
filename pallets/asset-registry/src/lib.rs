@@ -398,7 +398,7 @@ impl<T: Config, WeightToFeeConverter: WeightToFee<Balance = BalanceOf<T>>> Weigh
             <LocationMapping<T>>::get::<MultiLocation>(location.clone())
                 .ok_or(XcmError::AssetNotFound)?
         } else {
-            return Err(XcmError::AssetNotFound);
+            return Err(XcmError::AssetNotFound)
         };
 
         // Get metadata for first asset from storages
@@ -425,7 +425,7 @@ impl<T: Config, WeightToFeeConverter: WeightToFee<Balance = BalanceOf<T>>> Weigh
                     .ok_or(XcmError::WeightNotComputable)?
                     .try_into()
                     .map_err(|_| XcmError::WeightNotComputable)?
-            }
+            },
             _ => return Err(XcmError::WeightNotComputable),
         };
 
@@ -449,7 +449,7 @@ impl<T: Config, WeightToFeeConverter: WeightToFee<Balance = BalanceOf<T>>> Weigh
         let weight = weight.min(self.weight);
 
         if weight.ref_time() <= Zero::zero() {
-            return None; // return if no weight can be refunded
+            return None // return if no weight can be refunded
         }
 
         let fee = WeightToFeeConverter::weight_to_fee(&weight);
@@ -512,7 +512,7 @@ fn soft_capability_lookup<T: Config>(
                 None => Err(Error::<T>::CapabilitiesNotPermitted),
                 Some(capability) => Ok(capability.clone()),
             }
-        }
+        },
         Capability::Reserve(_) => {
             match capabilities
                 .iter()
@@ -521,7 +521,7 @@ fn soft_capability_lookup<T: Config>(
                 None => Err(Error::<T>::CapabilitiesNotPermitted),
                 Some(capability) => Ok(capability.clone()),
             }
-        }
+        },
         Capability::Payable { .. } => {
             match capabilities
                 .iter()
@@ -530,7 +530,7 @@ fn soft_capability_lookup<T: Config>(
                 None => Err(Error::<T>::CapabilitiesNotPermitted),
                 Some(capability) => Ok(capability.clone()),
             }
-        }
+        },
     }
 }
 

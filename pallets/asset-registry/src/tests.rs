@@ -8,8 +8,7 @@ use frame_support::{
 };
 use sp_runtime::{DispatchError, Either};
 use std::collections::BTreeMap;
-use xcm::prelude::AssetId;
-use xcm::prelude::*;
+use xcm::prelude::{AssetId, *};
 use xcm_executor::Assets;
 
 fn default_registration() {
@@ -588,7 +587,7 @@ fn can_buy_and_refund_weight_multiple_assets() {
         balance.insert(location_two.into(), 4_000_000u128);
 
         assets = trader
-            .buy_weight(Weight::from_ref_time(2_000_000u64), assets.clone())
+            .buy_weight(Weight::from_parts(2_000_000u64), assets.clone(), 0u64)
             .unwrap();
         assert_eq!(
             assets,
@@ -600,13 +599,13 @@ fn can_buy_and_refund_weight_multiple_assets() {
 
         assert_eq!(
             trader
-                .refund_weight(Weight::from_ref_time(2_000_000u64))
+                .refund_weight(Weight::from_parts(2_000_000u64), 0u64)
                 .unwrap(),
             (Concrete(location_one), 2_000_000u128).into()
         );
 
         assert_eq!(trader.weight, Default::default());
-        assert_eq!(trader.refund_weight(Weight::from_ref_time(1u64)), None);
+        assert_eq!(trader.refund_weight(Weight::from_parts(1u64)), None, 0u64);
     })
 }
 
@@ -617,7 +616,7 @@ fn can_buy_weight_for_partial_balance() {
         let (_, location) = default_register_info();
 
         // We are going to buy 4e9 weight
-        let weight_to_buy = Weight::from_ref_time(2_000_000u64);
+        let weight_to_buy = Weight::from_parts(2_000_000u64, 0u64);
         let asset: MultiAsset = (Concrete(location.clone()), 4_000_000u128).into();
 
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
@@ -636,18 +635,18 @@ fn can_buy_weight_for_partial_balance() {
 
         // can refund in multiple steps
         assert_eq!(
-            trader.refund_weight(Weight::from_ref_time(1_000_000u64)),
+            trader.refund_weight(Weight::from_parts(1_000_000u64), 0u64),
             Some((Concrete(location.clone()), 1_000_000u128).into())
         );
 
         assert_eq!(
-            trader.refund_weight(Weight::from_ref_time(1_000_000u64)),
+            trader.refund_weight(Weight::from_parts(1_000_000u64), 0u64),
             Some((Concrete(location), 1_000_000u128).into())
         );
 
         // Weight has been deducted correctly
         assert_eq!(trader.weight, Default::default());
-        assert_eq!(trader.refund_weight(Weight::from_ref_time(1u64)), None);
+        assert_eq!(trader.refund_weight(Weight::from_parts(1u64)), None, 0u64);
     })
 }
 
@@ -682,7 +681,7 @@ fn can_buy_and_refund_weight_with_fee_weight_multiplier() {
             }
         ));
 
-        let weight_to_buy = Weight::from_ref_time(1_000_000u64);
+        let weight_to_buy = Weight::from_parts(1_000_000u64, 0u64);
         let mut assets: Assets = vec![(Concrete(location.clone()), 6_000_000u128).into()].into();
 
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
@@ -700,7 +699,7 @@ fn can_buy_and_refund_weight_with_fee_weight_multiplier() {
                 non_fungible: Default::default()
             }
         );
-        assert_eq!(trader.weight, Weight::from_ref_time(1_000_000u64));
+        assert_eq!(trader.weight, Weight::from_parts(1_000_000u64), 0u64);
 
         // buy second half
         assets = trader.buy_weight(weight_to_buy, assets.clone()).unwrap();
@@ -711,10 +710,10 @@ fn can_buy_and_refund_weight_with_fee_weight_multiplier() {
                 non_fungible: Default::default()
             }
         );
-        assert_eq!(trader.weight, Weight::from_ref_time(2_000_000u64));
+        assert_eq!(trader.weight, Weight::from_parts(2_000_000u64), 0u64);
 
         assert_eq!(
-            trader.refund_weight(Weight::from_ref_time(2_000_000u64)),
+            trader.refund_weight(Weight::from_parts(2_000_000u64), 0u64),
             Some((Concrete(location), 6_000_000u128).into())
         );
 
@@ -730,7 +729,7 @@ fn can_buy_and_refund_weight_for_whole_balance() {
         let (_, location) = default_register_info();
 
         // We are going to buy 4e9 weight
-        let bought = Weight::from_ref_time(4_000_000u64);
+        let bought = Weight::from_parts(4_000_000u64, 0u64);
         let asset: MultiAsset = MultiAsset {
             id: Concrete(location),
             fun: Fungibility::Fungible(bought.ref_time() as u128),
@@ -750,7 +749,7 @@ fn can_buy_and_refund_weight_for_whole_balance() {
 
         // Weight has been deducted correctly
         assert_eq!(trader.weight, Default::default());
-        assert_eq!(trader.refund_weight(Weight::from_ref_time(1)), None);
+        assert_eq!(trader.refund_weight(Weight::from_parts(1)), None, 0u64);
     })
 }
 
@@ -760,7 +759,7 @@ fn cant_buy_weight_for_insufficient_balance() {
         default_registration();
         let (_, location) = default_register_info();
 
-        let weight_to_buy = Weight::from_ref_time(2_000_000u64);
+        let weight_to_buy = Weight::from_parts(2_000_000u64, 0u64);
         let asset: MultiAsset = (Concrete(location), 1_000_000u128).into();
 
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
@@ -780,7 +779,7 @@ fn cant_buy_weight_without_asset() {
     new_test_ext().execute_with(|| {
         default_registration();
 
-        let weight_to_buy = Weight::from_ref_time(1_000_000u64);
+        let weight_to_buy = Weight::from_parts(1_000_000u64, 0u64);
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
 
         assert_err!(
@@ -797,7 +796,7 @@ fn cant_buy_weight_with_abstract_asset() {
         let (_, _) = default_register_info();
 
         // We are going to buy 4e9 weight
-        let weight_to_buy = Weight::from_ref_time(1_000_000u64);
+        let weight_to_buy = Weight::from_parts(1_000_000u64, 0u64);
         let asset: MultiAsset = (Abstract(Default::default()), 1_000_000u128).into();
 
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
@@ -822,7 +821,7 @@ fn cant_buy_weight_with_unknown_asset() {
         };
 
         // We are going to buy 4e9 weight
-        let weight_to_buy = Weight::from_ref_time(1_000_000u64);
+        let weight_to_buy = Weight::from_parts(1_000_000u64, 0u64);
         let asset: MultiAsset = (Concrete(location), 1_000_000u128).into();
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
 
@@ -865,7 +864,7 @@ fn cant_buy_weight_without_payable_capability() {
         ));
 
         // We are going to buy 4e9 weight
-        let weight_to_buy = Weight::from_ref_time(2_000_000u64);
+        let weight_to_buy = Weight::from_parts(2_000_000u64, 0u64);
         let asset: MultiAsset = (Concrete(location), 1_000_000u128).into();
 
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();
@@ -912,7 +911,7 @@ fn cant_buy_weight_with_non_payable_capability() {
         ));
 
         // We are going to buy 4e9 weight
-        let weight_to_buy = Weight::from_ref_time(1_000_000u64);
+        let weight_to_buy = Weight::from_parts(1_000_000u64, 0u64);
         let asset: MultiAsset = (Concrete(location), 1_000_000u128).into();
 
         let mut trader = WeightAssetConvert::<Test, IdentityFee<BalanceOf<Test>>>::new();

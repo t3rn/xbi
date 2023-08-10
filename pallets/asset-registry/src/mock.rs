@@ -41,9 +41,7 @@ impl system::Config for Test {
     type BlockLength = ();
     type BlockNumber = u64;
     type BlockWeights = ();
-    type RuntimeCall = RuntimeCall;
     type DbWeight = ();
-    type RuntimeEvent = RuntimeEvent;
     type Hash = H256;
     type Hashing = BlakeTwo256;
     type Header = Header;
@@ -53,8 +51,10 @@ impl system::Config for Test {
     type OnKilledAccount = ();
     type OnNewAccount = ();
     type OnSetCode = ();
-    type RuntimeOrigin = RuntimeOrigin;
     type PalletInfo = PalletInfo;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeOrigin = RuntimeOrigin;
     type SS58Prefix = ConstU16<42>;
     type SystemWeightInfo = ();
     type Version = ();
@@ -65,10 +65,10 @@ parameter_types! {
 }
 impl pallet_asset_registry::Config for Test {
     type Assets = Assets;
-    type RuntimeCall = RuntimeCall;
     type Currency = Balances;
-    type RuntimeEvent = RuntimeEvent;
     type RegistrationCost = RegCost;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
 }
 
 parameter_types! {
@@ -81,11 +81,11 @@ impl pallet_balances::Config for Test {
     type AccountStore = System;
     type Balance = Balance;
     type DustRemoval = ();
-    type RuntimeEvent = RuntimeEvent;
     type ExistentialDeposit = ExistentialDeposit;
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
     type ReserveIdentifier = [u8; 8];
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
 
@@ -105,20 +105,20 @@ impl pallet_assets::Config for Test {
     type AssetAccountDeposit = AssetAccountDeposit;
     type AssetDeposit = AssetDeposit;
     type AssetId = AssetId;
+    type AssetIdParameter = AssetId;
     type Balance = Balance;
+    type CallbackHandle = ();
+    type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<u64>>;
     type Currency = Balances;
-    type RuntimeEvent = RuntimeEvent;
     type Extra = ();
     type ForceOrigin = EnsureRoot<Self::AccountId>;
     type Freezer = ();
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
+    type RemoveItemsLimit = ConstU32<1>;
+    type RuntimeEvent = RuntimeEvent;
     type StringLimit = AssetsStringLimit;
     type WeightInfo = ();
-    type RemoveItemsLimit = ConstU32<1>;
-    type AssetIdParameter = AssetId;
-    type CallbackHandle = ();
-    type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<u64>>;
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

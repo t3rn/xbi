@@ -21,20 +21,20 @@ impl pallet_assets::Config for Runtime {
     type AssetAccountDeposit = AssetAccountDeposit;
     type AssetDeposit = AssetDeposit;
     type AssetId = AssetId;
+    type AssetIdParameter = AssetId;
     type Balance = Balance;
+    type CallbackHandle = ();
+    type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
     type Currency = Balances;
-    type RuntimeEvent = RuntimeEvent;
     type Extra = ();
     type ForceOrigin = EnsureRoot<AccountId>;
     type Freezer = ();
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
+    type RemoveItemsLimit = ConstU32<1>;
+    type RuntimeEvent = RuntimeEvent;
     type StringLimit = AssetsStringLimit;
     type WeightInfo = ();
-    type RemoveItemsLimit = ConstU32<1>;
-    type AssetIdParameter = AssetId;
-    type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
-    type CallbackHandle = ();
 }
 
 parameter_types! {
@@ -43,8 +43,8 @@ parameter_types! {
 
 impl pallet_asset_registry::Config for Runtime {
     type Assets = Assets;
-    type RuntimeCall = RuntimeCall;
     type Currency = Balances;
-    type RuntimeEvent = RuntimeEvent;
     type RegistrationCost = RegCost;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
 }

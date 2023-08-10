@@ -9,8 +9,7 @@ use frame_system::EnsureRoot;
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
-    traits::ConstU32,
-    traits::{BlakeTwo256, IdentityLookup},
+    traits::{BlakeTwo256, ConstU32, IdentityLookup},
 };
 
 pub type Balance = u128;
@@ -42,9 +41,7 @@ impl system::Config for Test {
     type BlockLength = ();
     type BlockNumber = u64;
     type BlockWeights = ();
-    type RuntimeCall = RuntimeCall;
     type DbWeight = ();
-    type RuntimeEvent = RuntimeEvent;
     type Hash = H256;
     type Hashing = BlakeTwo256;
     type Header = Header;
@@ -54,8 +51,10 @@ impl system::Config for Test {
     type OnKilledAccount = ();
     type OnNewAccount = ();
     type OnSetCode = ();
-    type RuntimeOrigin = RuntimeOrigin;
     type PalletInfo = PalletInfo;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeOrigin = RuntimeOrigin;
     type SS58Prefix = ConstU16<42>;
     type SystemWeightInfo = ();
     type Version = ();
@@ -76,6 +75,7 @@ impl evm_primitives::traits::Evm<<Test as frame_system::Config>::RuntimeOrigin>
         ),
         sp_runtime::DispatchError,
     >;
+
     fn call(
         _origin: <Test as frame_system::Config>::RuntimeOrigin,
         _target: sp_core::H160,
@@ -103,30 +103,30 @@ impl evm_primitives::traits::Evm<<Test as frame_system::Config>::RuntimeOrigin>
 
 parameter_types! {
     pub ReserveBalanceCustodian: AccountId = 64;
-    pub NotificationWeight: Weight = Weight::from_ref_time(1);
+    pub NotificationWeight: Weight = Weight::from_parts(1, 0u64);
 }
 
 impl pallet_xbi_portal::Config for Test {
-    type RuntimeCall = RuntimeCall;
-    type RuntimeEvent = RuntimeEvent;
-    type XcmSovereignOrigin = XcmSovereignOrigin;
-    type Xcm = ();
-    type Contracts = ();
-    type Evm = NonsenseNoopEvm;
-    type Currency = Balances;
     type AssetRegistry = ();
+    type Assets = Assets;
     type Callback = ();
     type CheckInLimit = ConstU32<100>;
     type CheckInterval = ConstU64<3>;
     type CheckOutLimit = ConstU32<100>;
-    type ExpectedBlockTimeMs = ConstU32<6000>;
-    type ParachainId = ConstU32<3333>;
-    type TimeoutChecksLimit = ConstU32<3000>;
-    type Assets = Assets;
-    type FeeConversion = IdentityFee<Balance>;
+    type Contracts = ();
+    type Currency = Balances;
     type DeFi = ();
-    type ReserveBalanceCustodian = ReserveBalanceCustodian;
+    type Evm = NonsenseNoopEvm;
+    type ExpectedBlockTimeMs = ConstU32<6000>;
+    type FeeConversion = IdentityFee<Balance>;
     type NotificationWeight = NotificationWeight;
+    type ParachainId = ConstU32<3333>;
+    type ReserveBalanceCustodian = ReserveBalanceCustodian;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
+    type TimeoutChecksLimit = ConstU32<3000>;
+    type Xcm = ();
+    type XcmSovereignOrigin = XcmSovereignOrigin;
 }
 
 parameter_types! {
@@ -139,11 +139,11 @@ impl pallet_balances::Config for Test {
     type AccountStore = System;
     type Balance = Balance;
     type DustRemoval = ();
-    type RuntimeEvent = RuntimeEvent;
     type ExistentialDeposit = ExistentialDeposit;
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
     type ReserveIdentifier = [u8; 8];
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
 
@@ -163,20 +163,20 @@ impl pallet_assets::Config for Test {
     type AssetAccountDeposit = AssetAccountDeposit;
     type AssetDeposit = AssetDeposit;
     type AssetId = AssetId;
+    type AssetIdParameter = AssetId;
     type Balance = Balance;
+    type CallbackHandle = ();
+    type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
     type Currency = Balances;
-    type RuntimeEvent = RuntimeEvent;
     type Extra = ();
     type ForceOrigin = EnsureRoot<Self::AccountId>;
     type Freezer = ();
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
+    type RemoveItemsLimit = ConstU32<1>;
+    type RuntimeEvent = RuntimeEvent;
     type StringLimit = AssetsStringLimit;
     type WeightInfo = ();
-    type RemoveItemsLimit = ConstU32<1>;
-    type AssetIdParameter = AssetId;
-    type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
-    type CallbackHandle = ();
 }
 
 pub fn new_test_ext() -> sp_io::TestExternalities {

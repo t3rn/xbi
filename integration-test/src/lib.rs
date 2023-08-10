@@ -1,5 +1,3 @@
-#![feature(box_syntax)]
-
 use crate::{
     large::LARGE_PARA_ID,
     slim::{SLENDER_PARA_ID, SLIM_PARA_ID},
@@ -45,13 +43,13 @@ pub fn para_id_to_account(para: ParaKind) -> AccountId32 {
             let para_bytes = hex::decode(para_bytes).unwrap();
             para_bytes.as_slice().copy_to_slice(&mut bytes[0..4]);
             id.to_le_bytes().as_slice().copy_to_slice(&mut bytes[4..8]);
-        }
+        },
         ParaKind::Sibling(id) => {
             let sibl_bytes: String = b"sibl".encode_hex();
             let sibl_bytes = hex::decode(sibl_bytes).unwrap();
             sibl_bytes.as_slice().copy_to_slice(&mut bytes[0..4]);
             id.to_le_bytes().as_slice().copy_to_slice(&mut bytes[4..8]);
-        }
+        },
     }
     let acc = AccountId32::new(bytes);
 
@@ -67,14 +65,16 @@ fn log_all_roco_events() {
 
 pub fn force_xcm_version(para: u32, version: u32) {
     RococoNet::execute_with(|| {
-        assert_ok!(rococo::XcmPallet::force_xcm_version(
-            rococo::RuntimeOrigin::root(),
-            box MultiLocation {
-                parents: 0,
-                interior: Junctions::X1(Junction::Parachain(para)),
-            },
-            version,
-        ));
+        assert_ok!(
+            rococo::XcmPallet::force_xcm_version(
+                rococo::RuntimeOrigin::root(),
+                box MultiLocation {
+                    parents: 0,
+                    interior: Junctions::X1(Junction::Parachain(para)),
+                },
+                version,
+            )
+        );
         log_all_roco_events();
         rococo::System::reset_events();
     });
@@ -222,7 +222,7 @@ fn default_parachains_host_configuration(
         max_upward_queue_count: 8,
         max_upward_queue_size: 1024 * 1024,
         max_downward_message_size: 1024,
-        ump_service_total_weight: Weight::from_ref_time(4_u64 * 1_000_000_000_u64),
+        ump_service_total_weight: Weight::from_parts(4_u64 * 1_000_000_000_u64, 0u64),
         max_upward_message_size: 50 * 1024,
         max_upward_message_num_per_candidate: 5,
         hrmp_sender_deposit: 0,

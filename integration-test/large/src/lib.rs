@@ -1,5 +1,3 @@
-#![feature(box_syntax)]
-
 use cumulus_parachains_common::{
     AuraId, MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO, SLOT_DURATION,
 };
@@ -68,9 +66,7 @@ impl frame_system::Config for Runtime {
     type BlockLength = ();
     type BlockNumber = u64;
     type BlockWeights = ();
-    type RuntimeCall = RuntimeCall;
     type DbWeight = ();
-    type RuntimeEvent = RuntimeEvent;
     type Hash = H256;
     type Hashing = ::sp_runtime::traits::BlakeTwo256;
     type Header = Header;
@@ -80,8 +76,10 @@ impl frame_system::Config for Runtime {
     type OnKilledAccount = ();
     type OnNewAccount = ();
     type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
-    type RuntimeOrigin = RuntimeOrigin;
     type PalletInfo = PalletInfo;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeOrigin = RuntimeOrigin;
     type SS58Prefix = ();
     type SystemWeightInfo = ();
     type Version = ();
@@ -114,11 +112,11 @@ parameter_types! {
 }
 
 impl pallet_transaction_payment::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
     type FeeMultiplierUpdate = ();
     type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
     type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, ()>;
     type OperationalFeeMultiplier = ConstU8<5>;
+    type RuntimeEvent = RuntimeEvent;
     type WeightToFee = IdentityFee<Balance>;
 }
 
@@ -132,11 +130,11 @@ impl pallet_balances::Config for Runtime {
     type AccountStore = System;
     type Balance = Balance;
     type DustRemoval = ();
-    type RuntimeEvent = RuntimeEvent;
     type ExistentialDeposit = ExistentialDeposit;
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
     type ReserveIdentifier = [u8; 8];
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
 

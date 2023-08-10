@@ -13,8 +13,7 @@ use xp_channel::{
     traits::{HandlerInfo, Writable, XbiInstructionHandler},
     ChannelProgressionEmitter, Message,
 };
-use xp_format::Timestamp::*;
-use xp_format::{XbiFormat, XbiMetadata, XbiResult};
+use xp_format::{Timestamp::*, XbiFormat, XbiMetadata, XbiResult};
 
 use super::handle_instruction_result;
 

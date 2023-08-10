@@ -13,49 +13,49 @@ log        = { version = "0.4" }
 scale-info = { version = "2.1", default-features = false, features = [ "derive" ] }
 serde      = { version = "1.0.137", optional = true }
 
-frame-support = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.39", version = "4.0.0-dev" }
-frame-system  = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.39", version = "4.0.0-dev" }
+frame-support = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
+frame-system  = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
 
-sp-core    = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.39", version = "7.0.0" }
-sp-io      = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.39", version = "7.0.0" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.39", version = "7.0.0" }
-sp-std     = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.39", version = "5.0.0" }
+sp-core    = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
+sp-io      = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
+sp-std     = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
 
-cumulus-pallet-dmp-queue        = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v0.9.39", version = "0.1.0" }
-cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v0.9.39", version = "0.1.0" }
-cumulus-pallet-xcm              = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v0.9.39", version = "0.1.0" }
-cumulus-pallet-xcmp-queue       = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v0.9.39", version = "0.1.0" }
-cumulus-parachains-common       = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v0.9.39", package = "parachains-common" }
-cumulus-primitives-utility      = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v0.9.39", version = "0.1.0" }
-parachain-info                  = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v0.9.39", version = "0.1.0" }
+cumulus-pallet-dmp-queue        = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v1.0.0" }
+cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v1.0.0" }
+cumulus-pallet-xcm              = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v1.0.0" }
+cumulus-pallet-xcmp-queue       = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v1.0.0" }
+cumulus-parachains-common       = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v1.0.0", package = "parachains-common" }
+cumulus-primitives-utility      = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v1.0.0" }
+parachain-info                  = { git = "https://github.com/paritytech/cumulus", default-features = false, branch = "polkadot-v1.0.0" }
 
-pallet-assets                     = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.39", version = "4.0.0-dev" }
-pallet-aura                       = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.39", version = "4.0.0-dev" }
-pallet-balances                   = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.39", version = "4.0.0-dev" }
-pallet-randomness-collective-flip = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.39", version = "4.0.0-dev", package = "pallet-insecure-randomness-collective-flip" }
-pallet-timestamp                  = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.39", version = "4.0.0-dev" }
-pallet-transaction-payment        = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.39", version = "4.0.0-dev" }
+pallet-assets                     = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
+pallet-aura                       = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
+pallet-balances                   = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
+pallet-randomness-collective-flip = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0", package = "pallet-insecure-randomness-collective-flip" }
+pallet-timestamp                  = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
+pallet-transaction-payment        = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
 
-pallet-xcm                  = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.39" }
-polkadot-parachain          = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.39" }
-polkadot-primitives         = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.39" }
-polkadot-runtime-common     = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.39", default-features = false }
-polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.39" }
-xcm                         = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.39" }
-xcm-builder                 = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.39" }
-xcm-executor                = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.39" }
+pallet-xcm                  = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v1.0.0" }
+polkadot-parachain          = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v1.0.0" }
+polkadot-primitives         = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v1.0.0" }
+polkadot-runtime-common     = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0", default-features = false }
+polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v1.0.0" }
+xcm                         = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v1.0.0" }
+xcm-builder                 = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v1.0.0" }
+xcm-executor                = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v1.0.0" }
 
 # XBI
 pallet-asset-registry = { path = "../../pallets/asset-registry", default-features = false, version = "0.3" }
 pallet-xbi-portal     = { path = "../../pallets/portal", default-features = false, version = "0.3" }
 
-evm-precompile-util             = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow", package = "precompile-util" }
-pallet-3vm                      = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow", package = "pallet-3vm" }
-pallet-3vm-contracts            = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow", package = "pallet-contracts" }
-pallet-3vm-contracts-primitives = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow", package = "pallet-contracts-primitives" }
-pallet-3vm-evm                  = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow", package = "pallet-evm" }
-pallet-3vm-evm-primitives       = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow", package = "fp-evm" }
-t3rn-primitives                 = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "chore/update-flow" }
+evm-precompile-util             = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "build/update-v1", package = "precompile-util" }
+pallet-3vm                      = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "build/update-v1", package = "pallet-3vm" }
+pallet-3vm-contracts            = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "build/update-v1", package = "pallet-contracts" }
+pallet-3vm-contracts-primitives = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "build/update-v1", package = "pallet-contracts-primitives" }
+pallet-3vm-evm                  = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "build/update-v1", package = "pallet-evm" }
+pallet-3vm-evm-primitives       = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "build/update-v1", package = "fp-evm" }
+t3rn-primitives                 = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "build/update-v1" }
 
 # evm-precompile-util             = { path = "../../../../3vm/pallets/evm/precompile/util", package = "precompile-util" }
 # pallet-3vm                      = { path = "../../../../3vm/pallets/3vm" }

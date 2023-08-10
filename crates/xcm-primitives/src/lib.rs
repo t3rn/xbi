@@ -1,10 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::Codec;
-use sp_std::prelude::*;
-use sp_std::vec;
-use xcm::prelude::*;
-use xcm::DoubleEncoded;
+use sp_std::{prelude::*, vec};
+use xcm::{prelude::*, DoubleEncoded};
 
 pub use xcm;
 use xcm::v3::Weight;
@@ -63,11 +61,11 @@ impl MultiLocationBuilder {
             // Overwrite the last action
             X8(t, u, v, w, x, y, z, _a) => {
                 self.inner.interior = X8(t, u, v, w, x, y, z, jnc);
-            }
+            },
             _ => {
                 // We handle the overflow above
                 let _ = self.inner.push_interior(jnc);
-            }
+            },
         }
         self
     }
@@ -99,7 +97,7 @@ impl<T: Codec> XcmBuilder<T> {
             .with_buy_execution(
                 dest.clone(),
                 fee,
-                weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))),
+                weight_limit.map(|x| WeightLimit::Limited(Weight::from_parts(x, 0u64))),
             )
             .with_deposit_asset(recipient)
             .build();
@@ -124,7 +122,7 @@ impl<T: Codec> XcmBuilder<T> {
             .with_buy_execution(
                 reserve.clone(),
                 fee,
-                weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))),
+                weight_limit.map(|x| WeightLimit::Limited(Weight::from_parts(x, 0u64))),
             )
             .with_deposit_asset(recipient)
             .build();
@@ -158,8 +156,8 @@ impl<T: Codec> XcmBuilder<T> {
                     interior: X1(Parachain(id)),
                 } if parents == 1 => {
                     reanchored_dest = Parachain(id).into();
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -173,7 +171,7 @@ impl<T: Codec> XcmBuilder<T> {
                     .with_buy_execution(
                         reserve,
                         execution_fee / 2,
-                        weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))),
+                        weight_limit.map(|x| WeightLimit::Limited(Weight::from_parts(x, 0u64))),
                     )
                     .with_initiate_teleport(
                         reanchored_dest,
@@ -188,7 +186,7 @@ impl<T: Codec> XcmBuilder<T> {
                     .with_buy_execution(
                         reserve,
                         execution_fee / 2,
-                        weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))),
+                        weight_limit.map(|x| WeightLimit::Limited(Weight::from_parts(x, 0u64))),
                     )
                     .with_deposit_reserve_asset(
                         reanchored_dest,
@@ -218,7 +216,7 @@ impl<T: Codec> XcmBuilder<T> {
                 .with_buy_execution(
                     dest,
                     execution_fee,
-                    weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))),
+                    weight_limit.map(|x| WeightLimit::Limited(Weight::from_parts(x, 0u64))),
                 )
                 .with_deposit_asset(recipient)
                 .build(),
@@ -241,7 +239,7 @@ impl<T: Codec> XcmBuilder<T> {
                 .with_buy_execution(
                     dest,
                     execution_fee,
-                    weight_limit.map(|x| WeightLimit::Limited(Weight::from_ref_time(x))),
+                    weight_limit.map(|x| WeightLimit::Limited(Weight::from_parts(x, 0u64))),
                 )
                 .with_deposit_asset(recipient)
                 .build(),
@@ -288,7 +286,7 @@ impl<T: Codec> XcmBuilder<T> {
         let call: DoubleEncoded<T> = call.into();
         self.inner.0.push(Transact {
             origin_kind: origin_type.unwrap_or(OriginKind::Native),
-            require_weight_at_most: Weight::from_ref_time(max_weight.unwrap_or(1_000_000_000)),
+            require_weight_at_most: Weight::from_parts(max_weight.unwrap_or(1_000_000_000), 0u64),
             call,
         });
         self

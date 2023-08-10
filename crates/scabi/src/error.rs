@@ -1,7 +1,6 @@
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
-use sp_runtime::DispatchError;
-use sp_runtime::ModuleError;
+use sp_runtime::{DispatchError, ModuleError};
 use sp_std::fmt::Debug;
 
 /// The number of bytes of the module-specific `error` field defined in [`ModuleError`].
@@ -38,7 +37,7 @@ impl<const IDX: u8> Into<[u8; MAX_MODULE_ERROR_ENCODED_SIZE]> for ModuleErrorPro
             Error::SubstrateAbi(e) => {
                 let inner: ModuleError = substrate_abi::error::ModuleErrorProvider::<IDX>(e).into();
                 [1u8, inner.error[0], 0_u8, 0_u8]
-            }
+            },
         }
     }
 }
@@ -50,13 +49,13 @@ impl Into<&'static str> for Error {
             Error::SubstrateAbi(s) => match s {
                 substrate_abi::error::Error::FailedToCastBetweenTypesAddresses => {
                     concat!("SubstrateAbi", "FailedToCastBetweenTypesAddresses")
-                }
+                },
                 substrate_abi::error::Error::FailedToCastBetweenTypesValue => {
                     concat!("SubstrateAbi", "FailedToCastBetweenTypesValue")
-                }
+                },
                 substrate_abi::error::Error::FailedToAssociateTypes => {
                     concat!("SubstrateAbi", "FailedToAssociateTypes")
-                }
+                },
             },
         }
     }

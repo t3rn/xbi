@@ -9,15 +9,15 @@ repository  = "https://github.com/t3rn/t3rn/"
 version     = "1.0.0-dev"
 
 [dependencies]
-frame-support = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.39" }
-frame-system  = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.39" }
+frame-support = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
+frame-system  = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
 
-fp-evm = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.39", default-features = false }
+fp-evm = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.0.0", default-features = false }
 
-pallet-balances   = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.39" }
-pallet-evm        = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.39", default-features = false }
+pallet-balances   = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v1.0.0" }
+pallet-evm        = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.0.0", default-features = false }
 pallet-xbi-portal = { path = "../../..", default-features = false }
-pallet-xcm        = { git = "https://github.com/paritytech/polkadot", tag = "v0.9.39", default-features = false }
+pallet-xcm        = { git = "https://github.com/paritytech/polkadot", tag = "v1.0.0", default-features = false }
 
 sabi      = { path = "../../../crates/sabi", default-features = false, package = "substrate-abi" }
 scabi     = { path = "../../../crates/scabi", default-features = false, package = "substrate-contracts-abi" }

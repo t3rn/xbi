@@ -194,7 +194,7 @@ mod tests {
         println!(">>> [Rococo] proving execution success");
         RococoNet::execute_with(|| {
             log_all_roco_events();
-            assert_relay_executed_upward!(Outcome::Complete(Weight::from_ref_time(767529000)));
+            assert_relay_executed_upward!(Outcome::Complete(Weight::from_parts(767529000)), 0u64);
             assert_deposit!(rococo, large::PolkadotXcm::check_account()); // Deposited to checking account on relay
             rococo::System::reset_events();
         });
@@ -416,7 +416,7 @@ mod tests {
         println!(">>> [Rococo] proving execution success");
         RococoNet::execute_with(|| {
             log_all_roco_events();
-            assert_relay_executed_upward!(Outcome::Complete(Weight::from_ref_time(767529000)));
+            assert_relay_executed_upward!(Outcome::Complete(Weight::from_parts(767529000)), 0u64);
 
             assert_withdrawal!(
                 rococo,
@@ -439,7 +439,7 @@ mod tests {
 					amount
 				}) if asset_id == &ASSET_ID && owner == &ALICE && amount >= &(large_initial_balance - exec_fees_on_relay)
 			)));
-            assert_relay_executed_downward!(large, Outcome::Complete(Weight::from_ref_time(50)));
+            assert_relay_executed_downward!(large, Outcome::Complete(Weight::from_parts(50)), 0u64);
 
             System::reset_events();
         });
@@ -492,7 +492,7 @@ mod tests {
                     },
                     RefundSurplus
                 ])),
-                Weight::from_ref_time(funds_sent.unique_saturated_into()),
+                Weight::from_parts(funds_sent.unique_saturated_into(), 0u64),
             ));
             log_all_events();
 

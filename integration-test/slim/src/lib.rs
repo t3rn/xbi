@@ -1,5 +1,3 @@
-#![feature(box_syntax)]
-
 use cumulus_parachains_common::{
     impls::NonZeroIssuance, AuraId, MAXIMUM_BLOCK_WEIGHT, SLOT_DURATION,
 };
@@ -47,9 +45,7 @@ impl frame_system::Config for Runtime {
     type BlockLength = ();
     type BlockNumber = u64;
     type BlockWeights = ();
-    type RuntimeCall = RuntimeCall;
     type DbWeight = ();
-    type RuntimeEvent = RuntimeEvent;
     type Hash = H256;
     type Hashing = ::sp_runtime::traits::BlakeTwo256;
     type Header = Header;
@@ -59,8 +55,10 @@ impl frame_system::Config for Runtime {
     type OnKilledAccount = ();
     type OnNewAccount = ();
     type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
-    type RuntimeOrigin = RuntimeOrigin;
     type PalletInfo = PalletInfo;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeOrigin = RuntimeOrigin;
     type SS58Prefix = ();
     type SystemWeightInfo = ();
     type Version = ();
@@ -76,11 +74,11 @@ impl pallet_balances::Config for Runtime {
     type AccountStore = System;
     type Balance = Balance;
     type DustRemoval = ();
-    type RuntimeEvent = RuntimeEvent;
     type ExistentialDeposit = ExistentialDeposit;
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
     type ReserveIdentifier = [u8; 8];
+    type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
 
@@ -177,28 +175,28 @@ pub type TrustedTeleporters = xcm_builder::Case<AllForLarge>;
 pub struct XcmConfig;
 impl Config for XcmConfig {
     type AssetClaims = ();
+    type AssetExchanger = ();
+    type AssetLocker = ();
     type AssetTransactor = AssetTransactors;
     type AssetTrap = ();
     type Barrier = Barrier;
-    type RuntimeCall = RuntimeCall;
+    type CallDispatcher = RuntimeCall;
+    type FeeManager = ();
     type IsReserve = ();
     type IsTeleporter = TrustedTeleporters;
+    type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
+    type MessageExporter = ();
     type OriginConverter = XcmOriginToCallOrigin;
+    type PalletInstancesInfo = AllPalletsWithSystem;
     type ResponseHandler = ();
+    type RuntimeCall = RuntimeCall;
+    type SafeCallFilter = Everything;
     type SubscriptionService = ();
     type Trader = ();
-    type AssetLocker = ();
-    type UniversalLocation = UniversalLocation;
-    type PalletInstancesInfo = AllPalletsWithSystem;
-    type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
-    type FeeManager = ();
-    type MessageExporter = ();
     type UniversalAliases = Nothing;
-    type CallDispatcher = RuntimeCall;
-    type SafeCallFilter = Everything;
+    type UniversalLocation = UniversalLocation;
     type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
     type XcmSender = XcmRouter;
-    type AssetExchanger = ();
 }
 
 parameter_types! {
@@ -209,11 +207,11 @@ parameter_types! {
 impl cumulus_pallet_parachain_system::Config for Runtime {
     type CheckAssociatedRelayNumber = cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
     type DmpMessageHandler = DmpQueue;
-    type RuntimeEvent = RuntimeEvent;
     type OnSystemEvent = ();
     type OutboundXcmpMessageSource = XcmpQueue;
     type ReservedDmpWeight = ReservedDmpWeight;
     type ReservedXcmpWeight = ReservedXcmpWeight;
+    type RuntimeEvent = RuntimeEvent;
     type SelfParaId = ParachainInfo;
     type XcmpMessageHandler = XcmpQueue;
 }
@@ -222,17 +220,17 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
     type ChannelInfo = ParachainSystem;
     type ControllerOrigin = EnsureRoot<AccountId>;
     type ControllerOriginConverter = XcmOriginToCallOrigin;
-    type RuntimeEvent = RuntimeEvent;
     type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
+    type PriceForSiblingDelivery = ();
+    type RuntimeEvent = RuntimeEvent;
     type VersionWrapper = ();
     type WeightInfo = ();
     type XcmExecutor = XcmExecutor<XcmConfig>;
-    type PriceForSiblingDelivery = ();
 }
 
 impl cumulus_pallet_dmp_queue::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
     type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
+    type RuntimeEvent = RuntimeEvent;
     type XcmExecutor = XcmExecutor<XcmConfig>;
 }
 
@@ -255,24 +253,24 @@ pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, R
 
 impl pallet_xcm::Config for Runtime {
     type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
+    type Currency = Balances;
+    type CurrencyMatcher = ();
+    type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
+    type MaxLockers = ConstU32<8>;
     type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
-    type ExecuteXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
     type RuntimeOrigin = RuntimeOrigin;
     type SendXcmOrigin = EnsureXcmOrigin<RuntimeOrigin, LocalOriginToLocation>;
+    type SovereignAccountOf = LocationToAccountId;
+    type TrustedLockers = ();
+    type UniversalLocation = UniversalLocation;
     type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
+    type WeightInfo = pallet_xcm::TestWeightInfo;
     type XcmExecuteFilter = Everything;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type XcmReserveTransferFilter = Everything;
     type XcmRouter = XcmRouter;
     type XcmTeleportFilter = Nothing;
-    type Currency = Balances;
-    type CurrencyMatcher = ();
-    type UniversalLocation = UniversalLocation;
-    type TrustedLockers = ();
-    type SovereignAccountOf = LocationToAccountId;
-    type MaxLockers = ConstU32<8>;
-    type WeightInfo = pallet_xcm::TestWeightInfo;
 
     const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
 }
@@ -291,13 +289,12 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 parameter_types! {
     pub const XbiSovereign: AccountId = AccountId32::new([100u8; 32]);
     pub ReserveBalanceCustodian: AccountId = AccountId::new([64u8; 32]);
-    pub NotificationWeight: Weight = Weight::from_ref_time(1_000_000_000);
+    pub NotificationWeight: Weight = Weight::from_parts(1_000_000_000, 0u64);
 }
 
 impl pallet_xbi_portal::Config for Runtime {
     type AssetRegistry = AssetRegistry;
     type Assets = Assets;
-    type RuntimeCall = RuntimeCall;
     type Callback = ();
     type CheckInLimit = ConstU32<100>;
     type CheckInterval = ConstU64<3>;
@@ -305,16 +302,17 @@ impl pallet_xbi_portal::Config for Runtime {
     type Contracts = ();
     type Currency = Balances;
     type DeFi = ();
-    type RuntimeEvent = RuntimeEvent;
     type Evm = Evm;
     type ExpectedBlockTimeMs = ConstU32<6000>;
+    type FeeConversion = IdentityFee<Balance>;
+    type NotificationWeight = NotificationWeight;
     type ParachainId = ConstU32<3333>;
+    type ReserveBalanceCustodian = ReserveBalanceCustodian;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
     type TimeoutChecksLimit = ConstU32<3000>;
     type Xcm = XcmRouter;
     type XcmSovereignOrigin = XbiSovereign;
-    type FeeConversion = IdentityFee<Balance>;
-    type ReserveBalanceCustodian = ReserveBalanceCustodian;
-    type NotificationWeight = NotificationWeight;
 }
 
 pub type AssetId = u32;
@@ -335,20 +333,20 @@ impl pallet_assets::Config for Runtime {
     type AssetAccountDeposit = AssetAccountDeposit;
     type AssetDeposit = AssetDeposit;
     type AssetId = AssetId;
+    type AssetIdParameter = AssetId;
     type Balance = Balance;
+    type CallbackHandle = ();
+    type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
     type Currency = Balances;
-    type RuntimeEvent = RuntimeEvent;
     type Extra = ();
     type ForceOrigin = EnsureRoot<AccountId>;
     type Freezer = ();
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
+    type RemoveItemsLimit = ConstU32<1>;
+    type RuntimeEvent = RuntimeEvent;
     type StringLimit = AssetsStringLimit;
     type WeightInfo = ();
-    type RemoveItemsLimit = ConstU32<1>;
-    type AssetIdParameter = AssetId;
-    type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<AccountId>>;
-    type CallbackHandle = ();
 }
 
 parameter_types! {
@@ -357,10 +355,10 @@ parameter_types! {
 
 impl pallet_asset_registry::Config for Runtime {
     type Assets = Assets;
-    type RuntimeCall = RuntimeCall;
     type Currency = Balances;
-    type RuntimeEvent = RuntimeEvent;
     type RegistrationCost = RegCost;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
 }
 
 parameter_types! {

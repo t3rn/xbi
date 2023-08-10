@@ -1,7 +1,6 @@
 #![allow(incomplete_features)]
 #![feature(inherent_associated_types)]
 #![feature(associated_type_defaults)]
-#![feature(box_syntax)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use pallet::*;
@@ -18,40 +17,38 @@ use crate::{
 };
 use codec::{Decode, Encode};
 use contracts_primitives::ContractExecResult;
-use frame_support::traits::{
-    fungibles::{Inspect, Mutate},
-    OriginTrait,
-};
 use frame_support::{
     pallet_prelude::*,
-    traits::{fungibles::Transfer, ReservableCurrency},
-};
-use frame_support::{
-    traits::Get,
+    traits::{
+        fungibles::{Inspect, Mutate, Transfer},
+        Get, OriginTrait, ReservableCurrency,
+    },
     weights::{PostDispatchInfo, WeightToFee},
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-use sp_runtime::traits::{BlakeTwo256, Zero};
-use sp_runtime::{traits::UniqueSaturatedInto, DispatchError};
+use sp_runtime::{
+    traits::{BlakeTwo256, UniqueSaturatedInto, Zero},
+    DispatchError,
+};
 use sp_std::{default::Default, prelude::*};
 use xcm::prelude::SendXcm;
 use xp_channel::{
-    queue::ringbuffer::RingBufferTransient,
-    traits::{HandlerInfo, Writable, XbiInstructionHandler},
-};
-use xp_channel::{
-    queue::{ringbuffer::DefaultIdx, Queue as QueueExt},
-    traits::RefundForMessage,
+    queue::{
+        ringbuffer::{DefaultIdx, RingBufferTransient},
+        Queue as QueueExt,
+    },
+    traits::{HandlerInfo, RefundForMessage, Writable, XbiInstructionHandler},
     ExecutionType,
 };
-use xp_format::Timestamp;
-use xp_format::{Status, XbiFormat, XbiMetadata, XbiResult};
-use xp_xcm::frame_traits::AssetLookup;
-use xp_xcm::MultiLocationBuilder;
-use xp_xcm::{xcm::prelude::*, XcmBuilder};
-use xs_channel::receiver::frame::{handle_instruction_result, invert_destination_from_message};
-use xs_channel::receiver::Receiver as XbiReceiver;
-use xs_channel::sender::{frame::ReceiveCallProvider, Sender as XbiSender};
+use xp_format::{Status, Timestamp, XbiFormat, XbiMetadata, XbiResult};
+use xp_xcm::{frame_traits::AssetLookup, xcm::prelude::*, MultiLocationBuilder, XcmBuilder};
+use xs_channel::{
+    receiver::{
+        frame::{handle_instruction_result, invert_destination_from_message},
+        Receiver as XbiReceiver,
+    },
+    sender::{frame::ReceiveCallProvider, Sender as XbiSender},
+};
 
 #[cfg(test)]
 mod mock;
@@ -220,7 +217,7 @@ pub mod pallet {
         // dispatched.
         //
         // This function must return the weight consumed by `on_initialize` and `on_finalize`.
-        fn on_initialize(block: T::BlockNumber) -> Weight {
+        fn on_initialize(block: frame_system::pallet_prelude::BlockNumberFor<T>) -> Weight {
             // TODO: enable when confident it works
             if block % T::CheckInterval::get() == Zero::zero() {
                 Pallet::<T>::process_queue(T::RuntimeOrigin::root())
@@ -231,9 +228,9 @@ pub mod pallet {
             }
         }
 
-        fn on_finalize(_n: T::BlockNumber) {}
+        fn on_finalize(_n: frame_system::pallet_prelude::BlockNumberFor<T>) {}
 
-        fn offchain_worker(_n: T::BlockNumber) {}
+        fn offchain_worker(_n: frame_system::pallet_prelude::BlockNumberFor<T>) {}
     }
 
     #[pallet::event]
@@ -328,9 +325,8 @@ pub mod pallet {
 
             match kind {
                 ExecutionType::Sync => <Sender<T> as XbiSender<_>>::send(Message::Request(msg)),
-                ExecutionType::Async => {
-                    <AsyncSender<T> as XbiSender<_>>::send(Message::Request(msg))
-                }
+                ExecutionType::Async =>
+                    <AsyncSender<T> as XbiSender<_>>::send(Message::Request(msg)),
             }
         }
 
@@ -396,7 +392,7 @@ pub mod pallet {
                                                 .map_err(|_| DispatchError::CannotLookup)?;
                                         T::AssetRegistry::reverse_ref(id)
                                             .map_err(|_| DispatchError::CannotLookup)?
-                                    }
+                                    },
                                     None => MultiLocationBuilder::new_native().build(),
                                 };
 
@@ -430,8 +426,8 @@ pub mod pallet {
                                         queue.push((msg, QueueSignal::ProtocolError(Status::DispatchFailed)));
                                     });
                             }
-                        }
-                        QueueSignal::PendingExecution => {
+                        },
+                        QueueSignal::PendingExecution =>
                             if let Message::Request(msg) = &mut msg {
                                 invert_destination_from_message(&mut msg.metadata);
 
@@ -471,8 +467,7 @@ pub mod pallet {
                                         info.actual_weight.unwrap_or_default().ref_time(),
                                     );
                                 }
-                            }
-                        }
+                            },
                         QueueSignal::PendingResponse => {
                             if let Message::Response(result, metadata) = &mut msg {
                                 let require_weight_at_most = 1_000_000_000;
@@ -491,7 +486,7 @@ pub mod pallet {
                                                 .map_err(|_| DispatchError::CannotLookup)?;
                                         T::AssetRegistry::reverse_ref(id)
                                             .map_err(|_| DispatchError::CannotLookup)?
-                                    }
+                                    },
                                     None => MultiLocationBuilder::new_native().build(),
                                 };
 
@@ -518,8 +513,8 @@ pub mod pallet {
                                         queue.push((msg, QueueSignal::ProtocolError(Status::DispatchFailed)));
                                     });
                             }
-                        }
-                        QueueSignal::PendingResult => {
+                        },
+                        QueueSignal::PendingResult =>
                             if let Message::Response(res, meta) = msg {
                                 let o: T::AccountId = xs_channel::xbi_origin(&meta)?;
                                 <() as RefundForMessage<
@@ -530,8 +525,7 @@ pub mod pallet {
                                 >>::refund(&o, &meta.fees)?;
 
                                 Pallet::<T>::write((meta.get_id(), res))?;
-                            }
-                        }
+                            },
                         QueueSignal::ProtocolError(status) => {
                             // TODO: emit an error
 
@@ -543,12 +537,12 @@ pub mod pallet {
                                 };
                                 Pallet::<T>::write((req.metadata.get_id(), result))?;
                             }
-                        }
+                        },
                     }
                 }
             }
             Ok(PostDispatchInfo {
-                actual_weight: Some(Weight::from_ref_time(weight)),
+                actual_weight: Some(Weight::from_parts(weight), 0u64),
                 pays_fee: Pays::Yes,
             })
         }
@@ -563,7 +557,7 @@ pub mod pallet {
 
         fn create_inherent(_data: &InherentData) -> Option<Self::Call> {
             if frame_system::Pallet::<T>::block_number() % T::CheckInterval::get()
-                == T::BlockNumber::from(0u8)
+                == frame_system::pallet_prelude::BlockNumberFor::<T>::from(0u8)
             {
                 // TODO: handle queue parts here
                 // return Some(Call::cleanup {});

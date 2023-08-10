@@ -1,15 +1,9 @@
-use crate::Queue;
-use crate::{mock::*, xbi_abi::AccountId32, BufferRange, Error, Pallet, XbiResponses};
+use crate::{mock::*, xbi_abi::AccountId32, BufferRange, Error, Pallet, Queue, XbiResponses};
 use frame_support::{assert_err, assert_ok};
 use sp_core::H256;
-use xp_channel::traits::Writable;
-use xp_channel::Message;
-use xp_channel::XbiResult;
-use xp_channel::{queue::Queue as QueueExt, XbiMetadata};
-use xp_format::Timestamp;
-use xp_format::XbiFormat;
-use xs_channel::Receiver as ReceiverExt;
-use xs_channel::Sender as SenderExt;
+use xp_channel::{queue::Queue as QueueExt, traits::Writable, Message, XbiMetadata, XbiResult};
+use xp_format::{Timestamp, XbiFormat};
+use xs_channel::{Receiver as ReceiverExt, Sender as SenderExt};
 
 macro_rules! get_len {
     () => {{

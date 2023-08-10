@@ -8,11 +8,9 @@ use frame_support::traits::{
 use frame_system::Config;
 use sp_runtime::{traits::UniqueSaturatedInto, DispatchError, DispatchResult};
 use sp_std::marker::PhantomData;
-use xp_channel::SendXcm;
-use xp_channel::{ChannelProgressionEmitter, Message};
+use xp_channel::{ChannelProgressionEmitter, Message, SendXcm};
 use xp_format::Timestamp::*;
-use xp_xcm::xcm::prelude::*;
-use xp_xcm::{MultiLocationBuilder, XcmBuilder};
+use xp_xcm::{xcm::prelude::*, MultiLocationBuilder, XcmBuilder};
 
 // TODO: currently there is a spike to investigate this via dispatch send round-trip
 /// A synchronous frame-based channel sender part.
@@ -106,7 +104,7 @@ where
                         let id: AssetIdOf<T, Assets> = Decode::decode(&mut &id.encode()[..])
                             .map_err(|_| DispatchError::CannotLookup)?;
                         AssetLookup::reverse_ref(id).map_err(|_| DispatchError::CannotLookup)?
-                    }
+                    },
                     None => MultiLocationBuilder::new_native().build(),
                 };
 
@@ -148,7 +146,7 @@ where
                         log::error!(target: "xs-channel", "Failed to send xcm request: {:?}", e);
                         DispatchError::Other("Failed to send xcm request")
                     })
-            }
+            },
             Message::Response(result, metadata) => {
                 // Progress the delivered timestamp
                 metadata.progress(Responded(current_block));
@@ -164,7 +162,7 @@ where
                         let id: AssetIdOf<T, Assets> = Decode::decode(&mut &id.encode()[..])
                             .map_err(|_| DispatchError::CannotLookup)?;
                         AssetLookup::reverse_ref(id).map_err(|_| DispatchError::CannotLookup)?
-                    }
+                    },
                     None => MultiLocationBuilder::new_native().build(),
                 };
 
@@ -187,7 +185,7 @@ where
                         log::error!(target: "xs-channel", "Failed to send xcm request: {:?}", e);
                         DispatchError::Other("Failed to send xcm request")
                     })
-            }
+            },
         }
     }
 }

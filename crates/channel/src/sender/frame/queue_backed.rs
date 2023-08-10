@@ -2,8 +2,7 @@ use crate::sender::Sender as SenderExt;
 use frame_support::traits::{fungibles::Mutate, Get, ReservableCurrency};
 use frame_system::Config;
 use sp_runtime::{traits::UniqueSaturatedInto, DispatchResult};
-use sp_std::borrow::ToOwned;
-use sp_std::marker::PhantomData;
+use sp_std::{borrow::ToOwned, marker::PhantomData};
 use xp_channel::{
     queue::{QueueSignal, Queueable},
     Message,
@@ -59,7 +58,7 @@ where
                     Message::Request(format.to_owned()),
                     QueueSignal::PendingRequest,
                 ));
-            }
+            },
             Message::Response(result, metadata) => {
                 let o: T::AccountId = crate::xbi_origin(metadata)?;
 
@@ -73,7 +72,7 @@ where
                     Message::Response(result.to_owned(), metadata.to_owned()),
                     QueueSignal::PendingResponse,
                 ));
-            }
+            },
         }
         Ok(())
     }

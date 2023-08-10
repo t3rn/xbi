@@ -41,7 +41,6 @@ parameter_types! {
 
 impl pallet_3vm_contracts::Config for Runtime {
     type AddressGenerator = pallet_3vm_contracts::DefaultAddressGenerator;
-    type RuntimeCall = RuntimeCall;
     type CallFilter = frame_support::traits::Nothing;
     type CallStack = [pallet_3vm_contracts::Frame<Self>; 2];
     type ChainExtension = ();
@@ -50,17 +49,18 @@ impl pallet_3vm_contracts::Config for Runtime {
     type DeletionWeightLimit = DeletionWeightLimit;
     type DepositPerByte = DepositPerByte;
     type DepositPerItem = DepositPerItem;
-    type RuntimeEvent = RuntimeEvent;
-    type Randomness = RandomnessCollectiveFlip;
-    type Schedule = Schedule;
-    type ThreeVm = t3rn_primitives::threevm::NoopThreeVm;
-    type Time = Timestamp;
-    type WeightInfo = pallet_3vm_contracts::weights::SubstrateWeight<Self>;
-    type WeightPrice = pallet_transaction_payment::Pallet<Self>;
     type MaxCodeLen = ConstU32<{ 256 * 1024 }>;
     type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
     type MaxStorageKeyLen = ConstU32<128>;
+    type Randomness = RandomnessCollectiveFlip;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
+    type Schedule = Schedule;
+    type ThreeVm = t3rn_primitives::threevm::NoopThreeVm;
+    type Time = Timestamp;
     type UnsafeUnstableInterface = ConstBool<true>;
+    type WeightInfo = pallet_3vm_contracts::weights::SubstrateWeight<Self>;
+    type WeightPrice = pallet_transaction_payment::Pallet<Self>;
 }
 
 pub struct FindAuthorTruncated<F>(sp_std::marker::PhantomData<F>);
@@ -71,7 +71,7 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
     {
         if let Some(author_index) = F::find_author(digests) {
             let authority_id = Aura::authorities()[author_index as usize].clone();
-            return Some(H160::from_slice(&authority_id.to_raw_vec()[4..24]));
+            return Some(H160::from_slice(&authority_id.to_raw_vec()[4..24]))
         }
         None
     }
@@ -101,7 +101,7 @@ parameter_types! {
         (6_u64, evm_precompile_util::KnownPrecompile::Sha3FIPS512),
         (7_u64, evm_precompile_util::KnownPrecompile::ECRecoverPublicKey),
     ].into_iter().collect());
-    pub WeightPerGas: Weight = Weight::from_ref_time(20_000);
+    pub WeightPerGas: Weight = Weight::from_parts(20_000, 0u64);
 }
 
 impl pallet_3vm_evm::Config for Runtime {
@@ -111,18 +111,18 @@ impl pallet_3vm_evm::Config for Runtime {
     type CallOrigin = EnsureAddressNever<Self::AccountId>;
     type ChainId = ChainId;
     type Currency = Balances;
-    type RuntimeEvent = RuntimeEvent;
     type FeeCalculator = ();
     type FindAuthor = FindAuthorTruncated<Aura>;
     type GasWeightMapping = FreeGasWeightMapping;
     type OnChargeTransaction = ThreeVMCurrencyAdapter<Balances, ()>;
-    type PrecompilesType = evm_precompile_util::Precompiles;
-    type Timestamp = Timestamp;
-    type WeightPerGas = WeightPerGas;
     type OnCreate = ();
-    type WeightInfo = ();
+    type PrecompilesType = evm_precompile_util::Precompiles;
     type PrecompilesValue = PrecompilesValue;
     type Runner = pallet_3vm_evm::runner::stack::Runner<Self>;
+    type RuntimeEvent = RuntimeEvent;
     type ThreeVm = t3rn_primitives::threevm::NoopThreeVm;
+    type Timestamp = Timestamp;
+    type WeightInfo = ();
+    type WeightPerGas = WeightPerGas;
     type WithdrawOrigin = EnsureAddressNever<Self::AccountId>;
 }

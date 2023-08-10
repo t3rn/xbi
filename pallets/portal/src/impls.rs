@@ -8,9 +8,9 @@ use frame_support::{
 };
 use frame_system::ensure_signed;
 use sp_core::H256;
-use sp_runtime::traits::Get;
 use sp_runtime::{
-    traits::UniqueSaturatedInto, AccountId32, DispatchError, DispatchErrorWithPostInfo, Either,
+    traits::{Get, UniqueSaturatedInto},
+    AccountId32, DispatchError, DispatchErrorWithPostInfo, Either,
 };
 use sp_std::{default::Default, prelude::*};
 use xp_channel::{
@@ -47,7 +47,7 @@ impl<T: Config> ChannelProgressionEmitter for Pallet<T> {
         log::debug!(target: "xbi", "emit_instruction_handled {:?}", msg);
         Self::deposit_event(XbiInstructionHandled {
             msg: msg.clone(),
-            weight: Weight::from_ref_time(*weight),
+            weight: Weight::from_parts(*weight, 0u64),
         })
     }
 
@@ -59,13 +59,13 @@ impl<T: Config> ChannelProgressionEmitter for Pallet<T> {
                     request: Some(x.clone()),
                     response: None,
                 });
-            }
+            },
             Either::Right(x) => {
                 Self::deposit_event(XbiMessageReceived {
                     request: None,
                     response: Some(x.clone()),
                 });
-            }
+            },
         }
     }
 
@@ -74,7 +74,7 @@ impl<T: Config> ChannelProgressionEmitter for Pallet<T> {
         Self::deposit_event(XbiRequestHandled {
             result: result.clone(),
             metadata: metadata.clone(),
-            weight: Weight::from_ref_time(*weight),
+            weight: Weight::from_parts(*weight, 0u64),
         });
     }
 
@@ -130,7 +130,7 @@ impl<T: Config> XbiInstructionHandler<T::RuntimeOrigin> for Pallet<T> {
                     caller,
                     account_from_account32::<T>(dest)?,
                     value.unique_saturated_into(),
-                    Weight::from_ref_time(gas_limit),
+                    Weight::from_parts(gas_limit, 0u64),
                     storage_deposit_limit.map(UniqueSaturatedInto::unique_saturated_into),
                     data.clone(),
                     false, // ALWAYS FALSE, could panic the runtime unless over rpc
@@ -148,7 +148,7 @@ impl<T: Config> XbiInstructionHandler<T::RuntimeOrigin> for Pallet<T> {
                         },
                         error: e,
                     })
-            }
+            },
             XbiInstruction::CallEvm {
                 target,
                 value,
@@ -184,7 +184,7 @@ impl<T: Config> XbiInstructionHandler<T::RuntimeOrigin> for Pallet<T> {
                         },
                         error: e,
                     })
-            }
+            },
             XbiInstruction::Swap { .. }
             | XbiInstruction::AddLiquidity { .. }
             | XbiInstruction::RemoveLiquidity { .. }
@@ -213,11 +213,11 @@ impl<T: Config> XbiInstructionHandler<T::RuntimeOrigin> for Pallet<T> {
                 )
                 .map(|_| Default::default())
                 .map_err(|_| Error::<T>::TransferFailed.into())
-            }
+            },
             ref x => {
                 log::debug!(target: "xbi", "unhandled instruction: {:?}", x);
                 Ok(Default::default())
-            }
+            },
         };
 
         xbi.metadata.fees.push_aggregate(
@@ -228,13 +228,13 @@ impl<T: Config> XbiInstructionHandler<T::RuntimeOrigin> for Pallet<T> {
                 xbi.metadata.fees.push_aggregate(
                     T::FeeConversion::weight_to_fee(&info.weight).unique_saturated_into(),
                 );
-            }
+            },
             Err(err) => {
                 let weight = err.post_info.actual_weight.unwrap_or(Weight::zero());
                 xbi.metadata.fees.push_aggregate(
                     T::FeeConversion::weight_to_fee(&weight).unique_saturated_into(),
                 );
-            }
+            },
         }
         result
     }
