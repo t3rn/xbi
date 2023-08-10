@@ -7,6 +7,7 @@ pub use pallet::*;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     pallet_prelude::DispatchResult,
+    traits::ProcessMessageError,
     weights::{Weight, WeightToFee},
 };
 use frame_system::pallet_prelude::OriginFor;
@@ -18,7 +19,7 @@ use sp_runtime::{
 use sp_std::{marker::PhantomData, prelude::*};
 use xcm::latest::Weight as XCMWeight;
 use xcm_executor::{
-    traits::{ShouldExecute, WeightTrader},
+    traits::{Properties, ShouldExecute, WeightTrader},
     Assets,
 };
 
@@ -191,7 +192,7 @@ pub mod pallet {
             let is_root = who.is_none();
             // Root can register anything
             if is_root || can_register {
-                <LocationMapping<T>>::insert(location.clone(), id);
+                <LocationMapping<T>>::insert(location.clone(), id.clone());
                 Self::deposit_event(Event::Registered {
                     asset_id: id,
                     location,
@@ -213,7 +214,7 @@ pub mod pallet {
             ensure_root(origin)?;
             can_put_capabilities::<T>(&info.capabilities)?;
 
-            <AssetMetadata<T>>::insert(info.id, info.clone());
+            <AssetMetadata<T>>::insert(info.id.clone(), info.clone());
             Self::deposit_event(Event::Info {
                 asset_id: info.id,
                 location: info.location,
@@ -324,18 +325,17 @@ impl<T: Config> ShouldExecute for Pallet<T> {
         origin: &MultiLocation,
         instructions: &mut [Instruction<Call>],
         _max_weight: Weight,
-        _weight_credit: &mut Weight,
-    ) -> Result<(), ()> {
+        _properties: &mut Properties,
+    ) -> Result<(), ProcessMessageError> {
         log::debug!(target: "asset-registry", "Should execute for origin({:?}) and message({:?})", origin, instructions);
         // first, get ID from location
         let id = <Pallet<T>>::lookup(Either::Left(origin.clone()))
-            .map_err(|_| ())?
+            .map_err(|_| ProcessMessageError::Unsupported)?
             .left()
-            .ok_or(())
-            .inspect_err(|_| log::debug!(target: "asset-registry", "ShouldntExecuteMessage - Asset lookup not found"))?;
+            .ok_or(ProcessMessageError::Unsupported)
+            .inspect_err(|e| log::debug!(target: "asset-registry", "ShouldntExecuteMessage - Asset lookup not found"))?;
 
-        // get info from ID
-        let info = <AssetMetadata<T>>::get(id).ok_or(()).inspect_err(
+        let info = <AssetMetadata<T>>::get(id).ok_or(ProcessMessageError::Unsupported).inspect_err(
             |_| log::debug!(target: "asset-registry", "ShouldntExecuteMessage - Asset not found"),
         )?;
 
@@ -348,9 +348,10 @@ impl<T: Config> ShouldExecute for Pallet<T> {
             .map(|capability: Capability<T::AccountId, BalanceOf<T>>| {
                 if !has_checked[capability.as_usize()] {
                     has_checked[capability.as_usize()] = true;
-                    soft_capability_lookup::<T>(&capability, &info.capabilities).map(|_| ()).inspect_err(|_| {
+                    soft_capability_lookup::<T>(&capability, &info.capabilities).map(|_| ProcessMessageError::Unsupported).inspect_err(|e| {
                         log::debug!(target: "asset-registry", "ShouldntExecuteMessage - Capability not permitted: {:?}", capability);
-                    })
+                    });
+                    Err(ProcessMessageError::Unsupported)
                 } else {
                     Ok(())
                 }
@@ -360,7 +361,7 @@ impl<T: Config> ShouldExecute for Pallet<T> {
         if errors.is_empty() {
             Ok(())
         } else {
-            Err(())
+            Err(ProcessMessageError::BadFormat)
         }
     }
 }

@@ -4,13 +4,13 @@ use crate::{
 };
 use frame_support::{
     assert_err, assert_ok,
+    traits::ProcessMessageError,
     weights::{IdentityFee, Weight},
 };
 use sp_runtime::{DispatchError, Either};
 use std::collections::BTreeMap;
 use xcm::prelude::{AssetId, *};
-use xcm_executor::Assets;
-
+use xcm_executor::{traits::Properties, Assets};
 fn default_registration() {
     assert_ok!(AssetRegistry::register(
         RuntimeOrigin::signed(1),
@@ -504,7 +504,10 @@ fn can_execute_xcm_message_with_matching_capabilities() {
             &location,
             &mut msg,
             Default::default(),
-            &mut Default::default()
+            &mut Properties {
+                weight_credit: Weight::zero(),
+                message_id: None
+            },
         ));
     })
 }
@@ -532,14 +535,19 @@ fn cant_execute_xcm_message_with_wrong_capabilities() {
 
         let mut msg = vec![WithdrawAsset((Here, 1).into())];
 
+        let weight = BaseXcmWeight::get();
+
         assert_err!(
             crate::Pallet::<Test>::should_execute::<()>(
                 &location,
                 &mut msg,
                 Default::default(),
-                &mut Default::default()
+                &mut Properties {
+                    weight_credit: Weight::zero(),
+                    message_id: None
+                },
             ),
-            ()
+            ProcessMessageError::BadFormat
         )
     })
 }
@@ -587,7 +595,7 @@ fn can_buy_and_refund_weight_multiple_assets() {
         balance.insert(location_two.into(), 4_000_000u128);
 
         assets = trader
-            .buy_weight(Weight::from_parts(2_000_000u64), assets.clone(), 0u64)
+            .buy_weight(Weight::from_parts(2_000_000u64, 0u64), assets.clone())
             .unwrap();
         assert_eq!(
             assets,
@@ -599,13 +607,13 @@ fn can_buy_and_refund_weight_multiple_assets() {
 
         assert_eq!(
             trader
-                .refund_weight(Weight::from_parts(2_000_000u64), 0u64)
+                .refund_weight(Weight::from_parts(2_000_000u64, 0u64))
                 .unwrap(),
             (Concrete(location_one), 2_000_000u128).into()
         );
 
         assert_eq!(trader.weight, Default::default());
-        assert_eq!(trader.refund_weight(Weight::from_parts(1u64)), None, 0u64);
+        assert_eq!(trader.refund_weight(Weight::from_parts(1u64, 0u64)), None);
     })
 }
 
@@ -635,18 +643,18 @@ fn can_buy_weight_for_partial_balance() {
 
         // can refund in multiple steps
         assert_eq!(
-            trader.refund_weight(Weight::from_parts(1_000_000u64), 0u64),
+            trader.refund_weight(Weight::from_parts(1_000_000u64, 0u64)),
             Some((Concrete(location.clone()), 1_000_000u128).into())
         );
 
         assert_eq!(
-            trader.refund_weight(Weight::from_parts(1_000_000u64), 0u64),
+            trader.refund_weight(Weight::from_parts(1_000_000u64, 0u64)),
             Some((Concrete(location), 1_000_000u128).into())
         );
 
         // Weight has been deducted correctly
         assert_eq!(trader.weight, Default::default());
-        assert_eq!(trader.refund_weight(Weight::from_parts(1u64)), None, 0u64);
+        assert_eq!(trader.refund_weight(Weight::from_parts(1u64, 0u64)), None);
     })
 }
 
@@ -699,7 +707,7 @@ fn can_buy_and_refund_weight_with_fee_weight_multiplier() {
                 non_fungible: Default::default()
             }
         );
-        assert_eq!(trader.weight, Weight::from_parts(1_000_000u64), 0u64);
+        assert_eq!(trader.weight, Weight::from_parts(1_000_000u64, 0u64));
 
         // buy second half
         assets = trader.buy_weight(weight_to_buy, assets.clone()).unwrap();
@@ -710,10 +718,10 @@ fn can_buy_and_refund_weight_with_fee_weight_multiplier() {
                 non_fungible: Default::default()
             }
         );
-        assert_eq!(trader.weight, Weight::from_parts(2_000_000u64), 0u64);
+        assert_eq!(trader.weight, Weight::from_parts(2_000_000u64, 0u64));
 
         assert_eq!(
-            trader.refund_weight(Weight::from_parts(2_000_000u64), 0u64),
+            trader.refund_weight(Weight::from_parts(2_000_000u64, 0u64)),
             Some((Concrete(location), 6_000_000u128).into())
         );
 
@@ -749,7 +757,7 @@ fn can_buy_and_refund_weight_for_whole_balance() {
 
         // Weight has been deducted correctly
         assert_eq!(trader.weight, Default::default());
-        assert_eq!(trader.refund_weight(Weight::from_parts(1)), None, 0u64);
+        assert_eq!(trader.refund_weight(Weight::from_parts(1, 0u64)), None);
     })
 }
 

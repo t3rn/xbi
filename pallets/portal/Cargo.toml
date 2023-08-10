@@ -35,13 +35,12 @@ xs-channel              = { path = "../../crates/channel", default-features = fa
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0", default-features = false }
 
 contracts-primitives = { git = "https://github.com/t3rn/t3rn", branch = "build/update-v1", default-features = false, package = "pallet-contracts-primitives" }
-evm-primitives       = { git = "https://github.com/t3rn/t3rn", branch = "build/update-v1", default-features = false, package = "fp-evm" }
 t3rn-primitives      = { git = "https://github.com/t3rn/t3rn", branch = "build/update-v1", default-features = false }
 
 [dev-dependencies]
 pallet-assets   = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
-pallet-evm      = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.0.0" }
+pallet-evm        = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.0.0", default-features = false }
 
 [features]
 default = [ "std" ]
@@ -65,7 +64,6 @@ std = [
   "frame-support/std",
   "frame-system/std",
   "contracts-primitives/std",
-  "evm-primitives/std",
   "log/std",
   "xp-channel/std",
   "xp-channel/frame-std",

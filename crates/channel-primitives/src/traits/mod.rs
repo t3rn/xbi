@@ -17,7 +17,7 @@ pub mod shims;
 /// Which might be relevant to the user.
 ///
 /// This also adds information about weight used by the instruction handler.
-#[derive(Encode, Decode, Default, Debug)]
+#[derive(Encode, Decode, Default, Debug, Clone, PartialEq, Eq)]
 pub struct HandlerInfo<Weight: core::fmt::Debug> {
     // TODO[Optimisation]: We can bound the size, but ideally this should be configured by the user who sends the message.
     // We have ideas on how to specify this in future releases.

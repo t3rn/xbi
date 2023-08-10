@@ -8,7 +8,6 @@ pub use substrate_abi;
 pub use substrate_contracts_abi;
 pub use xp_channel::{queue::QueueSignal, ChannelProgressionEmitter, Message};
 pub use xp_format;
-pub use xp_xcm::frame_traits::XcmConvert;
 
 use crate::{
     impls::account32_from_account,
@@ -20,7 +19,7 @@ use contracts_primitives::ContractExecResult;
 use frame_support::{
     pallet_prelude::*,
     traits::{
-        fungibles::{Inspect, Mutate, Transfer},
+        fungibles::{Inspect, Mutate},
         Get, OriginTrait, ReservableCurrency,
     },
     weights::{PostDispatchInfo, WeightToFee},
@@ -66,11 +65,15 @@ t3rn_primitives::reexport_currency_types!();
 pub mod pallet {
     use super::*;
     use frame_support::pallet_prelude::*;
-    use frame_system::pallet_prelude::*;
+    use frame_system::{
+        pallet_prelude::{BlockNumberFor, *},
+        EventRecord,
+    };
 
     type AssetIdOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
-
+    type EventRecordOf<T> =
+        EventRecord<<T as frame_system::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>;
     /// A reexport of the Queue backed by a RingBufferTransient
     pub(crate) type Queue<Pallet> = RingBufferTransient<
         (Message, QueueSignal),
@@ -165,18 +168,20 @@ pub mod pallet {
         /// Access to XCM functionality outside of this consensus system TODO: use XcmSender && ExecuteXcm for self execution
         type Xcm: SendXcm;
         /// Provide access to the contracts pallet or some pallet like it
-        type Contracts: contracts_primitives::traits::Contracts<
+        type Contracts: t3rn_primitives::threevm::Contracts<
             Self::AccountId,
             BalanceOf<Self>,
-            Outcome = ContractExecResult<BalanceOf<Self>>,
+            EventRecordOf<Self>,
+            Outcome = ContractExecResult<BalanceOf<Self>, EventRecordOf<Self>>,
         >;
         /// Provide access to the frontier evm pallet or some pallet like it
-        type Evm: evm_primitives::traits::Evm<
+        type Evm: t3rn_primitives::threevm::Evm<
             Self::RuntimeOrigin,
-            Outcome = Result<(evm_primitives::CallInfo, Weight), DispatchError>,
+            Outcome = Result<HandlerInfo<Weight>, DispatchError>,
         >;
         type Currency: ReservableCurrency<Self::AccountId>;
-        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
+
+        type Assets: Inspect<Self::AccountId> + Mutate<Self::AccountId>;
         /// Provide access to the asset registry so we can lookup, not really specific to XBI just helps us at this stage
         type AssetRegistry: AssetLookup<<Self::Assets as Inspect<Self::AccountId>>::AssetId>;
         /// Provide access to DeFI
@@ -195,7 +200,7 @@ pub mod pallet {
         #[pallet::constant]
         type ExpectedBlockTimeMs: Get<u32>;
         #[pallet::constant]
-        type CheckInterval: Get<Self::BlockNumber>;
+        type CheckInterval: Get<BlockNumberFor<Self>>;
         #[pallet::constant]
         type TimeoutChecksLimit: Get<u32>;
         #[pallet::constant]
@@ -542,7 +547,7 @@ pub mod pallet {
                 }
             }
             Ok(PostDispatchInfo {
-                actual_weight: Some(Weight::from_parts(weight), 0u64),
+                actual_weight: Some(Weight::from_parts(weight, 0u64)),
                 pays_fee: Pays::Yes,
             })
         }

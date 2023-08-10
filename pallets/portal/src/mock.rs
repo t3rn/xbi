@@ -6,12 +6,14 @@ use frame_support::{
 };
 use frame_system as system;
 use frame_system::EnsureRoot;
+use pallet_evm::ExitSucceed;
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, ConstU32, IdentityLookup},
 };
 
+use pallet_evm::ExitReason;
 pub type Balance = u128;
 pub type AssetId = u32;
 pub type AccountId = u64;
@@ -26,7 +28,7 @@ frame_support::construct_runtime!(
         NodeBlock = Block,
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
-        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+        System: frame_system,
         XbiPortal: pallet_xbi_portal,
         Assets: pallet_assets,
         Balances: pallet_balances,
@@ -37,17 +39,16 @@ impl system::Config for Test {
     type AccountData = pallet_balances::AccountData<Balance>;
     type AccountId = AccountId;
     type BaseCallFilter = frame_support::traits::Everything;
+    type Block = Block;
     type BlockHashCount = ConstU64<250>;
     type BlockLength = ();
-    type BlockNumber = u64;
     type BlockWeights = ();
     type DbWeight = ();
     type Hash = H256;
     type Hashing = BlakeTwo256;
-    type Header = Header;
-    type Index = u64;
     type Lookup = IdentityLookup<Self::AccountId>;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
+    type Nonce = u32;
     type OnKilledAccount = ();
     type OnNewAccount = ();
     type OnSetCode = ();
@@ -65,16 +66,10 @@ parameter_types! {
 }
 
 pub struct NonsenseNoopEvm;
-impl evm_primitives::traits::Evm<<Test as frame_system::Config>::RuntimeOrigin>
+impl t3rn_primitives::threevm::Evm<<Test as frame_system::Config>::RuntimeOrigin>
     for NonsenseNoopEvm
 {
-    type Outcome = Result<
-        (
-            evm_primitives::CallInfo,
-            frame_support::pallet_prelude::Weight,
-        ),
-        sp_runtime::DispatchError,
-    >;
+    type Outcome = Result<crate::HandlerInfo<Weight>, sp_runtime::DispatchError>;
 
     fn call(
         _origin: <Test as frame_system::Config>::RuntimeOrigin,
@@ -87,17 +82,40 @@ impl evm_primitives::traits::Evm<<Test as frame_system::Config>::RuntimeOrigin>
         _nonce: Option<sp_core::U256>,
         _access_list: Vec<(sp_core::H160, Vec<sp_core::H256>)>,
     ) -> Self::Outcome {
-        Ok((
-            evm_primitives::CallInfo {
-                exit_reason: evm_primitives::ExitReason::Succeed(
-                    evm_primitives::ExitSucceed::Stopped,
-                ),
-                value: vec![],
-                used_gas: Default::default(),
-                logs: vec![],
-            },
-            0.into(),
+        Err(sp_runtime::DispatchError::Other(
+            "NonsenseNoopEvm not implemented",
         ))
+    }
+}
+
+use contracts_primitives::{ContractExecResult, ExecReturnValue, ReturnFlags, StorageDeposit};
+use frame_system::EventRecord;
+pub struct NonsenseNoopWasm;
+impl t3rn_primitives::threevm::Contracts<u64, u128, EventRecord<RuntimeEvent, sp_core::H256>>
+    for NonsenseNoopWasm
+{
+    type Outcome = ContractExecResult<u128, EventRecord<RuntimeEvent, sp_core::H256>>;
+
+    fn call(
+        _origin: AccountId,
+        _dest: AccountId,
+        _value: Balance,
+        _gas_limit: Weight,
+        _storage_deposit_limit: Option<Balance>,
+        _data: Vec<u8>,
+        _debug: bool,
+    ) -> Self::Outcome {
+        ContractExecResult::<Balance, EventRecord<RuntimeEvent, sp_core::H256>> {
+            gas_consumed: Weight::zero(),
+            gas_required: Weight::zero(),
+            debug_message: Vec::new(),
+            storage_deposit: StorageDeposit::Refund(Default::default()),
+            result: Ok(ExecReturnValue {
+                flags: ReturnFlags::empty(),
+                data: Vec::default(),
+            }),
+            events: None,
+        }
     }
 }
 
@@ -113,7 +131,7 @@ impl pallet_xbi_portal::Config for Test {
     type CheckInLimit = ConstU32<100>;
     type CheckInterval = ConstU64<3>;
     type CheckOutLimit = ConstU32<100>;
-    type Contracts = ();
+    type Contracts = NonsenseNoopWasm;
     type Currency = Balances;
     type DeFi = ();
     type Evm = NonsenseNoopEvm;
@@ -140,10 +158,14 @@ impl pallet_balances::Config for Test {
     type Balance = Balance;
     type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
+    type FreezeIdentifier = ();
+    type MaxFreezes = ();
+    type MaxHolds = ();
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
     type ReserveIdentifier = [u8; 8];
     type RuntimeEvent = RuntimeEvent;
+    type RuntimeHoldReason = ();
     type WeightInfo = ();
 }
 

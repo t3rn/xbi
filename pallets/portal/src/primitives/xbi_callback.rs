@@ -1,5 +1,5 @@
+use frame_system::pallet_prelude::BlockNumberFor;
 use sp_std::marker::PhantomData;
-
 pub trait XBICallback<T: frame_system::Config + crate::pallet::Config> {
     fn callback(
         xbi_checkin: xp_format::XbiCheckIn<BlockNumberFor<T>>,

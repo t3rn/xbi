@@ -1,11 +1,12 @@
 use crate::{Config, Error, Event, Pallet, XbiResponses};
 use codec::{Decode, Encode};
-use contracts_primitives::traits::Contracts;
-use evm_primitives::traits::Evm;
+// use contracts_primitives::traits::Contracts;
 use frame_support::{
-    traits::{fungibles::Transfer, Currency, ExistenceRequirement},
+    traits::{fungibles::Mutate, tokens::Preservation, Currency, ExistenceRequirement},
     weights::{PostDispatchInfo, Weight, WeightToFee},
 };
+use sp_runtime::traits::Zero;
+
 use frame_system::ensure_signed;
 use sp_core::H256;
 use sp_runtime::{
@@ -13,6 +14,7 @@ use sp_runtime::{
     AccountId32, DispatchError, DispatchErrorWithPostInfo, Either,
 };
 use sp_std::{default::Default, prelude::*};
+use t3rn_primitives::threevm::{Contracts, Evm};
 use xp_channel::{
     traits::{HandlerInfo, Writable, XbiInstructionHandler},
     ChannelProgressionEmitter, Message,
@@ -158,33 +160,24 @@ impl<T: Config> XbiInstructionHandler<T::RuntimeOrigin> for Pallet<T> {
                 max_priority_fee_per_gas,
                 nonce,
                 ref access_list,
-            } => {
-                let evm_result = T::Evm::call(
-                    origin.clone(),
-                    target,
-                    input.clone(),
-                    value,
-                    gas_limit,
-                    max_fee_per_gas,
-                    max_priority_fee_per_gas,
-                    nonce,
-                    access_list.clone(),
-                );
-                let weight = evm_result.clone().map(|(_, weight)| weight);
-
-                evm_result
-                    .map(|(x, weight)| HandlerInfo {
-                        output: x.value,
-                        weight,
-                    })
-                    .map_err(|e| DispatchErrorWithPostInfo {
-                        post_info: PostDispatchInfo {
-                            actual_weight: weight.ok(),
-                            pays_fee: Default::default(),
-                        },
-                        error: e,
-                    })
-            },
+            } => T::Evm::call(
+                origin.clone(),
+                target,
+                input.clone(),
+                value,
+                gas_limit,
+                max_fee_per_gas,
+                max_priority_fee_per_gas,
+                nonce,
+                access_list.clone(),
+            )
+            .map_err(|e| DispatchErrorWithPostInfo {
+                post_info: PostDispatchInfo {
+                    actual_weight: None,
+                    pays_fee: Default::default(),
+                },
+                error: e,
+            }),
             XbiInstruction::Swap { .. }
             | XbiInstruction::AddLiquidity { .. }
             | XbiInstruction::RemoveLiquidity { .. }
@@ -209,7 +202,7 @@ impl<T: Config> XbiInstructionHandler<T::RuntimeOrigin> for Pallet<T> {
                     &caller,
                     &account_from_account32::<T>(dest)?,
                     value.unique_saturated_into(),
-                    keep_alive,
+                    Preservation::Preserve,
                 )
                 .map(|_| Default::default())
                 .map_err(|_| Error::<T>::TransferFailed.into())

@@ -1,5 +1,6 @@
 use crate as pallet_asset_registry;
 use frame_support::{
+    pallet_prelude::Weight,
     parameter_types,
     traits::{AsEnsureOriginWithArg, ConstU16, ConstU64},
 };
@@ -11,10 +12,13 @@ use sp_runtime::{
     traits::{BlakeTwo256, ConstU32, IdentityLookup},
     AccountId32,
 };
-use t3rn_primitives::AccountId;
-
 pub type Balance = u128;
 pub type AssetId = u32;
+pub type AccountId = u64;
+
+parameter_types! {
+    pub const BaseXcmWeight: Weight = Weight::from_parts(1_000, 1_000);
+}
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -26,7 +30,7 @@ frame_support::construct_runtime!(
         NodeBlock = Block,
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
-        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+        System: frame_system,
         AssetRegistry: pallet_asset_registry,
         Balances: pallet_balances,
         Assets: pallet_assets,
@@ -35,19 +39,18 @@ frame_support::construct_runtime!(
 
 impl system::Config for Test {
     type AccountData = pallet_balances::AccountData<Balance>;
-    type AccountId = u64;
+    type AccountId = AccountId;
     type BaseCallFilter = frame_support::traits::Everything;
+    type Block = Block;
     type BlockHashCount = ConstU64<250>;
     type BlockLength = ();
-    type BlockNumber = u64;
     type BlockWeights = ();
     type DbWeight = ();
     type Hash = H256;
     type Hashing = BlakeTwo256;
-    type Header = Header;
-    type Index = u64;
     type Lookup = IdentityLookup<Self::AccountId>;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
+    type Nonce = u32;
     type OnKilledAccount = ();
     type OnNewAccount = ();
     type OnSetCode = ();
@@ -82,10 +85,14 @@ impl pallet_balances::Config for Test {
     type Balance = Balance;
     type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
+    type FreezeIdentifier = ();
+    type MaxFreezes = ();
+    type MaxHolds = ();
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
     type ReserveIdentifier = [u8; 8];
     type RuntimeEvent = RuntimeEvent;
+    type RuntimeHoldReason = ();
     type WeightInfo = ();
 }
 
