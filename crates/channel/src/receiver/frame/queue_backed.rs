@@ -2,14 +2,12 @@ use crate::receiver::Receiver as ReceiverExt;
 use frame_support::pallet_prelude::DispatchResultWithPostInfo;
 use frame_system::{ensure_signed_or_root, Config};
 use sp_runtime::{traits::UniqueSaturatedInto, Either};
-use sp_std::borrow::ToOwned;
-use sp_std::marker::PhantomData;
+use sp_std::{borrow::ToOwned, marker::PhantomData};
 use xp_channel::{
     queue::{QueueSignal, Queueable},
     ChannelProgressionEmitter, Message,
 };
-use xp_format::Timestamp::*;
-use xp_format::{XbiFormat, XbiMetadata, XbiResult};
+use xp_format::{Timestamp::*, XbiFormat, XbiMetadata, XbiResult};
 
 /// This is an asynchronous queue backed frame receiver, which expects some queue handler to transport the messages back via the transport layer,
 /// detaching the message handling part with the transport of the message.
@@ -23,7 +21,7 @@ where
     Queue: Queueable<(Message, QueueSignal)>,
     Emitter: ChannelProgressionEmitter,
 {
-    type Origin = T::Origin;
+    type Origin = T::RuntimeOrigin;
     type Outcome = DispatchResultWithPostInfo;
 
     /// Request should always run the instruction, and produce some info containing meters for the execution

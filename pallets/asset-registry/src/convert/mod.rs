@@ -2,9 +2,7 @@ use xp_xcm::frame_traits::AssetLookup;
 
 use crate::*;
 
-impl<T: Config> AssetLookup<AssetIdOf<T>> for Pallet<T> {}
-
-impl<T: Config> xcm_executor::traits::Convert<MultiLocation, AssetIdOf<T>> for Pallet<T> {
+impl<T: Config> AssetLookup<AssetIdOf<T>> for Pallet<T> {
     fn convert_ref(value: impl core::borrow::Borrow<MultiLocation>) -> Result<AssetIdOf<T>, ()> {
         let value = value.borrow();
         log::debug!(target: "asset-registry", "convert_ref: {:?}", value);
@@ -16,35 +14,52 @@ impl<T: Config> xcm_executor::traits::Convert<MultiLocation, AssetIdOf<T>> for P
     fn reverse_ref(value: impl core::borrow::Borrow<AssetIdOf<T>>) -> Result<MultiLocation, ()> {
         let value = value.borrow();
         log::debug!(target: "asset-registry", "reverse_ref: {:?}", value);
-        Self::lookup(Either::Right(*value))
+        Self::lookup(Either::Right(value.clone()))
             .map_err(|_| ())
             .and_then(|location| location.right().ok_or(()))
     }
 }
 
+// impl<T: Config> xcm_executor::traits::Convert<MultiLocation, AssetIdOf<T>> for Pallet<T> {
+//     fn convert_ref(value: impl core::borrow::Borrow<MultiLocation>) -> Result<AssetIdOf<T>, ()> {
+//         let value = value.borrow();
+//         log::debug!(target: "asset-registry", "convert_ref: {:?}", value);
+//         Self::lookup(Either::Left(value.clone()))
+//             .map_err(|_| ())
+//             .and_then(|asset_id| asset_id.left().ok_or(()))
+//     }
+//
+//     fn reverse_ref(value: impl core::borrow::Borrow<AssetIdOf<T>>) -> Result<MultiLocation, ()> {
+//         let value = value.borrow();
+//         log::debug!(target: "asset-registry", "reverse_ref: {:?}", value);
+//         Self::lookup(Either::Right(*value))
+//             .map_err(|_| ())
+//             .and_then(|location| location.right().ok_or(()))
+//     }
+// }
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use crate::mock::{new_test_ext, AssetRegistry, Origin, Test};
+    use crate::mock::{new_test_ext, AssetRegistry, RuntimeOrigin, Test};
     use frame_support::{assert_err, assert_ok};
-    use xcm_executor::traits::Convert;
 
     fn store_asset_one_for_alice() -> (MultiLocation, u32) {
         let location = MultiLocation {
             parents: 0,
             interior: X1(AccountId32 {
-                network: NetworkId::Polkadot,
+                network: Some(NetworkId::Polkadot),
                 id: [1_u8; 32],
             }),
         };
         assert_ok!(AssetRegistry::register(
-            Origin::signed(1),
+            RuntimeOrigin::signed(1),
             location.clone(),
             1
         ));
         assert_ok!(AssetRegistry::register_info(
-            Origin::root(),
+            RuntimeOrigin::root(),
             AssetInfo::new(1, location.clone(), vec![])
         ));
         (location, 1)

@@ -1,8 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use crate::error::Error;
-use crate::evm::CallEvm;
-use crate::wasm::CallWasm;
+use crate::{error::Error, evm::CallEvm, wasm::CallWasm};
 use substrate_abi::TryConvert;
 
 pub mod error;

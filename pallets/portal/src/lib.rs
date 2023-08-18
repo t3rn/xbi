@@ -1,7 +1,6 @@
 #![allow(incomplete_features)]
 #![feature(inherent_associated_types)]
 #![feature(associated_type_defaults)]
-#![feature(box_syntax)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use pallet::*;
@@ -10,21 +9,45 @@ pub use substrate_contracts_abi;
 pub use xp_channel::{queue::QueueSignal, ChannelProgressionEmitter, Message};
 pub use xp_format;
 
+use crate::{
+    impls::account32_from_account,
+    primitives::{defi::DeFi, xbi_callback::XBICallback},
+    Event::QueuePopped,
+};
 use codec::{Decode, Encode};
+use contracts_primitives::ContractExecResult;
 use frame_support::{
-    traits::Get,
+    pallet_prelude::*,
+    traits::{
+        fungibles::{Inspect, Mutate},
+        Get, OriginTrait, ReservableCurrency,
+    },
     weights::{PostDispatchInfo, WeightToFee},
 };
 use frame_system::{ensure_signed, pallet_prelude::OriginFor};
-use sp_runtime::{traits::UniqueSaturatedInto, DispatchError};
-use sp_std::{default::Default, prelude::*};
-use xp_channel::{
-    queue::ringbuffer::RingBufferTransient,
-    traits::{HandlerInfo, Writable, XbiInstructionHandler},
+use sp_runtime::{
+    traits::{BlakeTwo256, UniqueSaturatedInto, Zero},
+    DispatchError,
 };
-use xp_format::{Status, XbiFormat, XbiMetadata, XbiResult};
-use xs_channel::receiver::Receiver as XbiReceiver;
-use xs_channel::sender::{frame::ReceiveCallProvider, Sender as XbiSender};
+use sp_std::{default::Default, prelude::*};
+use xcm::prelude::SendXcm;
+use xp_channel::{
+    queue::{
+        ringbuffer::{DefaultIdx, RingBufferTransient},
+        Queue as QueueExt,
+    },
+    traits::{HandlerInfo, RefundForMessage, Writable, XbiInstructionHandler},
+    ExecutionType,
+};
+use xp_format::{Status, Timestamp, XbiFormat, XbiMetadata, XbiResult};
+use xp_xcm::{frame_traits::AssetLookup, xcm::prelude::*, MultiLocationBuilder, XcmBuilder};
+use xs_channel::{
+    receiver::{
+        frame::{handle_instruction_result, invert_destination_from_message},
+        Receiver as XbiReceiver,
+    },
+    sender::{frame::ReceiveCallProvider, Sender as XbiSender},
+};
 
 #[cfg(test)]
 mod mock;
@@ -40,39 +63,17 @@ t3rn_primitives::reexport_currency_types!();
 
 #[frame_support::pallet]
 pub mod pallet {
-    use crate::{
-        impls::account32_from_account,
-        primitives::{defi::DeFi, xbi_callback::XBICallback},
-        Event::{QueueEmpty, QueuePopped},
-        *,
+    use super::*;
+    use frame_support::pallet_prelude::*;
+    use frame_system::{
+        pallet_prelude::{BlockNumberFor, *},
+        EventRecord,
     };
-    use contracts_primitives::ContractExecResult;
-    use frame_support::traits::{
-        fungibles::{Inspect, Mutate},
-        OriginTrait,
-    };
-    use frame_support::{
-        pallet_prelude::*,
-        traits::{fungibles::Transfer, ReservableCurrency},
-    };
-    use frame_system::pallet_prelude::*;
-    use sp_runtime::traits::{BlakeTwo256, Zero};
-    use xcm::v2::SendXcm;
-    use xp_channel::{
-        queue::{ringbuffer::DefaultIdx, Queue as QueueExt, QueueSignal},
-        traits::RefundForMessage,
-        ExecutionType,
-    };
-    use xp_format::Timestamp;
-    use xp_xcm::frame_traits::AssetLookup;
-    pub use xp_xcm::frame_traits::XcmConvert;
-    use xp_xcm::MultiLocationBuilder;
-    use xp_xcm::{xcm::prelude::*, XcmBuilder};
-    use xs_channel::receiver::frame::{handle_instruction_result, invert_destination_from_message};
 
     type AssetIdOf<T> =
         <<T as Config>::Assets as Inspect<<T as frame_system::Config>::AccountId>>::AssetId;
-
+    type EventRecordOf<T> =
+        EventRecord<<T as frame_system::Config>::RuntimeEvent, <T as frame_system::Config>::Hash>;
     /// A reexport of the Queue backed by a RingBufferTransient
     pub(crate) type Queue<Pallet> = RingBufferTransient<
         (Message, QueueSignal),
@@ -161,25 +162,26 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config {
         // TODO: disable SendTransactionTypes<Call<Self>> for now
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-        type Call: From<Call<Self>>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+        type RuntimeCall: From<Call<Self>>;
         type XcmSovereignOrigin: Get<Self::AccountId>;
         /// Access to XCM functionality outside of this consensus system TODO: use XcmSender && ExecuteXcm for self execution
         type Xcm: SendXcm;
         /// Provide access to the contracts pallet or some pallet like it
-        type Contracts: contracts_primitives::traits::Contracts<
+        type Contracts: t3rn_primitives::threevm::Contracts<
             Self::AccountId,
             BalanceOf<Self>,
-            Weight,
-            Outcome = ContractExecResult<BalanceOf<Self>>,
+            EventRecordOf<Self>,
+            Outcome = ContractExecResult<BalanceOf<Self>, EventRecordOf<Self>>,
         >;
         /// Provide access to the frontier evm pallet or some pallet like it
-        type Evm: evm_primitives::traits::Evm<
-            Self::Origin,
-            Outcome = Result<(evm_primitives::CallInfo, Weight), DispatchError>,
+        type Evm: t3rn_primitives::threevm::Evm<
+            Self::RuntimeOrigin,
+            Outcome = Result<HandlerInfo<Weight>, DispatchError>,
         >;
         type Currency: ReservableCurrency<Self::AccountId>;
-        type Assets: Transfer<Self::AccountId> + Inspect<Self::AccountId> + Mutate<Self::AccountId>;
+
+        type Assets: Inspect<Self::AccountId> + Mutate<Self::AccountId>;
         /// Provide access to the asset registry so we can lookup, not really specific to XBI just helps us at this stage
         type AssetRegistry: AssetLookup<<Self::Assets as Inspect<Self::AccountId>>::AssetId>;
         /// Provide access to DeFI
@@ -198,7 +200,7 @@ pub mod pallet {
         #[pallet::constant]
         type ExpectedBlockTimeMs: Get<u32>;
         #[pallet::constant]
-        type CheckInterval: Get<Self::BlockNumber>;
+        type CheckInterval: Get<BlockNumberFor<Self>>;
         #[pallet::constant]
         type TimeoutChecksLimit: Get<u32>;
         #[pallet::constant]
@@ -220,20 +222,20 @@ pub mod pallet {
         // dispatched.
         //
         // This function must return the weight consumed by `on_initialize` and `on_finalize`.
-        fn on_initialize(block: T::BlockNumber) -> Weight {
+        fn on_initialize(block: frame_system::pallet_prelude::BlockNumberFor<T>) -> Weight {
             // TODO: enable when confident it works
             if block % T::CheckInterval::get() == Zero::zero() {
-                Pallet::<T>::process_queue(T::Origin::root())
+                Pallet::<T>::process_queue(T::RuntimeOrigin::root())
                     .map(|i| i.actual_weight.unwrap_or_default())
                     .unwrap_or_else(|e| e.post_info.actual_weight.unwrap_or_default())
             } else {
-                0
+                Default::default()
             }
         }
 
-        fn on_finalize(_n: T::BlockNumber) {}
+        fn on_finalize(_n: frame_system::pallet_prelude::BlockNumberFor<T>) {}
 
-        fn offchain_worker(_n: T::BlockNumber) {}
+        fn offchain_worker(_n: frame_system::pallet_prelude::BlockNumberFor<T>) {}
     }
 
     #[pallet::event]
@@ -312,7 +314,8 @@ pub mod pallet {
     /// TODO: implement benchmarks
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        #[pallet::weight(50_000 + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
+        #[pallet::weight(T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
+        #[pallet::call_index(0)]
         pub fn send(origin: OriginFor<T>, kind: ExecutionType, msg: XbiFormat) -> DispatchResult {
             let who = ensure_signed(origin)?;
             let mut msg = msg;
@@ -327,9 +330,8 @@ pub mod pallet {
 
             match kind {
                 ExecutionType::Sync => <Sender<T> as XbiSender<_>>::send(Message::Request(msg)),
-                ExecutionType::Async => {
-                    <AsyncSender<T> as XbiSender<_>>::send(Message::Request(msg))
-                }
+                ExecutionType::Async =>
+                    <AsyncSender<T> as XbiSender<_>>::send(Message::Request(msg)),
             }
         }
 
@@ -339,14 +341,16 @@ pub mod pallet {
         /// There are additional ways this can be called:
         ///     - expose the same interface but allow some pathway to it: Contracts::call {..}
         ///     - expose a way to call a pallet method
-        #[pallet::weight(50_000 + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
+        #[pallet::weight(T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
+        #[pallet::call_index(1)]
         pub fn receive(origin: OriginFor<T>, msg: Message) -> DispatchResultWithPostInfo {
             let _who = ensure_signed(origin.clone())?;
             <Receiver<T> as XbiReceiver>::receive(origin, msg)
         }
 
         /// TODO: implement benchmarks
-        #[pallet::weight(50_000 + T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
+        #[pallet::weight(T::DbWeight::get().writes(1) + T::DbWeight::get().reads(3))]
+        #[pallet::call_index(2)]
         pub fn process_queue(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
 
@@ -361,7 +365,8 @@ pub mod pallet {
             let mut queue = <Queue<Pallet<T>>>::default();
 
             if queue.is_empty() {
-                Self::deposit_event(QueueEmpty);
+                log::trace!("XBI queue is empty");
+                // Self::deposit_event(QueueEmpty);
             } else {
                 while let Some((mut msg, signal)) = queue.pop() {
                     Self::deposit_event(QueuePopped {
@@ -392,7 +397,7 @@ pub mod pallet {
                                                 .map_err(|_| DispatchError::CannotLookup)?;
                                         T::AssetRegistry::reverse_ref(id)
                                             .map_err(|_| DispatchError::CannotLookup)?
-                                    }
+                                    },
                                     None => MultiLocationBuilder::new_native().build(),
                                 };
 
@@ -414,7 +419,9 @@ pub mod pallet {
                                     )
                                     .build();
 
-                                T::Xcm::send_xcm(dest, xbi_format_msg)
+                                T::Xcm::validate(&mut Some(dest), &mut Some(xbi_format_msg))
+                                    // TODO: now we know the fees before we send the message, update ChargeForAsset to be XCMv3 Friendly
+                                    .and_then(|(ticket, fees_for_message)| T::Xcm::deliver(ticket))
                                     .map(|_| {
                                         log::trace!(target: "xbi", "Successfully sent xcm message");
                                         Pallet::<T>::emit_sent(msg.clone());
@@ -424,13 +431,13 @@ pub mod pallet {
                                         queue.push((msg, QueueSignal::ProtocolError(Status::DispatchFailed)));
                                     });
                             }
-                        }
-                        QueueSignal::PendingExecution => {
+                        },
+                        QueueSignal::PendingExecution =>
                             if let Message::Request(msg) = &mut msg {
                                 invert_destination_from_message(&mut msg.metadata);
 
                                 let instruction_result =
-                                    Pallet::<T>::handle(&T::Origin::root(), msg);
+                                    Pallet::<T>::handle(&T::RuntimeOrigin::root(), msg);
                                 log::debug!(target: "xbi", "Instruction result: {:?}", instruction_result);
 
                                 let xbi_result = handle_instruction_result::<Pallet<T>>(
@@ -448,7 +455,8 @@ pub mod pallet {
                                         Ok(info) => Some(info.weight),
                                         Err(e) => e.post_info.actual_weight,
                                     }
-                                    .unwrap_or_default(),
+                                    .unwrap_or_default()
+                                    .ref_time(),
                                 );
 
                                 queue.push((
@@ -460,11 +468,11 @@ pub mod pallet {
                                     instruction_result.map(HandlerInfo::into);
 
                                 if let Ok(info) = handler {
-                                    weight = weight
-                                        .saturating_add(info.actual_weight.unwrap_or_default());
+                                    weight = weight.saturating_add(
+                                        info.actual_weight.unwrap_or_default().ref_time(),
+                                    );
                                 }
-                            }
-                        }
+                            },
                         QueueSignal::PendingResponse => {
                             if let Message::Response(result, metadata) = &mut msg {
                                 let require_weight_at_most = 1_000_000_000;
@@ -483,7 +491,7 @@ pub mod pallet {
                                                 .map_err(|_| DispatchError::CannotLookup)?;
                                         T::AssetRegistry::reverse_ref(id)
                                             .map_err(|_| DispatchError::CannotLookup)?
-                                    }
+                                    },
                                     None => MultiLocationBuilder::new_native().build(),
                                 };
 
@@ -498,7 +506,9 @@ pub mod pallet {
                                     )
                                     .build();
 
-                                T::Xcm::send_xcm(dest, xbi_format_msg)
+                                T::Xcm::validate(&mut Some(dest), &mut Some(xbi_format_msg))
+                                    // TODO: now we know the fees before we send the message, update ChargeForAsset to be XCMv3 Friendly
+                                    .and_then(|(ticket, fees_for_message)| T::Xcm::deliver(ticket))
                                     .map(|_| {
                                         log::trace!(target: "xbi", "Successfully sent xcm message");
                                         Pallet::<T>::emit_sent(msg.clone())
@@ -508,8 +518,8 @@ pub mod pallet {
                                         queue.push((msg, QueueSignal::ProtocolError(Status::DispatchFailed)));
                                     });
                             }
-                        }
-                        QueueSignal::PendingResult => {
+                        },
+                        QueueSignal::PendingResult =>
                             if let Message::Response(res, meta) = msg {
                                 let o: T::AccountId = xs_channel::xbi_origin(&meta)?;
                                 <() as RefundForMessage<
@@ -520,8 +530,7 @@ pub mod pallet {
                                 >>::refund(&o, &meta.fees)?;
 
                                 Pallet::<T>::write((meta.get_id(), res))?;
-                            }
-                        }
+                            },
                         QueueSignal::ProtocolError(status) => {
                             // TODO: emit an error
 
@@ -533,12 +542,12 @@ pub mod pallet {
                                 };
                                 Pallet::<T>::write((req.metadata.get_id(), result))?;
                             }
-                        }
+                        },
                     }
                 }
             }
             Ok(PostDispatchInfo {
-                actual_weight: Some(weight),
+                actual_weight: Some(Weight::from_parts(weight, 0u64)),
                 pays_fee: Pays::Yes,
             })
         }
@@ -553,7 +562,7 @@ pub mod pallet {
 
         fn create_inherent(_data: &InherentData) -> Option<Self::Call> {
             if frame_system::Pallet::<T>::block_number() % T::CheckInterval::get()
-                == T::BlockNumber::from(0u8)
+                == frame_system::pallet_prelude::BlockNumberFor::<T>::from(0u8)
             {
                 // TODO: handle queue parts here
                 // return Some(Call::cleanup {});

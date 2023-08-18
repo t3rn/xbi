@@ -13,8 +13,7 @@ use xp_channel::{
     traits::{HandlerInfo, Writable, XbiInstructionHandler},
     ChannelProgressionEmitter, Message,
 };
-use xp_format::Timestamp::*;
-use xp_format::{XbiFormat, XbiMetadata, XbiResult};
+use xp_format::{Timestamp::*, XbiFormat, XbiMetadata, XbiResult};
 
 use super::handle_instruction_result;
 
@@ -78,7 +77,7 @@ where
     Sender: SenderExt<Message>,
     Emitter: ChannelProgressionEmitter,
     Queue: Queueable<(Message, QueueSignal)>,
-    InstructionHandler: XbiInstructionHandler<T::Origin>,
+    InstructionHandler: XbiInstructionHandler<T::RuntimeOrigin>,
     ResultStore: Writable<(sp_core::H256, XbiResult)>,
     Currency: ReservableCurrency<T::AccountId>,
     Assets: Mutate<T::AccountId>,
@@ -86,7 +85,7 @@ where
         xp_channel::traits::RefundForMessage<T::AccountId, Currency, Assets, AssetReserveCustodian>,
     AssetReserveCustodian: Get<T::AccountId>,
 {
-    type Origin = T::Origin;
+    type Origin = T::RuntimeOrigin;
     type Outcome = DispatchResultWithPostInfo;
 
     /// Request should always run the instruction, and product some dispatch info containing meters for the execution
@@ -116,7 +115,8 @@ where
                 Ok(info) => Some(info.weight),
                 Err(e) => e.post_info.actual_weight,
             }
-            .unwrap_or_default(),
+            .unwrap_or_default()
+            .ref_time(),
         );
 
         Sender::send(Message::Response(xbi_result, msg.metadata.clone()));

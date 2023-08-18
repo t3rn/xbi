@@ -15,30 +15,30 @@ codec      = { package = "parity-scale-codec", version = "3.0.0", default-featur
 log        = "0.4"
 scale-info = { version = "2.3.0", default-features = false, features = [ "derive" ] }
 
-sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27", version = "6.0.0" }
-sp-std     = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27", version = "4.0.0" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+sp-std     = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 
-frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27", version = "4.0.0-dev" }
-frame-system  = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27", version = "4.0.0-dev" }
+frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+frame-system  = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 
 # Optional
-frame-benchmarking = { default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27", version = "4.0.0-dev" }
+frame-benchmarking = { default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 
-xcm          = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0.9.27", default-features = false }
-xcm-builder  = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0.9.27", default-features = false }
-xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0.9.27", default-features = false }
+xcm          = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0", default-features = false }
+xcm-builder  = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0", default-features = false }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0", default-features = false }
 
-xp-channel = { path = "../../crates/channel-primitives", default-features = false, features = [ "frame" ], version = "0.3" }
-xp-xcm     = { path = "../../crates/xcm-primitives", default-features = false, features = [ "frame" ], version = "0.3" }
+xp-channel = { path = "../../crates/channel-primitives", default-features = false, features = [ "frame" ] }
+xp-xcm     = { path = "../../crates/xcm-primitives", default-features = false, features = [ "frame" ] }
 
-t3rn-primitives = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "development", version = "1.0.0-alpha.1" }
+t3rn-primitives = { default-features = false, git = "https://github.com/t3rn/t3rn", branch = "build/update-v1" }
 
 [dev-dependencies]
-sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27", version = "6.0.0" }
-sp-io   = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.27", version = "6.0.0" }
+sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+sp-io   = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 
-pallet-assets   = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", version = "4.0.0-dev" }
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", version = "4.0.0-dev" }
+pallet-assets   = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
 
 [features]
 default = [ "std" ]
@@ -47,7 +47,6 @@ runtime-benchmarks = [
   "frame-support/runtime-benchmarks",
   "frame-system/runtime-benchmarks",
   "sp-runtime/runtime-benchmarks",
-  "xcm/runtime-benchmarks",
   "xcm-builder/runtime-benchmarks",
   "xcm-executor/runtime-benchmarks",
 ]

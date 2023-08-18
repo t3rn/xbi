@@ -1,5 +1,5 @@
 use codec::{Decode, Encode, FullCodec};
-use frame_support::traits::{fungibles::Inspect, Get};
+use frame_support::traits::{fungibles::Inspect, tokens::Preservation, Get};
 use sp_runtime::DispatchResult;
 use sp_std::prelude::*;
 use xp_format::Fees;
@@ -17,7 +17,7 @@ pub mod shims;
 /// Which might be relevant to the user.
 ///
 /// This also adds information about weight used by the instruction handler.
-#[derive(Encode, Decode, Default, Debug)]
+#[derive(Encode, Decode, Default, Debug, Clone, PartialEq, Eq)]
 pub struct HandlerInfo<Weight: core::fmt::Debug> {
     // TODO[Optimisation]: We can bound the size, but ideally this should be configured by the user who sends the message.
     // We have ideas on how to specify this in future releases.
@@ -39,13 +39,13 @@ impl<Weight: core::fmt::Debug> From<(Vec<u8>, Weight)> for HandlerInfo<Weight> {
 // Justification: no need for from here
 #[allow(clippy::from_over_into)]
 #[cfg(feature = "frame")]
-impl Into<frame_support::weights::PostDispatchInfo>
+impl Into<frame_support::dispatch::PostDispatchInfo>
     for HandlerInfo<frame_support::weights::Weight>
 {
-    fn into(self) -> frame_support::weights::PostDispatchInfo {
-        frame_support::weights::PostDispatchInfo {
+    fn into(self) -> frame_support::dispatch::PostDispatchInfo {
+        frame_support::dispatch::PostDispatchInfo {
             actual_weight: Some(self.weight),
-            pays_fee: frame_support::weights::Pays::Yes,
+            pays_fee: frame_support::dispatch::Pays::Yes,
         }
     }
 }
@@ -90,11 +90,17 @@ where
                 Decode::decode(&mut &fees.get_aggregated_limit().encode()[..])
                     .map_err(|_| "Failed to decode balance from fees")?;
 
-            if let Err(x) = Assets::can_withdraw(asset, origin, balance).into_result() {
+            if let Err(x) = Assets::can_withdraw(asset.clone(), origin, balance).into_result(true) {
                 log::warn!(target: "xp-channel", "Insufficient funds to pay fees, {:?}", x);
-                return Err(x);
+                return Err(x)
             }
-            Assets::teleport(asset, origin, &Custodian::get(), balance)?;
+            Assets::transfer(
+                asset.clone(),
+                origin,
+                &Custodian::get(),
+                balance,
+                Preservation::Preserve,
+            )?;
 
             log::debug!(target: "xp-channel", "Charged Asset({:?}, {:?}) for XBI metadata fees {:?}", asset, balance, fees);
         } else {
@@ -136,7 +142,13 @@ where
                     Decode::decode(&mut &(reserved - cost).encode()[..])
                         .map_err(|_| "Failed to decode balance from aggregation")?;
 
-                Assets::teleport(asset, &Custodian::get(), origin, to_unreserve)?;
+                Assets::transfer(
+                    asset,
+                    &Custodian::get(),
+                    origin,
+                    to_unreserve,
+                    Preservation::Preserve,
+                )?;
             } else {
                 log::warn!(target: "xp-channel", "Tried refunding more than was reserved for XBI metadata fees {:?} {:?}", cost, reserved);
             }

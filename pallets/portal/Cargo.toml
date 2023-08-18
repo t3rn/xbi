@@ -8,40 +8,39 @@ repository  = "https://github.com/t3rn/xbi"
 version     = "0.3.7"
 
 [dependencies]
-codec                 = { package = "parity-scale-codec", version = "3", default-features = false }
+codec                 = { package = "parity-scale-codec", default-features = false }
 impl-trait-for-tuples = "0.2.2"
 log                   = { version = "0.4", default-features = false }
 scale-info            = { version = "2.1.1", default-features = false, features = [ "derive" ] }
-serde                 = { default-features = false, version = "1.0", optional = true }
+serde                 = { default-features = false, optional = true }
 
-frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true, version = "4.0.0-dev" }
-frame-support      = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0-dev" }
-frame-system       = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0-dev" }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false, optional = true}
+frame-support      = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
+frame-system       = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
 
-sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "5.0.0" }
-sp-core       = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "6.0.0" }
-sp-inherents  = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0-dev" }
-sp-io         = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "6.0.0" }
-sp-runtime    = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "6.0.0" }
-sp-std        = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0" }
+sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
+sp-core       = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
+sp-inherents  = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
+sp-io         = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
+sp-runtime    = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
+sp-std        = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
 
-substrate-abi           = { path = "../../crates/sabi", default-features = false, version = "0.3" }
-substrate-contracts-abi = { path = "../../crates/scabi", default-features = false, version = "0.3" }
-xp-channel              = { path = "../../crates/channel-primitives", default-features = false, features = [ "frame" ], version = "0.3" }
-xp-format               = { path = "../../crates/format", default-features = false, version = "0.3" }
-xp-xcm                  = { path = "../../crates/xcm-primitives", default-features = false, features = [ "frame" ], version = "0.3" }
-xs-channel              = { path = "../../crates/channel", default-features = false, features = [ "frame" ], version = "0.3" }
+substrate-abi           = { path = "../../crates/sabi", default-features = false }
+substrate-contracts-abi = { path = "../../crates/scabi", default-features = false }
+xp-channel              = { path = "../../crates/channel-primitives", default-features = false, features = [ "frame" ] }
+xp-format               = { path = "../../crates/format", default-features = false }
+xp-xcm                  = { path = "../../crates/xcm-primitives", default-features = false, features = [ "frame" ] }
+xs-channel              = { path = "../../crates/channel", default-features = false, features = [ "frame" ] }
 
-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", version = "0", default-features = false }
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0", default-features = false }
 
-contracts-primitives = { git = "https://github.com/t3rn/t3rn", branch = "development", default-features = false, package = "pallet-contracts-primitives", version = "5" }
-evm-primitives       = { git = "https://github.com/t3rn/t3rn", branch = "development", default-features = false, package = "fp-evm", version = "3.0.0-dev" }
-t3rn-primitives      = { git = "https://github.com/t3rn/t3rn", branch = "development", default-features = false, version = "1.0.0-alpha.1" }
+contracts-primitives = { git = "https://github.com/t3rn/t3rn", branch = "build/update-v1", default-features = false, package = "pallet-contracts-primitives" }
+t3rn-primitives      = { git = "https://github.com/t3rn/t3rn", branch = "build/update-v1", default-features = false }
 
 [dev-dependencies]
-pallet-assets   = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", version = "4.0.0-dev" }
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", version = "4.0.0-dev" }
-pallet-evm      = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v0.9.27", version = "6.0.0-dev" }
+pallet-assets   = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+pallet-evm        = { git = "https://github.com/paritytech/frontier", branch = "polkadot-v1.0.0", default-features = false }
 
 [features]
 default = [ "std" ]
@@ -50,7 +49,6 @@ runtime-benchmarks = [
   "frame-support/runtime-benchmarks",
   "frame-system/runtime-benchmarks",
   "sp-runtime/runtime-benchmarks",
-  "xcm/runtime-benchmarks",
 ]
 std = [
   "codec/std",
@@ -66,7 +64,6 @@ std = [
   "frame-support/std",
   "frame-system/std",
   "contracts-primitives/std",
-  "evm-primitives/std",
   "log/std",
   "xp-channel/std",
   "xp-channel/frame-std",

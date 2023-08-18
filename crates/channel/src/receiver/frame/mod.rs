@@ -35,7 +35,7 @@ pub(crate) fn handler_to_xbi_result<Emitter: ChannelProgressionEmitter>(
     info: &HandlerInfo<frame_support::weights::Weight>,
     msg: &mut XbiFormat,
 ) -> XbiResult {
-    Emitter::emit_instruction_handled(msg, &info.weight);
+    Emitter::emit_instruction_handled(msg, &info.weight.ref_time());
 
     let status: Status = Status::from(&msg.metadata.fees);
 
@@ -67,7 +67,10 @@ mod tests {
     use super::{handler_to_xbi_result, invert_destination_from_message};
 
     use codec::Encode;
-    use frame_support::{dispatch::DispatchErrorWithPostInfo, weights::PostDispatchInfo};
+    use frame_support::{
+        dispatch::DispatchErrorWithPostInfo,
+        weights::{PostDispatchInfo, Weight},
+    };
     use xp_channel::{traits::HandlerInfo, XbiFormat, XbiMetadata};
     use xp_format::{Fees, Status};
 
@@ -92,7 +95,7 @@ mod tests {
     #[test]
     fn xbi_handler_maps_to_result_correctly_when_exceeded_gas() {
         let info = HandlerInfo {
-            weight: 100,
+            weight: Weight::from_parts(100, 0u64),
             output: b"world".to_vec(),
         };
 
@@ -120,7 +123,7 @@ mod tests {
     #[test]
     fn xbi_handler_maps_to_result_correctly() {
         let info = HandlerInfo {
-            weight: 100,
+            weight: Weight::from_parts(100, 0u64),
             output: b"world".to_vec(),
         };
 
@@ -149,7 +152,7 @@ mod tests {
     fn xbi_handler_error_maps_to_result_correctly() {
         let err = DispatchErrorWithPostInfo {
             post_info: PostDispatchInfo {
-                actual_weight: Some(1000),
+                actual_weight: Some(1000.into()),
                 ..Default::default()
             },
             error: sp_runtime::DispatchError::Other("Fail"),

@@ -8,18 +8,18 @@ repository  = "https://github.com/t3rn/xbi"
 version     = "0.3.7"
 
 [dependencies]
-codec      = { package = "parity-scale-codec", version = "3", default-features = false }
+codec      = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
 log        = { version = "0.4.14", default-features = false }
 scale-info = { version = "2.1.1", default-features = false, features = [ "derive" ] }
 
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "6.0.0" }
-sp-std     = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0" }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
+sp-std     = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
 
-xp-format = { path = "../format", default-features = false, version = "0.3.7" }
+xp-format = { path = "../format", default-features = false }
 
 # Optional frame specific deps
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, optional = true, version = "4.0.0-dev" }
-xcm           = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.27", default-features = false, optional = true, version = "0" }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false, optional = true }
+xcm           = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0", default-features = false, optional = true }
 
 [dev-dependencies]
 lazy_static = "1.4.0"

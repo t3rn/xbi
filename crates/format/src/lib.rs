@@ -4,10 +4,11 @@ use codec::{Decode, Encode, FullCodec};
 use core::fmt::Debug;
 use scale_info::TypeInfo;
 use sp_core::Hasher;
-use sp_runtime::traits::{BlakeTwo256, Hash};
-use sp_runtime::AccountId32;
-use sp_std::prelude::*;
-use sp_std::vec;
+use sp_runtime::{
+    traits::{BlakeTwo256, Hash},
+    AccountId32,
+};
+use sp_std::{prelude::*, vec};
 
 pub mod xbi_codec;
 
@@ -98,7 +99,6 @@ pub enum XbiInstruction {
     CallNative { payload: Data },
     /// A call to an EVM contract
     CallEvm {
-        source: AccountId20, // Could use either [u8; 20] or Junction::AccountKey20
         target: AccountId20, // Could use either [u8; 20] or Junction::AccountKey20
         value: ValueEvm,
         input: Data,
@@ -193,6 +193,15 @@ pub type Timeout = u32;
 pub struct ActionNotificationTimeouts {
     pub action: Timeout,
     pub notification: Timeout,
+}
+
+impl From<u64> for ActionNotificationTimeouts {
+    fn from(timeout: u64) -> Self {
+        ActionNotificationTimeouts {
+            action: timeout as Timeout,
+            notification: timeout as Timeout,
+        }
+    }
 }
 
 const TIMEOUT_NINETY_SIX_SECONDS: Timeout = 96000;

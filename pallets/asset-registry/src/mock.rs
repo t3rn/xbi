@@ -1,18 +1,24 @@
 use crate as pallet_asset_registry;
 use frame_support::{
+    pallet_prelude::Weight,
     parameter_types,
-    traits::{ConstU16, ConstU64},
+    traits::{AsEnsureOriginWithArg, ConstU16, ConstU64},
 };
 use frame_system as system;
 use frame_system::EnsureRoot;
 use sp_core::H256;
 use sp_runtime::{
     testing::Header,
-    traits::{BlakeTwo256, IdentityLookup},
+    traits::{BlakeTwo256, ConstU32, IdentityLookup},
+    AccountId32,
 };
-
 pub type Balance = u128;
 pub type AssetId = u32;
+pub type AccountId = u64;
+
+parameter_types! {
+    pub const BaseXcmWeight: Weight = Weight::from_parts(1_000, 1_000);
+}
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -24,7 +30,7 @@ frame_support::construct_runtime!(
         NodeBlock = Block,
         UncheckedExtrinsic = UncheckedExtrinsic,
     {
-        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+        System: frame_system,
         AssetRegistry: pallet_asset_registry,
         Balances: pallet_balances,
         Assets: pallet_assets,
@@ -33,26 +39,25 @@ frame_support::construct_runtime!(
 
 impl system::Config for Test {
     type AccountData = pallet_balances::AccountData<Balance>;
-    type AccountId = u64;
+    type AccountId = AccountId;
     type BaseCallFilter = frame_support::traits::Everything;
+    type Block = Block;
     type BlockHashCount = ConstU64<250>;
     type BlockLength = ();
-    type BlockNumber = u64;
     type BlockWeights = ();
-    type Call = Call;
     type DbWeight = ();
-    type Event = Event;
     type Hash = H256;
     type Hashing = BlakeTwo256;
-    type Header = Header;
-    type Index = u64;
     type Lookup = IdentityLookup<Self::AccountId>;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
+    type Nonce = u32;
     type OnKilledAccount = ();
     type OnNewAccount = ();
     type OnSetCode = ();
-    type Origin = Origin;
     type PalletInfo = PalletInfo;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeOrigin = RuntimeOrigin;
     type SS58Prefix = ConstU16<42>;
     type SystemWeightInfo = ();
     type Version = ();
@@ -63,10 +68,10 @@ parameter_types! {
 }
 impl pallet_asset_registry::Config for Test {
     type Assets = Assets;
-    type Call = Call;
     type Currency = Balances;
-    type Event = Event;
     type RegistrationCost = RegCost;
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
 }
 
 parameter_types! {
@@ -79,11 +84,15 @@ impl pallet_balances::Config for Test {
     type AccountStore = System;
     type Balance = Balance;
     type DustRemoval = ();
-    type Event = Event;
     type ExistentialDeposit = ExistentialDeposit;
+    type FreezeIdentifier = ();
+    type MaxFreezes = ();
+    type MaxHolds = ();
     type MaxLocks = MaxLocks;
     type MaxReserves = MaxReserves;
     type ReserveIdentifier = [u8; 8];
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeHoldReason = ();
     type WeightInfo = ();
 }
 
@@ -103,14 +112,18 @@ impl pallet_assets::Config for Test {
     type AssetAccountDeposit = AssetAccountDeposit;
     type AssetDeposit = AssetDeposit;
     type AssetId = AssetId;
+    type AssetIdParameter = AssetId;
     type Balance = Balance;
+    type CallbackHandle = ();
+    type CreateOrigin = AsEnsureOriginWithArg<frame_system::EnsureSigned<u64>>;
     type Currency = Balances;
-    type Event = Event;
     type Extra = ();
     type ForceOrigin = EnsureRoot<Self::AccountId>;
     type Freezer = ();
     type MetadataDepositBase = MetadataDepositBase;
     type MetadataDepositPerByte = MetadataDepositPerByte;
+    type RemoveItemsLimit = ConstU32<1>;
+    type RuntimeEvent = RuntimeEvent;
     type StringLimit = AssetsStringLimit;
     type WeightInfo = ();
 }

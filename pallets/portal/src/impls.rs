@@ -1,18 +1,20 @@
 use crate::{Config, Error, Event, Pallet, XbiResponses};
 use codec::{Decode, Encode};
-use contracts_primitives::traits::Contracts;
-use evm_primitives::traits::Evm;
+// use contracts_primitives::traits::Contracts;
 use frame_support::{
-    traits::{fungibles::Transfer, Currency, ExistenceRequirement},
-    weights::{PostDispatchInfo, WeightToFee},
+    traits::{fungibles::Mutate, tokens::Preservation, Currency, ExistenceRequirement},
+    weights::{PostDispatchInfo, Weight, WeightToFee},
 };
+use sp_runtime::traits::Zero;
+
 use frame_system::ensure_signed;
 use sp_core::H256;
-use sp_runtime::traits::Get;
 use sp_runtime::{
-    traits::UniqueSaturatedInto, AccountId32, DispatchError, DispatchErrorWithPostInfo, Either,
+    traits::{Get, UniqueSaturatedInto},
+    AccountId32, DispatchError, DispatchErrorWithPostInfo, Either,
 };
 use sp_std::{default::Default, prelude::*};
+use t3rn_primitives::threevm::{Contracts, Evm};
 use xp_channel::{
     traits::{HandlerInfo, Writable, XbiInstructionHandler},
     ChannelProgressionEmitter, Message,
@@ -44,9 +46,10 @@ pub fn account32_from_account<T: Config>(
 impl<T: Config> ChannelProgressionEmitter for Pallet<T> {
     fn emit_instruction_handled(msg: &XbiFormat, weight: &u64) {
         use crate::Event::*;
+        log::debug!(target: "xbi", "emit_instruction_handled {:?}", msg);
         Self::deposit_event(XbiInstructionHandled {
             msg: msg.clone(),
-            weight: *weight,
+            weight: Weight::from_parts(*weight, 0u64),
         })
     }
 
@@ -58,13 +61,13 @@ impl<T: Config> ChannelProgressionEmitter for Pallet<T> {
                     request: Some(x.clone()),
                     response: None,
                 });
-            }
+            },
             Either::Right(x) => {
                 Self::deposit_event(XbiMessageReceived {
                     request: None,
                     response: Some(x.clone()),
                 });
-            }
+            },
         }
     }
 
@@ -73,7 +76,7 @@ impl<T: Config> ChannelProgressionEmitter for Pallet<T> {
         Self::deposit_event(XbiRequestHandled {
             result: result.clone(),
             metadata: metadata.clone(),
-            weight: *weight,
+            weight: Weight::from_parts(*weight, 0u64),
         });
     }
 
@@ -97,9 +100,9 @@ impl<C: Config> ReceiveCallProvider for Pallet<C> {
 
 // TODO: write tests
 // TODO: emit errors
-impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
+impl<T: Config> XbiInstructionHandler<T::RuntimeOrigin> for Pallet<T> {
     fn handle(
-        origin: &T::Origin,
+        origin: &T::RuntimeOrigin,
         xbi: &mut XbiFormat,
     ) -> Result<
         HandlerInfo<frame_support::weights::Weight>,
@@ -129,7 +132,7 @@ impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
                     caller,
                     account_from_account32::<T>(dest)?,
                     value.unique_saturated_into(),
-                    gas_limit,
+                    Weight::from_parts(gas_limit, 0u64),
                     storage_deposit_limit.map(UniqueSaturatedInto::unique_saturated_into),
                     data.clone(),
                     false, // ALWAYS FALSE, could panic the runtime unless over rpc
@@ -137,7 +140,7 @@ impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
                 contract_result
                     .result
                     .map(|r| HandlerInfo {
-                        output: r.data.0,
+                        output: r.data,
                         weight: contract_result.gas_consumed,
                     })
                     .map_err(|e| DispatchErrorWithPostInfo {
@@ -147,9 +150,8 @@ impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
                         },
                         error: e,
                     })
-            }
+            },
             XbiInstruction::CallEvm {
-                source,
                 target,
                 value,
                 ref input,
@@ -158,34 +160,24 @@ impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
                 max_priority_fee_per_gas,
                 nonce,
                 ref access_list,
-            } => {
-                let evm_result = T::Evm::call(
-                    origin.clone(),
-                    source,
-                    target,
-                    input.clone(),
-                    value,
-                    gas_limit,
-                    max_fee_per_gas,
-                    max_priority_fee_per_gas,
-                    nonce,
-                    access_list.clone(),
-                );
-                let weight = evm_result.clone().map(|(_, weight)| weight);
-
-                evm_result
-                    .map(|(x, weight)| HandlerInfo {
-                        output: x.value,
-                        weight,
-                    })
-                    .map_err(|e| DispatchErrorWithPostInfo {
-                        post_info: PostDispatchInfo {
-                            actual_weight: weight.ok(),
-                            pays_fee: Default::default(),
-                        },
-                        error: e,
-                    })
-            }
+            } => T::Evm::call(
+                origin.clone(),
+                target,
+                input.clone(),
+                value,
+                gas_limit,
+                max_fee_per_gas,
+                max_priority_fee_per_gas,
+                nonce,
+                access_list.clone(),
+            )
+            .map_err(|e| DispatchErrorWithPostInfo {
+                post_info: PostDispatchInfo {
+                    actual_weight: None,
+                    pays_fee: Default::default(),
+                },
+                error: e,
+            }),
             XbiInstruction::Swap { .. }
             | XbiInstruction::AddLiquidity { .. }
             | XbiInstruction::RemoveLiquidity { .. }
@@ -210,15 +202,15 @@ impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
                     &caller,
                     &account_from_account32::<T>(dest)?,
                     value.unique_saturated_into(),
-                    keep_alive,
+                    Preservation::Preserve,
                 )
                 .map(|_| Default::default())
                 .map_err(|_| Error::<T>::TransferFailed.into())
-            }
+            },
             ref x => {
                 log::debug!(target: "xbi", "unhandled instruction: {:?}", x);
                 Ok(Default::default())
-            }
+            },
         };
 
         xbi.metadata.fees.push_aggregate(
@@ -229,13 +221,13 @@ impl<T: Config> XbiInstructionHandler<T::Origin> for Pallet<T> {
                 xbi.metadata.fees.push_aggregate(
                     T::FeeConversion::weight_to_fee(&info.weight).unique_saturated_into(),
                 );
-            }
+            },
             Err(err) => {
-                let weight = err.post_info.actual_weight.unwrap_or(0);
+                let weight = err.post_info.actual_weight.unwrap_or(Weight::zero());
                 xbi.metadata.fees.push_aggregate(
                     T::FeeConversion::weight_to_fee(&weight).unique_saturated_into(),
                 );
-            }
+            },
         }
         result
     }

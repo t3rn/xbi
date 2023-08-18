@@ -150,7 +150,7 @@ where
     /// Will remove the item, but will not update the bounds in storage.
     fn pop(&mut self) -> Option<Item> {
         if self.is_empty() {
-            return None;
+            return None
         }
         let item = M::take(self.start);
         self.start = self.start.wrapping_add(1.into());

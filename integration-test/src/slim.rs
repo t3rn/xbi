@@ -1,8 +1,5 @@
-use crate::{
-    _Messenger, _hrmp_channel_parachain_inherent_data, _process_messages, INITIAL_BALANCE,
-};
+use crate::INITIAL_BALANCE;
 use frame_support::traits::GenesisBuild;
-use xcm_emulator::decl_test_parachain;
 
 #[cfg(test)]
 use crate::ALICE;
@@ -15,26 +12,6 @@ use xcm::prelude::*;
 
 pub const SLIM_PARA_ID: u32 = 1;
 pub const SLENDER_PARA_ID: u32 = 2;
-
-decl_test_parachain! {
-    pub struct Slim {
-        Runtime = slim::Runtime,
-        Origin = slim::Origin,
-        XcmpMessageHandler = slim::XcmpQueue,
-        DmpMessageHandler = slim::DmpQueue,
-        new_ext = slim_ext(SLIM_PARA_ID),
-    }
-}
-
-decl_test_parachain! {
-    pub struct Slender {
-        Runtime = slim::Runtime,
-        Origin = slim::Origin,
-        XcmpMessageHandler = slim::XcmpQueue,
-        DmpMessageHandler = slim::DmpQueue,
-        new_ext = slim_ext(SLENDER_PARA_ID),
-    }
-}
 
 pub fn slim_ext(para_id: u32) -> sp_io::TestExternalities {
     use slim::{Runtime, System};
@@ -77,23 +54,23 @@ pub fn log_all_events(chain: &str) {
 #[cfg(test)]
 pub fn register_asset(id: u32, location: MultiLocation, which: &str) {
     assert_ok!(slim::AssetRegistry::register(
-        slim::Origin::root(),
+        slim::RuntimeOrigin::root(),
         location.clone(),
         id
     ));
     assert_ok!(slim::AssetRegistry::register_info(
-        slim::Origin::root(),
+        slim::RuntimeOrigin::root(),
         pallet_asset_registry::AssetInfo::new(id, location.clone(), vec![]) // FIXME: add capabilities
     ));
 
     log_all_events(which);
     assert!(slim::System::events().iter().any(|r| matches!(
             &r.event,
-            slim::Event::AssetRegistry(pallet_asset_registry::Event::Registered { asset_id, location: loc }) if asset_id == &id && &location == loc
+            slim::RuntimeEvent::AssetRegistry(pallet_asset_registry::Event::Registered { asset_id, location: loc }) if asset_id == &id && &location == loc
         )));
     assert!(slim::System::events().iter().any(|r| matches!(
             &r.event,
-            slim::Event::AssetRegistry(pallet_asset_registry::Event::Info { asset_id, location: loc }) if asset_id == &id && &location == loc
+            slim::RuntimeEvent::AssetRegistry(pallet_asset_registry::Event::Info { asset_id, location: loc }) if asset_id == &id && &location == loc
         )));
     slim::System::reset_events();
 }
@@ -109,14 +86,14 @@ pub fn create_asset(
     which: &str,
 ) {
     assert_ok!(slim::Assets::force_create(
-        slim::Origin::root(),
+        slim::RuntimeOrigin::root(),
         id,
         owner.unwrap_or(ALICE),
         true,
         min_balance
     ));
     assert_ok!(slim::Assets::set_metadata(
-        slim::Origin::signed(ALICE),
+        slim::RuntimeOrigin::signed(ALICE),
         id,
         name.encode(),
         symbol.encode(),
@@ -125,14 +102,14 @@ pub fn create_asset(
     log_all_events(which);
     assert!(slim::System::events().iter().any(|r| matches!(
         r.event,
-        slim::Event::Assets(pallet_assets::Event::ForceCreated { asset_id, .. }) if asset_id == id
+        slim::RuntimeEvent::Assets(pallet_assets::Event::ForceCreated { asset_id, .. }) if asset_id == id
     )));
     let n = name;
     let s = symbol;
 
     assert!(slim::System::events().iter().any(|r| matches!(
         &r.event,
-        slim::Event::Assets(pallet_assets::Event::MetadataSet {
+        slim::RuntimeEvent::Assets(pallet_assets::Event::MetadataSet {
             asset_id,
             name,
             symbol,
@@ -145,7 +122,7 @@ pub fn create_asset(
 #[cfg(test)]
 pub fn mint_asset(id: u32, to: sp_runtime::AccountId32, amount: u128) {
     assert_ok!(slim::Assets::mint(
-        slim::Origin::signed(ALICE),
+        slim::RuntimeOrigin::signed(ALICE),
         id,
         to,
         amount
@@ -161,7 +138,7 @@ pub fn mint_asset(id: u32, to: sp_runtime::AccountId32, amount: u128) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Network, RococoNet};
+    use crate::{Network, RococoNet, Slender, Slim};
 
     use codec::Encode;
     use frame_support::{assert_ok, traits::Currency};
@@ -174,32 +151,33 @@ mod tests {
     fn dmp() {
         Network::reset();
 
-        let remark = slim::Call::System(frame_system::Call::<slim::Runtime>::remark_with_event {
-            remark: "Hello from Rococo!".as_bytes().to_vec(),
-        });
+        let remark =
+            slim::RuntimeCall::System(frame_system::Call::<slim::Runtime>::remark_with_event {
+                remark: "Hello from Rococo!".as_bytes().to_vec(),
+            });
         RococoNet::execute_with(|| {
             assert_ok!(rococo_runtime::XcmPallet::force_default_xcm_version(
-                rococo_runtime::Origin::root(),
+                rococo_runtime::RuntimeOrigin::root(),
                 Some(0)
             ));
             assert_ok!(rococo_runtime::XcmPallet::send_xcm(
                 Here,
                 Parachain(1),
                 Xcm(vec![Transact {
-                    origin_type: OriginKind::SovereignAccount,
-                    require_weight_at_most: INITIAL_BALANCE as u64,
+                    origin_kind: OriginKind::SovereignAccount,
+                    require_weight_at_most: (INITIAL_BALANCE as u64).into(),
                     call: remark.encode().into(),
                 }]),
             ));
         });
 
         Slim::execute_with(|| {
-            use slim::{Event, System};
+            use slim::{RuntimeEvent, System};
             log_all_events("Slim");
 
             assert!(System::events().iter().any(|r| matches!(
                 r.event,
-                Event::System(frame_system::Event::Remarked { sender: _, hash: _ })
+                RuntimeEvent::System(frame_system::Event::Remarked { sender: _, hash: _ })
             )));
         });
     }
@@ -215,25 +193,25 @@ mod tests {
             );
         });
 
-        let remark = rococo_runtime::Call::System(
-            frame_system::Call::<rococo_runtime::Runtime>::remark_with_event {
-                remark: "Hello from Pumpkin!".as_bytes().to_vec(),
-            },
-        );
+        let remark = rococo_runtime::RuntimeCall::System(frame_system::Call::<
+            rococo_runtime::Runtime,
+        >::remark_with_event {
+            remark: "Hello from Pumpkin!".as_bytes().to_vec(),
+        });
         Slim::execute_with(|| {
             assert_ok!(slim::PolkadotXcm::send_xcm(
                 Here,
                 Parent,
                 Xcm(vec![Transact {
-                    origin_type: OriginKind::SovereignAccount,
-                    require_weight_at_most: INITIAL_BALANCE as u64,
+                    origin_kind: OriginKind::SovereignAccount,
+                    require_weight_at_most: (INITIAL_BALANCE as u64).into(),
                     call: remark.encode().into(),
                 }]),
             ));
         });
 
         RococoNet::execute_with(|| {
-            use rococo_runtime::{Event, System};
+            use rococo_runtime::{RuntimeEvent, System};
 
             System::events()
                 .iter()
@@ -241,7 +219,7 @@ mod tests {
 
             assert!(System::events().iter().any(|r| matches!(
                 r.event,
-                Event::System(frame_system::Event::NewAccount { account: _ })
+                RuntimeEvent::System(frame_system::Event::NewAccount { account: _ })
             )));
         });
     }
@@ -250,17 +228,18 @@ mod tests {
     fn xcmp() {
         Network::reset();
 
-        let remark = slim::Call::System(frame_system::Call::<slim::Runtime>::remark_with_event {
-            remark: "Hello from Pumpkin!".as_bytes().to_vec(),
-        });
+        let remark =
+            slim::RuntimeCall::System(frame_system::Call::<slim::Runtime>::remark_with_event {
+                remark: "Hello from Pumpkin!".as_bytes().to_vec(),
+            });
 
         Slim::execute_with(|| {
             assert_ok!(slim::PolkadotXcm::send_xcm(
                 Here,
                 MultiLocation::new(1, X1(Parachain(2))),
                 Xcm(vec![Transact {
-                    origin_type: OriginKind::SovereignAccount,
-                    require_weight_at_most: 10_000_000,
+                    origin_kind: OriginKind::SovereignAccount,
+                    require_weight_at_most: 10_000_000.into(),
                     call: remark.encode().into(),
                 }]),
             ));
@@ -269,12 +248,12 @@ mod tests {
         });
 
         Slender::execute_with(|| {
-            use slim::{Event, System};
+            use slim::{RuntimeEvent, System};
             log_all_events("Slender");
 
             assert!(System::events().iter().any(|r| matches!(
                 r.event,
-                Event::System(frame_system::Event::Remarked { sender: _, hash: _ })
+                RuntimeEvent::System(frame_system::Event::Remarked { sender: _, hash: _ })
             )));
         });
     }
@@ -283,21 +262,21 @@ mod tests {
     fn xcmp_through_a_parachain() {
         Network::reset();
 
-        use slim::{Call, PolkadotXcm, Runtime};
+        use slim::{PolkadotXcm, Runtime, RuntimeCall};
 
-        // The message goes through: Pumpkin --> Mushroom --> Octopus
-        let remark = Call::System(frame_system::Call::<Runtime>::remark_with_event {
+        // The message goes through: Slim --> Slender
+        let remark = RuntimeCall::System(frame_system::Call::<Runtime>::remark_with_event {
             remark: "Hello from Pumpkin!".as_bytes().to_vec(),
         });
 
-        let send_xcm_to_t1rn = Call::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
-            dest: Box::new(VersionedMultiLocation::V1(MultiLocation::new(
+        let call = RuntimeCall::PolkadotXcm(pallet_xcm::Call::<Runtime>::send {
+            dest: Box::new(VersionedMultiLocation::V3(MultiLocation::new(
                 1,
                 X1(Parachain(SLENDER_PARA_ID)),
             ))),
-            message: Box::new(VersionedXcm::V2(Xcm(vec![Transact {
-                origin_type: OriginKind::SovereignAccount,
-                require_weight_at_most: 10_000_000,
+            message: Box::new(VersionedXcm::V3(Xcm(vec![Transact {
+                origin_kind: OriginKind::SovereignAccount,
+                require_weight_at_most: 10_000_000.into(),
                 call: remark.encode().into(),
             }]))),
         });
@@ -306,35 +285,35 @@ mod tests {
                 Here,
                 MultiLocation::new(1, X1(Parachain(SLIM_PARA_ID))),
                 Xcm(vec![Transact {
-                    origin_type: OriginKind::SovereignAccount,
-                    require_weight_at_most: 100_000_000,
-                    call: send_xcm_to_t1rn.encode().into(),
+                    origin_kind: OriginKind::SovereignAccount,
+                    require_weight_at_most: 100_000_000_000.into(),
+                    call: call.encode().into(),
                 }]),
             ));
         });
 
         Slim::execute_with(|| {
-            use slim::{Event, System};
+            use slim::{RuntimeEvent, System};
             log_all_events("Slim");
 
             assert!(System::events().iter().any(|r| matches!(
                 r.event,
-                Event::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. })
+                RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::XcmpMessageSent { .. })
             )));
             assert!(System::events().iter().any(|r| matches!(
                 r.event,
-                Event::PolkadotXcm(pallet_xcm::Event::Sent(_, _, _))
+                RuntimeEvent::PolkadotXcm(pallet_xcm::Event::Sent(_, _, _))
             )));
         });
 
         Slender::execute_with(|| {
-            use slim::{Event, System};
+            use slim::{RuntimeEvent, System};
             // execution would fail, but good enough to check if the message is received
             log_all_events("Slender");
 
             assert!(System::events().iter().any(|r| matches!(
                 r.event,
-                Event::XcmpQueue(cumulus_pallet_xcmp_queue::Event::Fail { .. })
+                RuntimeEvent::XcmpQueue(cumulus_pallet_xcmp_queue::Event::Fail { .. })
             )));
         });
     }
@@ -344,7 +323,7 @@ mod tests {
         Network::reset();
         RococoNet::execute_with(|| {
             assert_ok!(rococo_runtime::XcmPallet::force_default_xcm_version(
-                rococo_runtime::Origin::root(),
+                rococo_runtime::RuntimeOrigin::root(),
                 Some(0)
             ));
         });
@@ -370,7 +349,7 @@ mod tests {
         Network::reset();
         RococoNet::execute_with(|| {
             assert_ok!(rococo_runtime::XcmPallet::force_default_xcm_version(
-                rococo_runtime::Origin::root(),
+                rococo_runtime::RuntimeOrigin::root(),
                 Some(0)
             ));
         });
@@ -380,17 +359,18 @@ mod tests {
     }
 
     fn rococo_send_rmrk(msg: &str, count: u32) {
-        let remark = slim::Call::System(frame_system::Call::<slim::Runtime>::remark_with_event {
-            remark: msg.as_bytes().to_vec(),
-        });
+        let remark =
+            slim::RuntimeCall::System(frame_system::Call::<slim::Runtime>::remark_with_event {
+                remark: msg.as_bytes().to_vec(),
+            });
         RococoNet::execute_with(|| {
             for _ in 0..count {
                 assert_ok!(rococo_runtime::XcmPallet::send_xcm(
                     Here,
                     Parachain(1),
                     Xcm(vec![Transact {
-                        origin_type: OriginKind::SovereignAccount,
-                        require_weight_at_most: INITIAL_BALANCE as u64,
+                        origin_kind: OriginKind::SovereignAccount,
+                        require_weight_at_most: (INITIAL_BALANCE as u64).into(),
                         call: remark.encode().into(),
                     }]),
                 ));
@@ -399,8 +379,8 @@ mod tests {
     }
 
     fn parachain_receive_and_reset_events(received: bool) {
-        Slim::execute_with(|| {
-            use slim::{Event, System};
+        crate::Slim::execute_with(|| {
+            use slim::{RuntimeEvent, System};
             System::events()
                 .iter()
                 .for_each(|r| println!(">>> {:?}", r.event));
@@ -408,14 +388,14 @@ mod tests {
             if received {
                 assert!(System::events().iter().any(|r| matches!(
                     r.event,
-                    Event::System(frame_system::Event::Remarked { sender: _, hash: _ })
+                    RuntimeEvent::System(frame_system::Event::Remarked { sender: _, hash: _ })
                 )));
 
                 System::reset_events();
             } else {
                 assert!(System::events().iter().all(|r| !matches!(
                     r.event,
-                    Event::System(frame_system::Event::Remarked { sender: _, hash: _ })
+                    RuntimeEvent::System(frame_system::Event::Remarked { sender: _, hash: _ })
                 )));
             }
         });

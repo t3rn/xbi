@@ -7,6 +7,7 @@ pub use pallet::*;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
     pallet_prelude::DispatchResult,
+    traits::ProcessMessageError,
     weights::{Weight, WeightToFee},
 };
 use frame_system::pallet_prelude::OriginFor;
@@ -16,12 +17,11 @@ use sp_runtime::{
     DispatchError, Either,
 };
 use sp_std::{marker::PhantomData, prelude::*};
+use xcm::latest::Weight as XCMWeight;
 use xcm_executor::{
-    traits::{ShouldExecute, WeightTrader},
+    traits::{Properties, ShouldExecute, WeightTrader},
     Assets,
 };
-
-use xcm::latest::Weight as XCMWeight;
 
 pub mod convert;
 
@@ -110,9 +110,9 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
-        type Call: From<Call<Self>>;
+        type RuntimeCall: From<Call<Self>>;
 
         type Currency: ReservableCurrency<Self::AccountId>;
 
@@ -172,7 +172,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// A dispatchable that allows anyone to register a mapping for an asset
-        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn register(
             origin: OriginFor<T>,
             location: MultiLocation,
@@ -192,7 +192,7 @@ pub mod pallet {
             let is_root = who.is_none();
             // Root can register anything
             if is_root || can_register {
-                <LocationMapping<T>>::insert(location.clone(), id);
+                <LocationMapping<T>>::insert(location.clone(), id.clone());
                 Self::deposit_event(Event::Registered {
                     asset_id: id,
                     location,
@@ -206,7 +206,7 @@ pub mod pallet {
         // TODO: expand this to allow over XBI
         /// A dispatchable that allows sudo to register asset information
         /// In the future this can be updated either by owners, parachains over xcm or by sudo
-        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn register_info(
             origin: OriginFor<T>,
             info: AssetInfo<AssetIdOf<T>, T::AccountId, BalanceOf<T>>,
@@ -214,7 +214,7 @@ pub mod pallet {
             ensure_root(origin)?;
             can_put_capabilities::<T>(&info.capabilities)?;
 
-            <AssetMetadata<T>>::insert(info.id, info.clone());
+            <AssetMetadata<T>>::insert(info.id.clone(), info.clone());
             Self::deposit_event(Event::Info {
                 asset_id: info.id,
                 location: info.location,
@@ -323,36 +323,35 @@ impl<T: Config> AssetRegistry<OriginFor<T>, T::AccountId, BalanceOf<T>, AssetIdO
 impl<T: Config> ShouldExecute for Pallet<T> {
     fn should_execute<Call>(
         origin: &MultiLocation,
-        message: &mut Xcm<Call>,
+        instructions: &mut [Instruction<Call>],
         _max_weight: Weight,
-        _weight_credit: &mut Weight,
-    ) -> Result<(), ()> {
-        log::debug!(target: "asset-registry", "Should execute for origin({:?}) and message({:?})", origin, message);
+        _properties: &mut Properties,
+    ) -> Result<(), ProcessMessageError> {
+        log::debug!(target: "asset-registry", "Should execute for origin({:?}) and message({:?})", origin, instructions);
         // first, get ID from location
         let id = <Pallet<T>>::lookup(Either::Left(origin.clone()))
-            .map_err(|_| ())?
+            .map_err(|_| ProcessMessageError::Unsupported)?
             .left()
-            .ok_or(())
-            .inspect_err(|_| log::debug!(target: "asset-registry", "ShouldntExecuteMessage - Asset lookup not found"))?;
+            .ok_or(ProcessMessageError::Unsupported)
+            .inspect_err(|e| log::debug!(target: "asset-registry", "ShouldntExecuteMessage - Asset lookup not found"))?;
 
-        // get info from ID
-        let info = <AssetMetadata<T>>::get(id).ok_or(()).inspect_err(
+        let info = <AssetMetadata<T>>::get(id).ok_or(ProcessMessageError::Unsupported).inspect_err(
             |_| log::debug!(target: "asset-registry", "ShouldntExecuteMessage - Asset not found"),
         )?;
 
         let mut has_checked = [false; CAPABILITY_COUNT];
 
         //ensure the capabilities are permitted for given asset
-        let (_, errors) = message
-            .0
+        let (_, errors) = instructions
             .iter()
             .filter_map(|i| Capability::<T::AccountId, BalanceOf<T>>::try_from(i).ok())
             .map(|capability: Capability<T::AccountId, BalanceOf<T>>| {
                 if !has_checked[capability.as_usize()] {
                     has_checked[capability.as_usize()] = true;
-                    soft_capability_lookup::<T>(&capability, &info.capabilities).map(|_| ()).inspect_err(|_| {
+                    soft_capability_lookup::<T>(&capability, &info.capabilities).map(|_| ProcessMessageError::Unsupported).inspect_err(|e| {
                         log::debug!(target: "asset-registry", "ShouldntExecuteMessage - Capability not permitted: {:?}", capability);
-                    })
+                    });
+                    Err(ProcessMessageError::Unsupported)
                 } else {
                     Ok(())
                 }
@@ -362,7 +361,7 @@ impl<T: Config> ShouldExecute for Pallet<T> {
         if errors.is_empty() {
             Ok(())
         } else {
-            Err(())
+            Err(ProcessMessageError::BadFormat)
         }
     }
 }
@@ -400,7 +399,7 @@ impl<T: Config, WeightToFeeConverter: WeightToFee<Balance = BalanceOf<T>>> Weigh
             <LocationMapping<T>>::get::<MultiLocation>(location.clone())
                 .ok_or(XcmError::AssetNotFound)?
         } else {
-            return Err(XcmError::AssetNotFound);
+            return Err(XcmError::AssetNotFound)
         };
 
         // Get metadata for first asset from storages
@@ -427,7 +426,7 @@ impl<T: Config, WeightToFeeConverter: WeightToFee<Balance = BalanceOf<T>>> Weigh
                     .ok_or(XcmError::WeightNotComputable)?
                     .try_into()
                     .map_err(|_| XcmError::WeightNotComputable)?
-            }
+            },
             _ => return Err(XcmError::WeightNotComputable),
         };
 
@@ -450,8 +449,8 @@ impl<T: Config, WeightToFeeConverter: WeightToFee<Balance = BalanceOf<T>>> Weigh
         // ensure weight <= self.weight, which is the amount that was bought
         let weight = weight.min(self.weight);
 
-        if weight <= Zero::zero() {
-            return None; // return if no weight can be refunded
+        if weight.ref_time() <= Zero::zero() {
+            return None // return if no weight can be refunded
         }
 
         let fee = WeightToFeeConverter::weight_to_fee(&weight);
@@ -514,7 +513,7 @@ fn soft_capability_lookup<T: Config>(
                 None => Err(Error::<T>::CapabilitiesNotPermitted),
                 Some(capability) => Ok(capability.clone()),
             }
-        }
+        },
         Capability::Reserve(_) => {
             match capabilities
                 .iter()
@@ -523,7 +522,7 @@ fn soft_capability_lookup<T: Config>(
                 None => Err(Error::<T>::CapabilitiesNotPermitted),
                 Some(capability) => Ok(capability.clone()),
             }
-        }
+        },
         Capability::Payable { .. } => {
             match capabilities
                 .iter()
@@ -532,7 +531,7 @@ fn soft_capability_lookup<T: Config>(
                 None => Err(Error::<T>::CapabilitiesNotPermitted),
                 Some(capability) => Ok(capability.clone()),
             }
-        }
+        },
     }
 }
 

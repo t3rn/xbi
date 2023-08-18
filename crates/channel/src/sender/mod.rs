@@ -78,10 +78,10 @@ mod tests {
     impl Dispatchable for DummyDispatch {
         type Config = Vec<u8>;
         type Info = Vec<u8>;
-        type Origin = u64;
         type PostInfo = u8;
+        type RuntimeOrigin = u64;
 
-        fn dispatch(self, origin: Self::Origin) -> DispatchResultWithInfo<Self::PostInfo> {
+        fn dispatch(self, origin: Self::RuntimeOrigin) -> DispatchResultWithInfo<Self::PostInfo> {
             let mut guard = DISPATCH_RESULTS.lock().unwrap();
             guard.insert(origin, self.0);
 
@@ -159,11 +159,11 @@ mod tests {
                     assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 1000);
 
                     Ok(x)
-                }
+                },
                 Err(e) => {
                     QUEUE.lock().unwrap().insert(1_u8, 0);
                     Err(e)
-                }
+                },
             }),
         )
         .unwrap();
@@ -186,11 +186,11 @@ mod tests {
                         QUEUE.lock().unwrap().insert(1_u8, new_x);
                         assert_eq!(*QUEUE.lock().unwrap().get(&1_u8).unwrap(), 1000); // x + x
                         DummySender::resolve(new_x + new_x, Box::new(|result| result))
-                    }
+                    },
                     Err(e) => {
                         QUEUE.lock().unwrap().insert(1_u8, 0);
                         Err(e)
-                    }
+                    },
                 }
             }),
         )

@@ -1,4 +1,3 @@
-#![feature(box_syntax)]
 #![feature(result_option_inspect)]
 #![cfg_attr(not(feature = "std"), no_std)]
 

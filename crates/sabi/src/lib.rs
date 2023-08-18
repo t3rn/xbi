@@ -4,9 +4,7 @@ use codec::{Decode, Encode};
 use error::Error;
 use sp_core::U256;
 use sp_runtime::traits::Convert;
-use sp_std::marker::PhantomData;
-use sp_std::prelude::*;
-use sp_std::vec;
+use sp_std::{marker::PhantomData, prelude::*, vec};
 
 /// Global XBI Types.
 pub type Data = Vec<u8>;
@@ -137,22 +135,22 @@ where
                 let val: Result<Value32, Error> =
                     Decode::decode(a.to_morph).map_err(|_| Error::FailedToCastBetweenTypesValue);
                 val.map(Self::convert)
-            }
+            },
             8 => {
                 let val: Result<Value64, Error> =
                     Decode::decode(a.to_morph).map_err(|_| Error::FailedToCastBetweenTypesValue);
                 val.map(Self::convert)
-            }
+            },
             16 => {
                 let val: Result<Value128, Error> =
                     Decode::decode(a.to_morph).map_err(|_| Error::FailedToCastBetweenTypesValue);
                 val.map(Self::convert)
-            }
+            },
             32 => {
                 let val: Result<Value256, Error> =
                     Decode::decode(a.to_morph).map_err(|_| Error::FailedToCastBetweenTypesValue);
                 val.map(Self::convert)
-            }
+            },
             _ => Err(Error::FailedToCastBetweenTypesValue),
         }
     }
@@ -177,22 +175,22 @@ where
                 let val: Result<Value32, Error> =
                     Decode::decode(a.to_morph).map_err(|_| Error::FailedToCastBetweenTypesValue);
                 val.map(Self::convert).map(|o| Some(o))
-            }
+            },
             9 => {
                 let val: Result<Value64, Error> =
                     Decode::decode(a.to_morph).map_err(|_| Error::FailedToCastBetweenTypesValue);
                 val.map(Self::convert).map(|o| Some(o))
-            }
+            },
             17 => {
                 let val: Result<Value128, Error> =
                     Decode::decode(a.to_morph).map_err(|_| Error::FailedToCastBetweenTypesValue);
                 val.map(Self::convert).map(|o| Some(o))
-            }
+            },
             33 => {
                 let val: Result<Value256, Error> =
                     Decode::decode(a.to_morph).map_err(|_| Error::FailedToCastBetweenTypesValue);
                 val.map(Self::convert).map(|o| Some(o))
-            }
+            },
             _ => Err(Error::FailedToCastBetweenTypesValue),
         }
     }

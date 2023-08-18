@@ -3,8 +3,7 @@ use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_core::U256;
 use sp_runtime::traits::Convert;
-use sp_std::prelude::*;
-use sp_std::vec;
+use sp_std::{prelude::*, vec};
 use substrate_abi::{
     error::Error as SabiError, AccountId20, Data, Gas, SubstrateAbiConverter, TryConvert, Value256,
 };

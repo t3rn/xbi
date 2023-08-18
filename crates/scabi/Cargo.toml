@@ -11,14 +11,14 @@ version     = "0.3.7"
 [dependencies]
 log = { version = "0.4", default-features = false }
 
-codec      = { package = "parity-scale-codec", version = "3", default-features = false }
+codec      = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
 scale-info = { version = "2.1.1", default-features = false, features = [ "derive" ] }
 
-sp-core    = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "6.0.0" }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "6.0.0" }
-sp-std     = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false, version = "4.0.0" }
+sp-core    = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
+sp-std     = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", default-features = false }
 
-substrate-abi = { path = "../sabi", default-features = false, version = "0.3" }
+substrate-abi = { path = "../sabi", default-features = false }
 
 [features]
 default = [ "std" ]

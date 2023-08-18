@@ -1,4 +1,4 @@
-use crate::{Aura, Balances, Event, Runtime};
+use crate::{Aura, Balances, Runtime, RuntimeEvent, Timestamp};
 use frame_support::{parameter_types, traits::FindAuthor, weights::Weight};
 use pallet_3vm_evm::{
     EnsureAddressNever, GasWeightMapping, StoredHashAddressMapping, SubstrateBlockHashMapping,
@@ -26,7 +26,7 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
     {
         if let Some(author_index) = F::find_author(digests) {
             let authority_id = Aura::authorities()[author_index as usize].clone();
-            return Some(H160::from_slice(&authority_id.to_raw_vec()[4..24]));
+            return Some(H160::from_slice(&authority_id.to_raw_vec()[4..24]))
         }
         None
     }
@@ -34,19 +34,12 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
 
 pub struct FreeGasWeightMapping;
 impl GasWeightMapping for FreeGasWeightMapping {
-    fn gas_to_weight(_gas: u64) -> Weight {
-        0
+    fn gas_to_weight(_gas: u64, without_base_weight: bool) -> Weight {
+        Default::default()
     }
 
     fn weight_to_gas(_weight: Weight) -> u64 {
         0
-    }
-}
-
-pub struct FreeGasPrice;
-impl FeeCalculator for FreeGasPrice {
-    fn min_gas_price() -> U256 {
-        0.into()
     }
 }
 
@@ -63,6 +56,7 @@ parameter_types! {
         (6_u64, evm_precompile_util::KnownPrecompile::Sha3FIPS512),
         (7_u64, evm_precompile_util::KnownPrecompile::ECRecoverPublicKey),
     ].into_iter().collect());
+    pub WeightPerGas: Weight = Weight::from_parts(20_000, 0u64);
 }
 
 impl pallet_3vm_evm::Config for Runtime {
@@ -72,14 +66,18 @@ impl pallet_3vm_evm::Config for Runtime {
     type CallOrigin = EnsureAddressNever<Self::AccountId>;
     type ChainId = ChainId;
     type Currency = Balances;
-    type Event = Event;
-    type FeeCalculator = FreeGasPrice;
+    type FeeCalculator = ();
     type FindAuthor = FindAuthorTruncated<Aura>;
     type GasWeightMapping = FreeGasWeightMapping;
     type OnChargeTransaction = ThreeVMCurrencyAdapter<Balances, ()>;
+    type OnCreate = ();
     type PrecompilesType = evm_precompile_util::Precompiles;
     type PrecompilesValue = PrecompilesValue;
     type Runner = pallet_3vm_evm::runner::stack::Runner<Self>;
+    type RuntimeEvent = RuntimeEvent;
     type ThreeVm = t3rn_primitives::threevm::NoopThreeVm;
+    type Timestamp = Timestamp;
+    type WeightInfo = ();
+    type WeightPerGas = WeightPerGas;
     type WithdrawOrigin = EnsureAddressNever<Self::AccountId>;
 }
